@@ -1,24 +1,15 @@
 from pydantic import BaseModel
 
-class UserBase(BaseModel):
+# Esquema para el registro de un nuevo usuario
+class UserRegister(BaseModel):
     email: str
-    role: str  # 'totem', 'company_admin', 'polo_admin'
-
-class UserCreate(UserBase):
     password: str
-
-class UserResponse(UserBase):
-    id: int
-    company_id: int
+    role: str  # 'admin', 'admin_empresa', 'usuario'
 
     class Config:
         orm_mode = True
 
-class CompanyBase(BaseModel):
-    name: str
-
-class CompanyResponse(CompanyBase):
-    id: int
-
-    class Config:
-        orm_mode = True
+# Esquema para el login
+class UserLogin(BaseModel):
+    email: str
+    password: str
