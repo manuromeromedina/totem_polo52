@@ -8,7 +8,6 @@ from app import models, schemas, services
 from app.config import SessionLocal, SECRET_KEY, ALGORITHM
 from app.services import hash_password, verify_password, create_access_token
 
-
 # Configuración de OAuth2 para manejar el token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -30,10 +29,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_email: str = payload.get("sub")
-        if user_email is None:
+        user_name: str = payload.get("sub")
+        if user_name is None:
             raise credentials_exception
-        user = db.query(models.User).filter(models.User.email == user_email).first()
+        user = db.query(models.User).filter(models.User.nombre == user_name).first()  # Aquí usamos 'nombre'
         if user is None:
             raise credentials_exception
         return user  # Retorna el usuario obtenido de la base de datos
@@ -56,14 +55,14 @@ def read_root():
 # Ruta para registrar un nuevo usuario (solo para administradores)
 @app.post("/register")
 def register(user: schemas.UserRegister, db: Session = Depends(get_db), current_user: models.User = Depends(require_admin_role)):
-    # Verificar si el email ya está registrado
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    # Verificar si el nombre ya está registrado
+    db_user = db.query(models.User).filter(models.User.nombre == user.nombre).first()  # Aquí usamos 'nombre'
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Name already registered")
 
-    # Hash de la contraseña
+    # Hashear la contraseña
     hashed_password = services.hash_password(user.password)
-    new_user = models.User(email=user.email, hashed_password=hashed_password, role=user.role)
+    new_user = models.User(nombre=user.nombre, hashed_password=hashed_password, role=user.role)  # Usamos 'nombre' y 'hashed_password'
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -72,18 +71,19 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db), current_
 # Ruta para login (iniciar sesión)
 @app.post("/login")
 async def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    # Aquí usamos 'nombre' para la consulta
+    db_user = db.query(models.User).filter(models.User.nombre == user.nombre).first()  # Usamos 'nombre'
     if db_user is None or not services.verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # Crear y devolver el token JWT
-    access_token = services.create_access_token(data={"sub": db_user.email, "role": db_user.role})
+    access_token = services.create_access_token(data={"sub": db_user.nombre, "role": db_user.role})
     return {"access_token": access_token, "token_type": "bearer"}
 
 # Ruta para obtener información de la empresa (solo para admins o usuarios de la empresa)
 @app.get("/company-info")
 async def get_company_info(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == current_user.email).first()
+    db_user = db.query(models.User).filter(models.User.nombre == current_user.nombre).first()  # Usamos 'nombre'
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -101,5 +101,4 @@ async def get_company_info(current_user: models.User = Depends(get_current_user)
 # Ruta para obtener información de usuario
 @app.get("/user-info")
 async def get_user_info(current_user: models.User = Depends(get_current_user)):
-    return {"email": current_user.email, "role": current_user.role}
-
+    return {"nombre": current_user.nombre, "role": current_user.role}  # Usamos 'nombre' en lugar de 'email'
