@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 # Esquema para el registro de un nuevo usuario
 class UserRegister(BaseModel):
-    email: str
+    nombre: str  # Cambié 'email' por 'nombre'
     password: str
     role: str  # 'admin', 'admin_empresa', 'usuario'
 
@@ -11,5 +11,5 @@ class UserRegister(BaseModel):
 
 # Esquema para el login
 class UserLogin(BaseModel):
-    email: str
+    nombre: str  # Cambié 'email' por 'nombre'
     password: str
