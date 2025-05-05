@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AlertModal from "../components/AlertModal";
-import './ForgotPasswordPage.css';
+import '../styles/ForgotPasswordPage.css';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
