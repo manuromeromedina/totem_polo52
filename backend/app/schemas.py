@@ -1,15 +1,15 @@
+# app/schemas.py
+
 from pydantic import BaseModel
 
-# Esquema para el registro de un nuevo usuario
 class UserRegister(BaseModel):
-    nombre: str  # Cambié 'email' por 'nombre'
+    nombre: str
     password: str
-    role: str  # 'admin', 'admin_empresa', 'usuario'
+    cuil: int         # lo necesitas para la FK
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # pydantic v2
 
-# Esquema para el login
 class UserLogin(BaseModel):
-    nombre: str 
+    nombre: str
     password: str
