@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { login } from '../services/authService'
 import Input from '../components/Input'
 import Button from '../components/Button'
+import { Link } from 'react-router-dom';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('')
@@ -27,7 +28,10 @@ const LoginPage = () => {
       <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña" />
       <Button type="submit">Iniciar sesión</Button>
       <p>
-        ¿No tienes cuenta? <a href="/register">Registrate aquí</a>
+        ¿No tienes cuenta? <a href="/register">Registrate aquí</a>  
+      </p>
+      <p>
+        ¿Olvidaste tu contraseña? <Link to="/recuperar">Recuperala aquí</Link>
       </p>
     </form>
   )
