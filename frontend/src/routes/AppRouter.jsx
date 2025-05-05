@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import LoginPage from '../pages/LoginPage'
+import LoginPage from '../Pages/LoginPage'
 import RegisterPage from '../Pages/RegisterPage'
-import ForgotpasswordPage from '../pages/ForgotpasswordPage'
+import ForgotpasswordPage from '../components/ForgotpasswordPage'
 
 
 const AppRouter = () => (
