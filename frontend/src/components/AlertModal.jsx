@@ -1,7 +1,7 @@
 // src/components/AlertModal.jsx
 
 import React from 'react';
-import './AlertModal.css';  // Asegúrate de tener un archivo CSS para los estilos del modal
+import '../styles/AlertModal.css';  // Asegúrate de tener un archivo CSS para los estilos del modal
 
 const AlertModal = ({ message, error, onClose }) => {
   return (
