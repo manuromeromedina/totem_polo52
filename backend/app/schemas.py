@@ -11,5 +11,5 @@ class UserRegister(BaseModel):
 
 # Esquema para el login
 class UserLogin(BaseModel):
-    nombre: str  # Cambié 'email' por 'nombre'
+    nombre: str 
     password: str
