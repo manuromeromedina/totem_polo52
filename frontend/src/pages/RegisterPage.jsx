@@ -33,7 +33,7 @@ const RegisterPage = () => {
       <h2>Registrarse</h2>
       <Input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" />
       <Input type="text" value={apellido} onChange={(e) => setApellido(e.target.value)} placeholder="Apellido" />
-      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Correo" />
+      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Correo@dominio.com" />
       <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña" />
       <Input type="password" value={repeatPassword} onChange={(e) => setRepeatPassword(e.target.value)} placeholder="Repetir Contraseña" />
       <Button type="submit">Registrarse</Button>
