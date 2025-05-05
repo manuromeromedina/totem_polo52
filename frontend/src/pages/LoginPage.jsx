@@ -34,7 +34,7 @@ const LoginPage = () => {
     <>
     <form onSubmit={handleSubmit} className="form-container">
       <h2>Iniciar sesión</h2>
-      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Correo" />
+      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Correo@dominio.com" />
       <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña" />
       <Button type="submit">Iniciar sesión</Button>
       <p className='texto-chico'>
