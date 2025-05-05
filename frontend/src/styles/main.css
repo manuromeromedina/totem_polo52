@@ -10,7 +10,7 @@ body {
     min-height: 350px;
     margin: 80px auto;
     padding: 3rem 2rem;
-    background-color: white;
+    background-color: rgb(227, 227, 227);
     border-radius: 15px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
@@ -26,6 +26,11 @@ body {
     border-radius: 4px;
   }
   
+  h2{
+    padding-bottom: 20px;
+    font-size: 30px ;
+}
+
   button {
     width: 95%; /* o 90% si querés más margen */
     margin: 0 auto 1rem auto; /* centrarlos */
@@ -53,4 +58,11 @@ body {
   .texto-chico{
     padding-top: 20px;
     font-size: small;
+  }
+
+  span{
+   color: #3b82f6; 
+   cursor: pointer;
+   font-size: small;
+   text-decoration: underline;
   }
