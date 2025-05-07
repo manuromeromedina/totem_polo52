@@ -1,25 +1,35 @@
+# app/services.py
+
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
-from jose import JWTError, jwt
+from jose import jwt
+from app.config import SECRET_KEY, ALGORITHM
 
+# Contexto para bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Función para hacer el hash de la contraseña
-def hash_password(password: str):
-    return pwd_context.hash(password)
-
-# Función para verificar la contraseña
-def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password, hashed_password)
-
-# Función para crear el token JWT
-SECRET_KEY = "your_secret_key"
-ALGORITHM = "HS256"
+# Tiempo de expiración por defecto (minutos)
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
+def hash_password(password: str) -> str:
+    """
+    Hashea la contraseña en claro usando bcrypt.
+    """
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verifica que la contraseña en claro coincida con el hash almacenado.
+    """
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """
+    Genera un JWT incluyendo los campos de `data` y un 'exp' que vence tras
+    ACCESS_TOKEN_EXPIRE_MINUTES (o el expires_delta pasado).
+    """
     to_encode = data.copy()
-    expire = datetime.utcnow() + expires_delta
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return token
