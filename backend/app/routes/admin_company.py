@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 from datetime import date
 from typing import List, Optional
 
-from app.config import SessionLocal
-from app.models import Empresa, Rol, RolUsuario
-from app.schemas import EmpresaOut, EmpresaCreate, EmpresaUpdate, RolOut
-from app.main import require_admin_polo  # tu dependencia RBAC
+from app.config import SessionLocal                # para crear la sesión
+from app.models import Empresa                      # tu modelo de empresa
+from app.schemas import EmpresaOut, EmpresaCreate, EmpresaUpdate
+from app.main import require_admin_polo             # tu dependencia RBAC
 
 router = APIRouter(
     prefix="/companies",
@@ -67,9 +67,11 @@ def update_company(
     emp = db.query(Empresa).filter(Empresa.cuil == cuil).first()
     if not emp:
         raise HTTPException(404, "Empresa no encontrada")
+
     data = dto.model_dump(exclude_unset=True)
     for field, val in data.items():
         setattr(emp, field, val)
+
     db.commit()
     db.refresh(emp)
     return emp
