@@ -60,7 +60,6 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     password: Optional[str]
-    estado: Optional[str]
 
     model_config = {"from_attributes": True}
 
@@ -99,5 +98,32 @@ class EmpresaUpdate(BaseModel):
     observaciones:   Optional[str]
     fecha_ingreso:   Optional[date]
     horario_trabajo: Optional[str]
+
+    model_config = {"from_attributes": True}
+
+
+# -----------------------------------------------------------------------------
+# Esquemas específicos para "Usuario de Empresa"
+# -----------------------------------------------------------------------------
+
+class MeOut(BaseModel):
+    user: UserOut
+    empresa: EmpresaOut
+
+    model_config = {"from_attributes": True}
+
+
+class EmpresaSelfUpdate(BaseModel):
+    cant_empleados: Optional[int]
+    observaciones: Optional[str]
+    horario_trabajo: Optional[str]
+
+    model_config = {"from_attributes": True}
+
+
+class InternalOut(BaseModel):
+    dotacion: int                 # reutilizamos cant_empleados
+    energia: Optional[float]      # si lo tuvieras en otra tabla
+    residuos: Optional[float]     # idem
 
     model_config = {"from_attributes": True}
