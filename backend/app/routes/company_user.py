@@ -40,20 +40,27 @@ def read_me(
 @router.put(
     "/me",
     response_model=schemas.UserOut,
-    summary="Actualizar mis datos de usuario"
+    summary="Actualizar mi contraseña"
 )
 def update_me(
-    dto: schemas.UserUpdate,
+    dto: schemas.UserPasswordUpdate,               # nuevo esquema solo con 'password'
     current_user: models.Usuario = Depends(get_current_user),
     db: Session                    = Depends(get_db),
 ):
-    data = dto.model_dump(exclude_unset=True)
-    # Si viene password, hasheamos con el servicio correcto
-    if "password" in data:
-        current_user.contrasena = services.hash_password(data.pop("password"))
+    # Re-consulto al usuario en esta misma sesión
+    u = (
+        db.query(models.Usuario)
+          .filter(models.Usuario.id_usuario == current_user.id_usuario)
+          .first()
+    )
+    if not u:
+        raise HTTPException(404, "Usuario no encontrado")
+
+    # Solo cambia la contraseña
+    u.contrasena = services.hash_password(dto.password)
     db.commit()
-    db.refresh(current_user)
-    return current_user
+    db.refresh(u)
+    return u
 
 # 3) GET /companies/{cuil}/details
 @router.get(
@@ -118,6 +125,6 @@ def company_internal(
 
     return schemas.InternalOut(
         dotacion=empresa.cant_empleados,
-        energia=None,   # reemplaza con la consulta real
-        residuos=None   # reemplaza con la consulta real
+        energia=None,   # reemplaza con tu lógica de energía
+        residuos=None   # reemplaza con tu lógica de residuos
     )
