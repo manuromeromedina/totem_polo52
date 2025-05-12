@@ -127,3 +127,8 @@ class InternalOut(BaseModel):
     residuos: Optional[float]     # idem
 
     model_config = {"from_attributes": True}
+
+class UserPasswordUpdate(BaseModel):
+    password: str
+
+    model_config = {"from_attributes": True}
