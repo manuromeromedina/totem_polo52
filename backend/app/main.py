@@ -121,7 +121,7 @@ def login(
 # ─── ADMIN_POLO ROUTERS ────────────────────────────────────────────────────────
 
 from app.routes.admin_users   import router as admin_users_router
-from app.routes.admin_company import router as admin_company_router
+
 
 app.include_router(
     admin_users_router,
@@ -130,12 +130,6 @@ app.include_router(
     dependencies=[Depends(require_admin_polo)],
 )
 
-app.include_router(
-    admin_company_router,
-    prefix="/companies",
-    tags=["admin_polo"],
-    dependencies=[Depends(require_admin_polo)],
-)
 
 # ─── EMPRESA ROUTERS ──────────────────────────────────────────────────────────
 
@@ -143,8 +137,8 @@ from app.routes.company_user import router as company_user_router
 
 app.include_router(
     company_user_router,
-    tags=["empresa"],
-    dependencies=[Depends(require_empresa_role)],
+    # sin prefix
+    dependencies=[Depends(require_empresa_role)]
 )
 
 # ─── ROLES ROUTER ────────────────────────────────────────────────────────────
@@ -156,6 +150,10 @@ app.include_router(
     prefix="/roles",
     tags=["roles"],
 )
+
+from app.routes.public import router as public_router
+
+app.include_router(public_router)
 
 # ─── RAÍZ ─────────────────────────────────────────────────────────────────────
 
