@@ -88,66 +88,12 @@ class EmpresaCreate(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class EmpresaUpdate(BaseModel):
+class EmpresaAdminUpdate(BaseModel):
+    """
+    Sólo estos campos podrá tocar un admin_polo:
+    """
     nombre: Optional[str]
-    rubro: Optional[str]
-    cant_empleados: Optional[int]
-    observaciones: Optional[str]
-    fecha_ingreso: Optional[date]
-    horario_trabajo: Optional[str]
-
-    model_config = {"from_attributes": True}
-
-
-# ─── Esquemas para Usuario de Empresa ─────────────────────────────────────────
-
-class MeOut(BaseModel):
-    user: UserOut
-    empresa: EmpresaOut
-
-    model_config = {"from_attributes": True}
-
-
-class UserPasswordUpdate(BaseModel):
-    password: str
-
-    model_config = {"from_attributes": True}
-
-
-class EmpresaSelfUpdate(BaseModel):
-    cant_empleados: Optional[int]
-    observaciones: Optional[str]
-    horario_trabajo: Optional[str]
-
-    model_config = {"from_attributes": True}
-
-
-class InternalOut(BaseModel):
-    dotacion: int                # reutilizamos cant_empleados
-    energia: Optional[float]     # si lo tuvieras en otra tabla
-    residuos: Optional[float]    # idem
-
-    model_config = {"from_attributes": True}
-
-
-# ─── Public DTOs (sin auth) ──────────────────────────────────────────────────
-
-class EmpresaPublicOut(BaseModel):
-    cuil: int
-    nombre: str
-    rubro: str
-    fecha_ingreso: date
-
-    model_config = {"from_attributes": True}
-
-
-class ServicePublicOut(BaseModel):
-    id_servicio: int
-    nombre: str
-    descripcion: Optional[str]
-    ubicacion: Optional[str]
-    disponibilidad: Optional[bool]
-    horarios: Optional[str]
+    rubro:  Optional[str]
 
     model_config = {"from_attributes": True}
 
@@ -272,5 +218,23 @@ class EmpresaDetailUpdate(BaseModel):
     vehiculos:       Optional[List[VehiculoUpdate]]
     contactos:       Optional[List[ContactoUpdate]]
     servicios_polo:  Optional[List[ServicioPoloUpdate]]
+
+    model_config = {"from_attributes": True}
+
+
+
+# ─── Public DTOs (sin auth) ──────────────────────────────────────────────────
+
+# --- app/schemas.py (añade al final) ---
+
+class CompanyFullOut(BaseModel):
+    nombre:          str
+    rubro:           str
+    observaciones:   Optional[str]
+    horario_trabajo: str
+
+    vehiculos:       List[VehiculoOut]
+    contactos:       List[ContactoOut]
+    servicios_polo:  List[ServicioPoloOut]
 
     model_config = {"from_attributes": True}

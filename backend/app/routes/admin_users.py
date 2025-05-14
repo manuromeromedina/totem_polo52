@@ -122,6 +122,30 @@ def create_empresa(
     db.refresh(nueva)
     return nueva
 
+@router.put(
+    "/empresas/{cuil}",
+    response_model=schemas.EmpresaOut,
+    summary="[admin_polo] Actualizar sólo nombre y rubro de una empresa"
+)
+def admin_update_empresa_nombre_rubro(
+    cuil: int,
+    dto: schemas.EmpresaAdminUpdate,  # <- nuevo schema con solo nombre y rubro
+    db: Session = Depends(get_db),
+):
+    emp = db.query(models.Empresa).filter(models.Empresa.cuil == cuil).first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+    # Actualizamos únicamente los campos permitidos
+    if dto.nombre is not None:
+        emp.nombre = dto.nombre
+    if dto.rubro is not None:
+        emp.rubro = dto.rubro
+
+    db.commit()
+    db.refresh(emp)
+    return emp
+
 @router.delete(
     "/empresas/{cuil}",
     status_code=status.HTTP_204_NO_CONTENT,
