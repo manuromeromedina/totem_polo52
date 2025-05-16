@@ -16,7 +16,7 @@ def get_db():
 
 
 @router.get(
-    "/companies",
+    "/search_companies",
     response_model=list[schemas.CompanyFullOut],
     summary="Listar empresas (filtrable por nombre, rubro o tipo de servicio del polo)"
 )
@@ -81,7 +81,7 @@ def list_companies_full(
 
 
 @router.get(
-    "/companiesall",
+    "/companies_all",
     response_model=list[schemas.CompanyFullOut],
     summary="Listar empresas con todos sus datos relacionados"
 )
