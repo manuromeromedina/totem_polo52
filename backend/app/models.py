@@ -146,7 +146,7 @@ class ServicioPolo(Base):
 
 class Lote(Base):
     __tablename__ = "lotes"
-    id_lote            = Column(Integer, primary_key=True, index=True)
+    id_lotes            = Column(Integer, primary_key=True, index=True)
     id_servicio_polo   = Column(
         Integer,
         ForeignKey("servicio_polo.id_servicio_polo", ondelete="CASCADE"),
