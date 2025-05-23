@@ -1,8 +1,25 @@
 # app/models.py
-
-from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, JSON
+import uuid
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    Date,
+    Text,
+    ForeignKey,
+    JSON,
+    Time,
+    BigInteger
+)
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.config import Base
+
+
+
+
+# ─── Empresa y Usuario ────────────────────────────────────────────────────────
 
 class Empresa(Base):
     __tablename__ = "empresa"
@@ -14,15 +31,15 @@ class Empresa(Base):
     fecha_ingreso   = Column(Date,    nullable=False)
     horario_trabajo = Column(String,  nullable=False)
 
-    # Cuando se borra una Empresa, se borran en cascada todos estos hijos:
+    # relaciones con cascade delete-orphan
     usuarios        = relationship(
         "Usuario",
         back_populates="empresa",
         cascade="all, delete-orphan",
-        #passive_deletes=True,
+        passive_deletes=True,
     )
-    vehiculos       = relationship(
-        "Vehiculo",
+    vehiculos_emp   = relationship(
+        "VehiculosEmpresa",
         back_populates="empresa",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -49,10 +66,10 @@ class Empresa(Base):
 
 class Usuario(Base):
     __tablename__ = "usuario"
-    id_usuario     = Column(Integer, primary_key=True, index=True)
+    id_usuario     = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
     nombre         = Column(String,  unique=True, index=True)
     contrasena     = Column(String,  nullable=False)
-    estado         = Column(String,  nullable=False)
+    estado         = Column(Boolean,  nullable=False)
     fecha_registro = Column(Date,    nullable=False)
     cuil           = Column(
         Integer,
@@ -105,98 +122,82 @@ class RolUsuario(Base):
          ForeignKey("rol.id_rol", ondelete="CASCADE"),
          primary_key=True,
      )
+    
      id_usuario = Column(
-         Integer,
-         ForeignKey("usuario.id_usuario", ondelete="CASCADE"),
-         primary_key=True,
-     )
+        UUID(as_uuid=True),
+        ForeignKey("usuario.id_usuario", ondelete="CASCADE"),
+        primary_key=True,
+        default=uuid.uuid4
+    )
 
      rol     = relationship("Rol",     back_populates="rol_usuario_links")
      usuario = relationship("Usuario", back_populates="rol_usuario_links")
 
 
 
-class ServicioPolo(Base):
-    __tablename__ = "servicio_polo"
-    id_servicio_polo = Column(Integer, primary_key=True, index=True)
-    nombre            = Column(String,  nullable=False)
-    tipo              = Column(String,  nullable=False)
-    horario           = Column(String)
-    datos             = Column(JSON)
+# ─── Vehículos ───────────────────────────────────────────────────────────────
 
-    lotes         = relationship(
-        "Lote",
-        back_populates="servicio_polo",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-    contactos     = relationship(
-        "Contacto",
-        back_populates="servicio_polo",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-    empresas      = relationship(
-        "EmpresaServicioPolo",
-        back_populates="servicio_polo",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
+class TipoVehiculo(Base):
+    __tablename__ = "tipo_vehiculo"  # singular, coincide con la tabla real
+    id_tipo_vehiculo = Column(Integer, primary_key=True, index=True)
+    tipo            = Column(String(100), nullable=False)
 
-
-class Lote(Base):
-    __tablename__ = "lotes"
-    id_lotes            = Column(Integer, primary_key=True, index=True)
-    id_servicio_polo   = Column(
-        Integer,
-        ForeignKey("servicio_polo.id_servicio_polo", ondelete="CASCADE"),
-        nullable=False,
-    )
-    dueno              = Column(String)
-    lote               = Column(Integer)
-    manzana            = Column(Integer)
-
-    servicio_polo      = relationship("ServicioPolo", back_populates="lotes")
-
-
-class EmpresaServicioPolo(Base):
-    __tablename__ = "empresa_servicio_polo"
-    cuil             = Column(
-        Integer,
-        ForeignKey("empresa.cuil", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    id_servicio_polo = Column(
-        Integer,
-        ForeignKey("servicio_polo.id_servicio_polo", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-    empresa          = relationship("Empresa",      back_populates="servicios_polo")
-    servicio_polo    = relationship("ServicioPolo", back_populates="empresas")
+    vehiculos       = relationship("Vehiculo", back_populates="tipo_vehiculo")
 
 
 class Vehiculo(Base):
     __tablename__ = "vehiculos"
-    id_vehiculo = Column(Integer, primary_key=True, index=True)
-    cuil         = Column(
+    id_vehiculo      = Column(Integer, primary_key=True, index=True)
+    horarios         = Column(Text, nullable=False)  # en la tabla es text, no Time
+    frecuencia       = Column(Text, nullable=False)
+    datos            = Column(JSON, nullable=False)
+    id_tipo_vehiculo = Column(
         Integer,
-        ForeignKey("empresa.cuil", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("tipo_vehiculo.id_tipo_vehiculo", ondelete="CASCADE"),
+        nullable=True,  # en tabla no tiene NOT NULL explícito
     )
-    tipo         = Column(String)
-    horarios     = Column(String)
-    frecuencia   = Column(String)
-    datos        = Column(JSON)
 
-    empresa      = relationship("Empresa", back_populates="vehiculos")
+    tipo_vehiculo   = relationship("TipoVehiculo", back_populates="vehiculos")
+    empresas_emp    = relationship(
+        "VehiculosEmpresa",
+        back_populates="vehiculo",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class VehiculosEmpresa(Base):
+    __tablename__ = "empresa_vehiculos"  # para que coincida con la tabla real
+    id_vehiculo = Column(
+        Integer,
+        ForeignKey("vehiculos.id_vehiculo", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    cuil         = Column(
+        BigInteger,  # para coincidir con bigint de la tabla
+        ForeignKey("empresa.cuil", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    vehiculo     = relationship("Vehiculo", back_populates="empresas_emp")
+    empresa      = relationship("Empresa", back_populates="vehiculos_emp")
+
+
+
+# ─── Contactos ───────────────────────────────────────────────────────────────
+
+class TipoContacto(Base):
+    __tablename__ = "tipo_contacto"
+    id_tipo_contacto = Column(Integer, primary_key=True, index=True)
+    tipo             = Column(String,  nullable=False)
+
+    contactos        = relationship("Contacto", back_populates="tipo_contacto")
 
 
 class Contacto(Base):
     __tablename__ = "contacto"
     id_contacto      = Column(Integer, primary_key=True, index=True)
-    tipo             = Column(String)
-    nombre           = Column(String)
+    nombre           = Column(String, nullable=False)
     telefono         = Column(String)
     datos            = Column(JSON)
     direccion        = Column(String)
@@ -210,36 +211,129 @@ class Contacto(Base):
         ForeignKey("servicio_polo.id_servicio_polo", ondelete="CASCADE"),
         nullable=False,
     )
+    id_tipo_contacto = Column(
+        Integer,
+        ForeignKey("tipo_contacto.id_tipo_contacto", ondelete="CASCADE"),
+        nullable=False,
+    )
 
-    empresa          = relationship("Empresa",      back_populates="contactos")
-    servicio_polo    = relationship("ServicioPolo", back_populates="contactos")
+    empresa          = relationship("Empresa",       back_populates="contactos")
+    servicio_polo    = relationship("ServicioPolo",  back_populates="contactos")
+    tipo_contacto    = relationship("TipoContacto",  back_populates="contactos")
 
 
-class EmpresaServicio(Base):
-    __tablename__ = "empresa_servicio"
-    cuil            = Column(
+# ─── Servicios del Polo ───────────────────────────────────────────────────────
+
+class TipoServicioPolo(Base):
+    __tablename__ = "tipo_servicio_polo"
+    id_tipo_servicio_polo = Column(Integer, primary_key=True, index=True)
+    tipo                   = Column(String,  nullable=False)
+
+    servicios              = relationship("ServicioPolo", back_populates="tipo_servicio")
+
+
+class ServicioPolo(Base):
+    __tablename__ = "servicio_polo"
+    id_servicio_polo      = Column(Integer, primary_key=True, index=True)
+    nombre                = Column(String, nullable=False)
+    horario               = Column(String)
+    datos                 = Column(JSON)
+    propietario           = Column(Text)
+    id_tipo_servicio_polo = Column(
+        Integer,
+        ForeignKey("tipo_servicio_polo.id_tipo_servicio_polo", ondelete="CASCADE"),
+    )
+
+    tipo_servicio         = relationship("TipoServicioPolo", back_populates="servicios")
+    lotes                 = relationship(
+        "Lote",
+        back_populates="servicio_polo",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    contactos             = relationship("Contacto", back_populates="servicio_polo")
+    empresas_polo         = relationship(
+        "EmpresaServicioPolo",
+        back_populates="servicio_polo",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class Lote(Base):
+    __tablename__ = "lotes"
+    id_lotes          = Column(Integer, primary_key=True, index=True)
+    id_servicio_polo  = Column(
+        Integer,
+        ForeignKey("servicio_polo.id_servicio_polo", ondelete="CASCADE"),
+        nullable=False,
+    )
+    dueno             = Column(String,  nullable=False)
+    lote              = Column(Integer, nullable=False)
+    manzana           = Column(Integer, nullable=False)
+
+    servicio_polo     = relationship("ServicioPolo", back_populates="lotes")
+
+
+class EmpresaServicioPolo(Base):
+    __tablename__ = "empresa_servicio_polo"
+    cuil              = Column(
         Integer,
         ForeignKey("empresa.cuil", ondelete="CASCADE"),
         primary_key=True,
     )
-    id_servicio     = Column(
+    id_servicio_polo  = Column(
         Integer,
-        ForeignKey("servicio.id_servicio", ondelete="CASCADE"),
+        ForeignKey("servicio_polo.id_servicio_polo", ondelete="CASCADE"),
         primary_key=True,
     )
 
-    empresa         = relationship("Empresa",          back_populates="servicios")
-    servicio        = relationship("Servicio",         back_populates="empresas")
+    empresa           = relationship("Empresa",      back_populates="servicios_polo")
+    servicio_polo     = relationship("ServicioPolo", back_populates="empresas_polo")
+
+
+# ─── Servicios Propios ────────────────────────────────────────────────────────
+
+class TipoServicio(Base):
+    __tablename__ = "tipo_servicio"
+    id_tipo_servicio = Column(Integer, primary_key=True, index=True)
+    tipo             = Column(String,  nullable=False)
+
+    servicios        = relationship("Servicio", back_populates="tipo_servicio")
 
 
 class Servicio(Base):
     __tablename__ = "servicio"
-    id_servicio    = Column(Integer, primary_key=True)
-    nombre         = Column(String, nullable=False)
+    id_servicio      = Column(Integer, primary_key=True, index=True)
+    datos            = Column(JSON)
+    id_tipo_servicio = Column(
+        Integer,
+        ForeignKey("tipo_servicio.id_tipo_servicio", ondelete="CASCADE"),
+    )
 
-    empresas       = relationship(
+    tipo_servicio    = relationship("TipoServicio", back_populates="servicios")
+    empresas_servicio = relationship(
         "EmpresaServicio",
         back_populates="servicio",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+
+class EmpresaServicio(Base):
+    __tablename__ = "empresa_servicio"
+    
+    cuil = Column(
+        Integer,
+        ForeignKey("empresa.cuil", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    id_servicio = Column(
+        Integer,
+        ForeignKey("servicio.id_servicio", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    empresa = relationship("Empresa", back_populates="servicios")
+    servicio = relationship("Servicio", back_populates="empresas_servicio")
+

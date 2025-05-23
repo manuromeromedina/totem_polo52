@@ -1,6 +1,5 @@
-# app/schemas.py
-
 from pydantic import BaseModel
+from uuid import UUID  # Usamos UUID
 from datetime import date
 from typing import Optional, List, Dict
 
@@ -14,21 +13,24 @@ class UserRegister(BaseModel):
     password: str
     cuil: int
 
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True
 
 
 class UserLogin(BaseModel):
     nombre: str
     password: str
 
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True
 
 
 class Token(BaseModel):
     access_token: str
     token_type: str
 
-    model_config = {"from_attributes": True}
+    class Config:
+           from_attributes = True
 
 
 # ──────────────────────────────────────────────────────────
@@ -39,34 +41,39 @@ class RolOut(BaseModel):
     id_rol: int
     tipo_rol: str
 
-    model_config = {"from_attributes": True}
+    class Config:
+           from_attributes = True
 
 
 class UserOut(BaseModel):
-    id_usuario: int
+    id_usuario: UUID  # Cambio a UUID
     nombre: str
-    estado: str
+    estado: bool  # Cambio a booleano
     cuil: int
     fecha_registro: date
     roles: List[RolOut]
 
-    model_config = {"from_attributes": True}
+    class Config:
+           from_attributes = True
 
 
 class UserCreate(BaseModel):
     nombre: str
     password: str
     cuil: int
-    estado: Optional[str] = "activo"
-    id_rol: int  # rol a asignar
+    estado: Optional[bool] = True  # Asumimos estado por defecto a True
+    id_rol: int  # Rol a asignar
 
-    model_config = {"from_attributes": True}
+    class Config:
+           from_attributes = True
 
 
 class UserUpdate(BaseModel):
     password: Optional[str]
+    estado: Optional[bool]
 
-    model_config = {"from_attributes": True}
+    class Config:
+           from_attributes = True
 
 
 # ──────────────────────────────────────────────────────────
@@ -82,7 +89,8 @@ class EmpresaOut(BaseModel):
     fecha_ingreso: date
     horario_trabajo: str
 
-    model_config = {"from_attributes": True}
+    class Config:
+           from_attributes = True
 
 
 class EmpresaCreate(BaseModel):
@@ -94,7 +102,8 @@ class EmpresaCreate(BaseModel):
     fecha_ingreso: Optional[date] = None
     horario_trabajo: str
 
-    model_config = {"from_attributes": True}
+    class Config:
+           from_attributes = True
 
 
 class EmpresaAdminUpdate(BaseModel):
@@ -104,149 +113,171 @@ class EmpresaAdminUpdate(BaseModel):
     nombre: Optional[str]
     rubro: Optional[str]
 
-    model_config = {"from_attributes": True}
-
+    class Config:
+           from_attributes = True
 
 # ──────────────────────────────────────────────────────────
-# Sub-entidades: Vehículos, Contactos, Lotes, ServiciosPolo
+# admin_polo: Servicios Polo
 # ──────────────────────────────────────────────────────────
+
+class ServicioPoloOut(BaseModel):
+    id_servicio_polo: int
+    nombre: str
+    horario: Optional[str]
+    datos: Optional[dict]
+    propietario: Optional[str]
+    id_tipo_servicio_polo: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+
+class ServicioPoloUpdate(BaseModel):
+    nombre: Optional[str]
+    horario: Optional[str]
+    datos: Optional[dict]
+    propietario: Optional[str]
+    id_tipo_servicio_polo: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+
+class EmpresaServicioPoloAssign(BaseModel):
+    cuil: int
+    id_servicio_polo: int
+
+    class Config:
+        from_attributes = True
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Sub-entidades: Vehículos, Contactos, Servicios para ADMINS EMPRESAS
+# ──────────────────────────────────────────────────────────────────────────
 
 ## Vehículos
 class VehiculoOut(BaseModel):
     id_vehiculo: int
-    tipo: Optional[str]
+    id_tipo_vehiculo: Optional[int]  # id del tipo de vehículo
     horarios: Optional[str]
     frecuencia: Optional[str]
     datos: Optional[dict]
 
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True
 
 
 class VehiculoCreate(BaseModel):
-    tipo: Optional[str]
+    id_tipo_vehiculo: Optional[int]
     horarios: Optional[str]
     frecuencia: Optional[str]
     datos: Optional[Dict]
 
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True
 
 
 class VehiculoUpdate(BaseModel):
-    id_vehiculo: Optional[int]  # si viene, hago UPDATE
-    tipo: Optional[str]
+    id_vehiculo: Optional[int]
+    id_tipo_vehiculo: Optional[int]
     horarios: Optional[str]
     frecuencia: Optional[str]
     datos: Optional[Dict]
 
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True
+
+
+## Servicios
+
+class ServicioCreate(BaseModel):
+    datos: Optional[dict] = None  # Datos adicionales
+    id_tipo_servicio: int  # Referencia al tipo de servicio
+
+    class Config:
+        from_attributes = True
+
+
+class ServicioUpdate(BaseModel):
+    datos: Optional[dict]
+    id_tipo_servicio: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+
+class ServicioOut(BaseModel):
+    id_servicio: int
+    datos: Optional[dict]
+    id_tipo_servicio: int
+
+    class Config:
+        from_attributes = True
+
 
 
 ## Contactos
+
 class ContactoOut(BaseModel):
     id_contacto: int
-    tipo: Optional[str]
+    id_tipo_contacto: Optional[int]
     nombre: Optional[str]
     telefono: Optional[str]
     datos: Optional[dict]
     direccion: Optional[str]
     id_servicio_polo: Optional[int]
 
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True
 
 
 class ContactoCreate(BaseModel):
-    tipo: Optional[str]
+    id_tipo_contacto: Optional[int]
     nombre: Optional[str]
     telefono: Optional[str]
     datos: Optional[Dict]
     direccion: Optional[str]
     id_servicio_polo: int
 
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True
 
 
 class ContactoUpdate(BaseModel):
     id_contacto: Optional[int]
-    tipo: Optional[str]
+    id_tipo_contacto: Optional[int]
     nombre: Optional[str]
     telefono: Optional[str]
     datos: Optional[Dict]
     direccion: Optional[str]
     id_servicio_polo: Optional[int]
 
-    model_config = {"from_attributes": True}
-
-
-## Lotes (solo para ServicioPolo)
-class LoteOut(BaseModel):
-    id_lotes: int
-    dueno: Optional[str]
-    lote: Optional[int]
-    manzana: Optional[int]
-
-    model_config = {"from_attributes": True}
-
-
-class LoteCreate(BaseModel):
-    dueno: Optional[str]
-    lote: Optional[int]
-    manzana: Optional[int]
-
-    model_config = {"from_attributes": True}
-
-
-class LoteUpdate(BaseModel):
-    id_lotes: Optional[int]
-    dueno: Optional[str]
-    lote: Optional[int]
-    manzana: Optional[int]
-
-    model_config = {"from_attributes": True}
-
-
-## Servicios del Polo
-class ServicioPoloOut(BaseModel):
-    id_servicio_polo: int
-    nombre: Optional[str]
-    tipo: Optional[str]
-    horario: Optional[str]
-    datos: Optional[dict]
-    lotes: List[LoteOut]
-
-    model_config = {"from_attributes": True}
-
-
-class ServicioPoloUpdate(BaseModel):
-    id_servicio_polo: int
-    nombre: Optional[str]
-    tipo: Optional[str]
-    horario: Optional[str]
-    datos: Optional[dict]
-    lotes: Optional[List[LoteUpdate]]
-
-    model_config = {"from_attributes": True}
-
-class ServicioOut(BaseModel):
-    id_servicio: int
-    nombre:      str
-    tipo:        Optional[str]
-    datos:       Optional[dict]
-
-    model_config = {"from_attributes": True}
-
-
-class ServiceCreate(BaseModel):
-    nombre:      str
-    descripcion: Optional[str]
-    ubicacion:   Optional[str]
-    disponibilidad: Optional[bool]
-    horarios:    Optional[str]
-
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True
 
 
 # ──────────────────────────────────────────────────────────
-# Empresa detalle (para /me y full update)
+# Esquemas para la actualización de la empresa por el admin_empresa
+# ──────────────────────────────────────────────────────────
+
+class EmpresaSelfUpdate(BaseModel):
+    cant_empleados: Optional[int]
+    observaciones: Optional[str]
+    horario_trabajo: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+class EmpresaSelfOut(BaseModel):
+    cant_empleados: int
+    observaciones: Optional[str]
+    horario_trabajo: str
+
+    class Config:
+        from_attributes = True
+
+# ──────────────────────────────────────────────────────────
+# Esquema para los detalles completos de la empresa
 # ──────────────────────────────────────────────────────────
 
 class EmpresaDetailOut(BaseModel):
@@ -258,71 +289,11 @@ class EmpresaDetailOut(BaseModel):
     fecha_ingreso: date
     horario_trabajo: str
 
+    # Relaciones de la empresa
     vehiculos: List[VehiculoOut]
     contactos: List[ContactoOut]
     servicios_polo: List[ServicioPoloOut]
+    servicios: List[ServicioOut]
 
-    model_config = {"from_attributes": True}
-
-
-# ─── Sólo campos que la empresa puede actualizar sobre sí misma ────────────────
-class EmpresaSelfUpdate(BaseModel):
-    cant_empleados:    Optional[int]
-    observaciones:     Optional[str]
-    horario_trabajo:   Optional[str]
-
-    model_config = {"from_attributes": True}
-
-
-# ─── Sólo campos que mostramos de vuelta después de la edición ────────────────
-class EmpresaSelfOut(BaseModel):
-    cant_empleados:    int
-    observaciones:     Optional[str]
-    horario_trabajo:   str
-
-    model_config = {"from_attributes": True}
-
-
-
-# ──────────────────────────────────────────────────────────
-# Asignaciones (empresa → polo / empresa → propio)
-# ──────────────────────────────────────────────────────────
-
-class EmpresaServicioPoloAssign(BaseModel):
-    id_servicio_polo: int
-
-    model_config = {"from_attributes": True}
-
-
-class EmpresaServicioAssign(BaseModel):
-    id_servicio: int
-
-    model_config = {"from_attributes": True}
-
-
-# ──────────────────────────────────────────────────────────
-# Públicos (sin auth)
-# ──────────────────────────────────────────────────────────
-
-class ServicePublicOut(BaseModel):
-    id_servicio: int
-    nombre: str
-    descripcion: Optional[str]
-    ubicacion: Optional[str]
-    disponibilidad: Optional[bool]
-    horarios: Optional[str]
-
-    model_config = {"from_attributes": True}
-
-
-class CompanyFullOut(BaseModel):
-    nombre: str
-    rubro: str
-    observaciones: Optional[str]
-    horario_trabajo: str
-
-    vehiculos: List[VehiculoOut]
-    contactos: List[ContactoOut]
-    servicios_polo: List[ServicioPoloOut]
-
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True

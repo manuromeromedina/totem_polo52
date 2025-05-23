@@ -1,4 +1,4 @@
-# app/routes/company_user.py
+#company_user.py
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from app.config import SessionLocal
@@ -12,11 +12,13 @@ router = APIRouter(
 )
 
 def get_db():
-    db = SessionLocal(); 
-    try: yield db
-    finally: db.close()
+    db = SessionLocal() 
+    try: 
+        yield db
+    finally: 
+        db.close()
 
-# --- Vehículos ---
+# ─── Vehiculos ────────────────────────────────────────────────────────
 @router.post("/vehiculos", response_model=schemas.VehiculoOut, summary="Crear un vehículo")
 def create_vehiculo(
     dto: schemas.VehiculoCreate,
@@ -24,14 +26,24 @@ def create_vehiculo(
     db: Session = Depends(get_db),
 ):
     v = models.Vehiculo(
-        cuil=current_user.cuil,
-        tipo=dto.tipo,
+        id_tipo_vehiculo=dto.id_tipo_vehiculo,
         horarios=dto.horarios,
         frecuencia=dto.frecuencia,
         datos=dto.datos,
     )
-    db.add(v); db.commit(); db.refresh(v)
+    db.add(v)
+    db.flush()  # para obtener v.id_vehiculo
+
+    link = models.VehiculosEmpresa(
+        id_vehiculo=v.id_vehiculo,
+        cuil=current_user.cuil,
+    )
+    db.add(link)
+    db.commit()
+    db.refresh(v)
     return v
+
+
 
 @router.put("/vehiculos/{veh_id}", response_model=schemas.VehiculoOut, summary="Actualizar un vehículo")
 def update_vehiculo(
@@ -40,13 +52,26 @@ def update_vehiculo(
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    v = db.query(models.Vehiculo).filter_by(id_vehiculo=veh_id, cuil=current_user.cuil).first()
-    if not v: raise HTTPException(404, "Vehículo no existe")
-    for f in ("tipo","horarios","frecuencia","datos"):
-        val = getattr(dto, f)
-        if val is not None: setattr(v, f, val)
-    db.commit(); db.refresh(v)
+    # Consulta con join para filtrar vehículos relacionados con el cuil del usuario
+    v = (
+        db.query(models.Vehiculo)
+        .join(models.VehiculosEmpresa)
+        .filter(
+            models.Vehiculo.id_vehiculo == veh_id,
+            models.VehiculosEmpresa.cuil == current_user.cuil,
+        )
+        .first()
+    )
+    if not v:
+        raise HTTPException(status_code=404, detail="Vehículo no existe")
+    for f in ("horarios", "frecuencia", "datos", "id_tipo_vehiculos"):
+        val = getattr(dto, f, None)
+        if val is not None:
+            setattr(v, f, val)
+    db.commit()
+    db.refresh(v)
     return v
+
 
 @router.delete("/vehiculos/{veh_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un vehículo")
 def delete_vehiculo(
@@ -54,171 +79,159 @@ def delete_vehiculo(
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    v = db.query(models.Vehiculo).filter_by(id_vehiculo=veh_id, cuil=current_user.cuil).first()
-    if not v: raise HTTPException(404, "Vehículo no existe")
-    db.delete(v); db.commit()
+    v = (
+        db.query(models.Vehiculo)
+        .join(models.VehiculosEmpresa)
+        .filter(
+            models.Vehiculo.id_vehiculo == veh_id,
+            models.VehiculosEmpresa.cuil == current_user.cuil,
+        )
+        .first()
+    )
+    if not v:
+        raise HTTPException(status_code=404, detail="Vehículo no existe")
+    db.delete(v)
+    db.commit()
+
+# ─── Servicios ────────────────────────────────────────────────────────
+@router.post("/servicios", response_model=schemas.ServicioOut, summary="Crear un servicio")
+def create_servicio(
+    dto: schemas.ServicioCreate,  # DTO para la creación de servicio
+    current_user: models.Usuario = Depends(get_current_user),  # Obtener el usuario actual
+    db: Session = Depends(get_db)
+):
+    # Creamos el servicio
+    servicio = models.Servicio(
+        datos=dto.datos,  # Datos adicionales en formato JSON
+        id_tipo_servicio=dto.id_tipo_servicio
+    )
+    db.add(servicio)
+    db.commit()
+    db.refresh(servicio)
+
+    # Asociamos el servicio con la empresa del usuario autenticado (admin_empresa)
+    empresa_servicio = models.EmpresaServicio(
+        cuil=current_user.cuil,  # Obtenemos el cuil del usuario autenticado
+        id_servicio=servicio.id_servicio,
+    )
+    db.add(empresa_servicio)
+    db.commit()
+    db.refresh(empresa_servicio)
+
+    return servicio
 
 
-# --- Contactos ---
-@router.post("/contactos", response_model=schemas.ContactoOut, summary="Crear un contacto")
+@router.put("/servicios/{servicio_id}", response_model=schemas.ServicioOut, summary="Actualizar un servicio")
+def update_servicio(
+    servicio_id: int,
+    dto: schemas.ServicioUpdate,  # DTO para actualizar servicio
+    db: Session = Depends(get_db)
+):
+    servicio = db.query(models.Servicio).filter(models.Servicio.id_servicio == servicio_id).first()
+    if not servicio:
+        raise HTTPException(status_code=404, detail="Servicio no encontrado")
+    
+    for field, value in dto.model_dump(exclude_unset=True).items():  # Actualiza solo los campos no vacíos
+        setattr(servicio, field, value)
+
+    db.commit()
+    db.refresh(servicio)
+    return servicio
+
+@router.delete("/servicios/{servicio_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un servicio")
+def delete_servicio(
+    servicio_id: int,
+    db: Session = Depends(get_db)
+):
+    servicio = db.query(models.Servicio).filter(models.Servicio.id_servicio == servicio_id).first()
+    if not servicio:
+        raise HTTPException(status_code=404, detail="Servicio no encontrado")
+    
+    db.delete(servicio)
+    db.commit()
+    return {"msg": "Servicio eliminado correctamente"}
+
+
+# ─── Contacto ────────────────────────────────────────────────────────
+@router.post("/contactos",
+    response_model=schemas.ContactoOut,
+    summary="Crear un contacto para la empresa"
+)
 def create_contacto(
     dto: schemas.ContactoCreate,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    c = models.Contacto(
+    contacto = models.Contacto(
         cuil_empresa=current_user.cuil,
-        tipo=dto.tipo,
+        id_tipo_contacto=dto.id_tipo_contacto,
         nombre=dto.nombre,
         telefono=dto.telefono,
         datos=dto.datos,
         direccion=dto.direccion,
         id_servicio_polo=dto.id_servicio_polo,
     )
-    db.add(c); db.commit(); db.refresh(c)
-    return c
+    db.add(contacto)
+    db.commit()
+    db.refresh(contacto)
+    return contacto
 
-@router.put("/contactos/{cid}", response_model=schemas.ContactoOut, summary="Actualizar un contacto")
+
+@router.put("/contactos/{cid}",
+    response_model=schemas.ContactoOut,
+    summary="Actualizar un contacto para la empresa"
+)
 def update_contacto(
     cid: int,
     dto: schemas.ContactoCreate,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    c = db.query(models.Contacto).filter_by(id_contacto=cid, cuil_empresa=current_user.cuil).first()
-    if not c: raise HTTPException(404, "Contacto no existe")
-    for f in ("tipo","nombre","telefono","datos","direccion","id_servicio_polo"):
-        val = getattr(dto, f)
-        if val is not None: setattr(c, f, val)
-    db.commit(); db.refresh(c)
-    return c
+    contacto = db.query(models.Contacto).filter_by(id_contacto=cid, cuil_empresa=current_user.cuil).first()
+    if not contacto:
+        raise HTTPException(status_code=404, detail="Contacto no encontrado")
+    
+    for field, value in dto.dict().items():
+        if value is not None:
+            setattr(contacto, field, value)
+    
+    db.commit()
+    db.refresh(contacto)
+    return contacto
 
-@router.delete("/contactos/{cid}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un contacto")
+
+@router.delete("/contactos/{cid}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Eliminar un contacto para la empresa"
+)
 def delete_contacto(
     cid: int,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    c = db.query(models.Contacto).filter_by(id_contacto=cid, cuil_empresa=current_user.cuil).first()
-    if not c: raise HTTPException(404, "Contacto no existe")
-    db.delete(c); db.commit()
+    contacto = db.query(models.Contacto).filter_by(id_contacto=cid, cuil_empresa=current_user.cuil).first()
+    if not contacto:
+        raise HTTPException(status_code=404, detail="Contacto no encontrado")
+    
+    db.delete(contacto)
+    db.commit()
+    return {"msg": "Contacto eliminado exitosamente"}
 
 
-# --- Lotes en un ServicioPolo ---
-@router.post("/polo-services/{sid}/lotes", response_model=schemas.LoteOut, summary="Crear lote")
-def create_lote(
-    sid: int,
-    dto: schemas.LoteCreate,
-    current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    # primero verifica que la empresa tenga asignado ese servicio_polo
-    link = db.query(models.EmpresaServicioPolo).filter_by(
-        cuil=current_user.cuil, id_servicio_polo=sid
-    ).first()
-    if not link: raise HTTPException(404, "Servicio del Polo no asignado")
-    l = models.Lote(
-        id_servicio_polo=sid,
-        dueno=dto.dueno,
-        lote=dto.lote,
-        manzana=dto.manzana
-    )
-    db.add(l); db.commit(); db.refresh(l)
-    return l
 
-@router.put("/lotes/{lid}", response_model=schemas.LoteOut, summary="Actualizar lote")
-def update_lote(
-    lid: int,
-    dto: schemas.LoteCreate,
-    current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    l = db.query(models.Lote).join(models.ServicioPolo).join(models.EmpresaServicioPolo)\
-         .filter(models.Lote.id_lotes==lid, models.EmpresaServicioPolo.cuil==current_user.cuil).first()
-    if not l: raise HTTPException(404, "Lote no existe")
-    for f in ("dueno","lote","manzana"):
-        val = getattr(dto, f)
-        if val is not None: setattr(l, f, val)
-    db.commit(); db.refresh(l)
-    return l
-
-@router.delete("/lotes/{lid}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar lote")
-def delete_lote(
-    lid: int,
-    current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    l = db.query(models.Lote).join(models.ServicioPolo).join(models.EmpresaServicioPolo)\
-         .filter(models.Lote.id_lotes==lid, models.EmpresaServicioPolo.cuil==current_user.cuil).first()
-    if not l: raise HTTPException(404, "Lote no existe")
-    db.delete(l); db.commit()
-
-
-# --- Asignar/Quitar ServicioPolo ---
-@router.post("/polo-services/{sid}", status_code=201, summary="Asignar servicio del Polo")
-def assign_polo_service(
-    sid: int,
-    current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    if not db.query(models.ServicioPolo).get(sid):
-        raise HTTPException(404, "Servicio Polo no existe")
-    link = models.EmpresaServicioPolo(cuil=current_user.cuil, id_servicio_polo=sid)
-    db.add(link); db.commit()
-
-@router.delete("/polo-services/{sid}", status_code=204, summary="Quitar servicio del Polo")
-def unassign_polo_service(
-    sid: int,
-    current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    link = db.query(models.EmpresaServicioPolo)\
-             .filter_by(cuil=current_user.cuil, id_servicio_polo=sid).first()
-    if not link: raise HTTPException(404, "No estaba asignado")
-    db.delete(link); db.commit()
-
-
-# --- Asignar/Quitar Servicio propio de la Empresa ---
-@router.post("/services", response_model=schemas.ServicioOut, summary="Asignar un servicio propio")
-def assign_service(
-    dto: schemas.ServiceCreate,
-    current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    svc = models.Servicio(nombre=dto.nombre, descripcion=dto.descripcion,
-                         ubicacion=dto.ubicacion, disponibilidad=dto.disponibilidad,
-                         horarios=dto.horarios)
-    db.add(svc); db.flush()
-    link = models.EmpresaServicio(cuil=current_user.cuil, id_servicio=svc.id_servicio)
-    db.add(link); db.commit(); db.refresh(svc)
-    return svc
-
-@router.delete("/services/{sid}", status_code=204, summary="Quitar servicio propio")
-def unassign_service(
-    sid: int,
-    current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    link = db.query(models.EmpresaServicio)\
-             .filter_by(cuil=current_user.cuil, id_servicio=sid).first()
-    if not link: raise HTTPException(404, "No estaba asignado")
-    db.delete(link); db.commit()
-
-
+# ─── Datos de mi empresa ────────────────────────────────────────────────────────
 @router.put(
-    "/companies/{cuil}",
+    "/companies/me",
     response_model=schemas.EmpresaSelfOut,
     summary="Actualizar mis datos de empresa (cant_empleados, observaciones, horario_trabajo)"
 )
 def update_my_company(
-    cuil: int,
     dto: schemas.EmpresaSelfUpdate,
     current_user: models.Usuario = Depends(get_current_user),
-    db: Session                   = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
-    # Sólo puedo editar mi propia empresa
-    if current_user.cuil != cuil:
-        raise HTTPException(403, "No puedes editar otra empresa")
+    # El cuil ya está disponible en current_user, no es necesario pasarlo en la URL
+    cuil = current_user.cuil
 
     emp = db.query(models.Empresa).filter_by(cuil=cuil).first()
     if not emp:
@@ -239,22 +252,39 @@ def update_my_company(
 
 
 def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
-    vehs = [schemas.VehiculoOut.from_orm(v) for v in emp.vehiculos]
+    # Creamos las listas para cada relación de la empresa
+    vehs = [schemas.VehiculoOut.from_orm(v.vehiculo) for v in emp.vehiculos_emp]
     conts = [schemas.ContactoOut.from_orm(c) for c in emp.contactos]
+
+    # Servicios propios de la empresa (servicios que no están asociados a servicios del polo)
     servicios = []
+    for esp in emp.servicios:
+        svc = esp.servicio
+        servicios.append(
+            schemas.ServicioOut(
+                id_servicio=svc.id_servicio,
+                datos=svc.datos,
+                id_tipo_servicio=svc.id_tipo_servicio
+            )
+        )
+
+    # Servicios asociados al Polo (asegurarse de que siempre haya una lista, incluso vacía)
+    servicios_polo = []
     for esp in emp.servicios_polo:
         svc = esp.servicio_polo
-        lotes = [schemas.LoteOut.from_orm(l) for l in svc.lotes]
-        servicios.append(
+        lotes = [schemas.LoteOut.from_orm(l) for l in svc.lotes]  # Lotes asociados al servicio
+        servicios_polo.append(
             schemas.ServicioPoloOut(
                 id_servicio_polo=svc.id_servicio_polo,
                 nombre=svc.nombre,
-                tipo=svc.tipo,
+                tipo=svc.tipo_servicio.tipo,  # Aseguramos que se incluya el tipo del servicio
                 horario=svc.horario,
                 datos=svc.datos,
                 lotes=lotes
             )
         )
+
+    # Ahora armamos y devolvemos el objeto con los detalles completos de la empresa
     return schemas.EmpresaDetailOut(
         cuil=emp.cuil,
         nombre=emp.nombre,
@@ -265,19 +295,18 @@ def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
         horario_trabajo=emp.horario_trabajo,
         vehiculos=vehs,
         contactos=conts,
-        servicios_polo=servicios
+        servicios=servicios,
+        servicios_polo=servicios_polo  # Siempre pasa una lista, aunque esté vacía
     )
 
-@router.get(
-    "/me",
-    response_model=schemas.EmpresaDetailOut,
-    summary="Mis datos completos de empresa"
-)
+
+@router.get("/me", response_model=schemas.EmpresaDetailOut, summary="Mis datos completos de empresa")
 def read_me(
     current_user: models.Usuario = Depends(get_current_user),
-    db: Session                   = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     emp = db.query(models.Empresa).filter_by(cuil=current_user.cuil).first()
     if not emp:
         raise HTTPException(404, "Empresa no encontrada")
     return build_empresa_detail(emp)
+

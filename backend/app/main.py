@@ -131,6 +131,7 @@ app.include_router(
 )
 
 
+
 # ─── EMPRESA ROUTERS ──────────────────────────────────────────────────────────
 
 from app.routes.company_user import router as company_user_router
