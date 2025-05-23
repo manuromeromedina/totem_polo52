@@ -1,5 +1,3 @@
-# app/routes/public.py
-
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.config import SessionLocal
@@ -14,10 +12,9 @@ def get_db():
     finally:
         db.close()
 
-
 @router.get(
     "/search_companies",
-    response_model=list[schemas.CompanyFullOut],
+    response_model=list[schemas.EmpresaDetailOut],
     summary="Listar empresas (filtrable por nombre, rubro o tipo de servicio del polo)"
 )
 def list_companies_full(
@@ -43,12 +40,15 @@ def list_companies_full(
         q = q.filter(models.Empresa.rubro.ilike(f"%{rubro}%"))
 
     empresas = q.all()
-    result: list[schemas.CompanyFullOut] = []
+    result: list[schemas.EmpresaDetailOut] = []
 
     for emp in empresas:
-        vehs = [schemas.VehiculoOut.from_orm(v) for v in emp.vehiculos]
+        # Vehículos relacionados con la empresa
+        vehs = [schemas.VehiculoOut.from_orm(v.vehiculo) for v in emp.vehiculos_emp]  # Cambié aquí
+        # Contactos relacionados con la empresa
         conts = [schemas.ContactoOut.from_orm(c) for c in emp.contactos]
 
+        # Servicios del Polo + sus lotes
         servs = []
         for esp in emp.servicios_polo:
             svc = esp.servicio_polo
@@ -65,14 +65,18 @@ def list_companies_full(
             )
 
         result.append(
-            schemas.CompanyFullOut(
+            schemas.EmpresaDetailOut(
+                cuil=emp.cuil,
                 nombre=emp.nombre,
                 rubro=emp.rubro,
+                cant_empleados=emp.cant_empleados,
                 observaciones=emp.observaciones,
+                fecha_ingreso=emp.fecha_ingreso,
                 horario_trabajo=emp.horario_trabajo,
                 vehiculos=vehs,
                 contactos=conts,
                 servicios_polo=servs,
+                servicios=[schemas.ServicioOut.from_orm(s) for s in emp.servicios],  # Servicios de la empresa
             )
         )
 
@@ -82,17 +86,17 @@ def list_companies_full(
 
 @router.get(
     "/companies_all",
-    response_model=list[schemas.CompanyFullOut],
+    response_model=list[schemas.EmpresaDetailOut],
     summary="Listar empresas con todos sus datos relacionados"
 )
-def list_companies_full(db: Session = Depends(get_db)):
+def list_companies_all(db: Session = Depends(get_db)):
     emps = db.query(models.Empresa).all()
-    result: list[schemas.CompanyFullOut] = []
+    result: list[schemas.EmpresaDetailOut] = []
 
     for emp in emps:
-        # Vehículos
-        vehs = [schemas.VehiculoOut.from_orm(v) for v in emp.vehiculos]
-        # Contactos
+        # Vehículos relacionados con la empresa
+        vehs = [schemas.VehiculoOut.from_orm(v) for v in emp.vehiculos_emp]
+        # Contactos relacionados con la empresa
         conts = [schemas.ContactoOut.from_orm(c) for c in emp.contactos]
         # Servicios del Polo + sus lotes
         servs = []
@@ -111,14 +115,18 @@ def list_companies_full(db: Session = Depends(get_db)):
             servs.append(out_svc)
 
         result.append(
-            schemas.CompanyFullOut(
+            schemas.EmpresaDetailOut(
+                cuil=emp.cuil,
                 nombre=emp.nombre,
                 rubro=emp.rubro,
+                cant_empleados=emp.cant_empleados,
                 observaciones=emp.observaciones,
+                fecha_ingreso=emp.fecha_ingreso,
                 horario_trabajo=emp.horario_trabajo,
                 vehiculos=vehs,
                 contactos=conts,
                 servicios_polo=servs,
+                servicios=[schemas.ServicioOut.from_orm(s) for s in emp.servicios],  # Servicios de la empresa
             )
         )
 
