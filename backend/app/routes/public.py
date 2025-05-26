@@ -25,7 +25,7 @@ def list_companies_full(
 ):
     q = db.query(models.Empresa)
 
-    # si me filtran por tipo de servicio, hago el join y filtro por ServicioPolo.tipo
+    # Si me filtran por tipo de servicio, hago el join y filtro por ServicioPolo.tipo
     if tipo_servicio:
         q = (
             q
@@ -43,8 +43,9 @@ def list_companies_full(
     result: list[schemas.EmpresaDetailOut] = []
 
     for emp in empresas:
-        # Vehículos relacionados con la empresa
-        vehs = [schemas.VehiculoOut.from_orm(v.vehiculo) for v in emp.vehiculos_emp]  # Cambié aquí
+        # Vehículos relacionados con la empresa (utilizando la relación con VehiculosEmpresa)
+        vehs = [schemas.VehiculoOut.from_orm(v.vehiculo) for v in emp.vehiculos_emp]  # Corregido aquí, accediendo a 'vehiculo' dentro de la relación 'vehiculos_emp'
+        
         # Contactos relacionados con la empresa
         conts = [schemas.ContactoOut.from_orm(c) for c in emp.contactos]
 
@@ -64,6 +65,9 @@ def list_companies_full(
                 )
             )
 
+        # Servicios propios de la empresa
+        serv_propios = [schemas.ServicioOut.from_orm(s) for s in emp.servicios]
+
         result.append(
             schemas.EmpresaDetailOut(
                 cuil=emp.cuil,
@@ -76,12 +80,11 @@ def list_companies_full(
                 vehiculos=vehs,
                 contactos=conts,
                 servicios_polo=servs,
-                servicios=[schemas.ServicioOut.from_orm(s) for s in emp.servicios],  # Servicios de la empresa
+                servicios=serv_propios,  # Servicios propios de la empresa
             )
         )
 
     return result
-
 
 
 @router.get(
@@ -95,7 +98,7 @@ def list_companies_all(db: Session = Depends(get_db)):
 
     for emp in emps:
         # Vehículos relacionados con la empresa
-        vehs = [schemas.VehiculoOut.from_orm(v) for v in emp.vehiculos_emp]
+        vehs = [schemas.VehiculoOut.from_orm(v) for v in emp.vehiculos_emp]  # Corregido aquí
         # Contactos relacionados con la empresa
         conts = [schemas.ContactoOut.from_orm(c) for c in emp.contactos]
         # Servicios del Polo + sus lotes
@@ -114,6 +117,9 @@ def list_companies_all(db: Session = Depends(get_db)):
             )
             servs.append(out_svc)
 
+        # Servicios propios de la empresa
+        serv_propios = [schemas.ServicioOut.from_orm(s) for s in emp.servicios]
+
         result.append(
             schemas.EmpresaDetailOut(
                 cuil=emp.cuil,
@@ -126,7 +132,7 @@ def list_companies_all(db: Session = Depends(get_db)):
                 vehiculos=vehs,
                 contactos=conts,
                 servicios_polo=servs,
-                servicios=[schemas.ServicioOut.from_orm(s) for s in emp.servicios],  # Servicios de la empresa
+                servicios=serv_propios,  # Servicios propios de la empresa
             )
         )
 
