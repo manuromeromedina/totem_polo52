@@ -253,34 +253,70 @@ def update_my_company(
 
 def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
     # Creamos las listas para cada relación de la empresa
-    vehs = [schemas.VehiculoOut.from_orm(v.vehiculo) for v in emp.vehiculos_emp]
-    conts = [schemas.ContactoOut.from_orm(c) for c in emp.contactos]
+    vehs = []
+    for v in emp.vehiculos_emp:
+        veh = v.vehiculo
+        tipo_vehiculo = veh.tipo_vehiculo.tipo if veh.tipo_vehiculo else None  # Obtener el tipo de vehículo
+        vehs.append(
+            schemas.VehiculoOut(
+                id_vehiculo=veh.id_vehiculo,
+                id_tipo_vehiculo=veh.id_tipo_vehiculo,
+                horarios=veh.horarios,
+                frecuencia=veh.frecuencia,
+                datos=veh.datos,
+                tipo_vehiculo=tipo_vehiculo  # Incluir el tipo de vehículo
+            )
+        )
+
+    conts = []
+    for c in emp.contactos:
+        tipo_contacto = c.tipo_contacto.tipo if c.tipo_contacto else None  # Obtener el tipo de contacto
+        conts.append(
+            schemas.ContactoOut(
+                id_contacto=c.id_contacto,
+                id_tipo_contacto=c.id_tipo_contacto,
+                nombre=c.nombre,
+                telefono=c.telefono,
+                datos=c.datos,
+                direccion=c.direccion,
+                id_servicio_polo=c.id_servicio_polo,
+                tipo_contacto=tipo_contacto  # Incluir el tipo de contacto
+            )
+        )
 
     # Servicios propios de la empresa (servicios que no están asociados a servicios del polo)
     servicios = []
     for esp in emp.servicios:
-        svc = esp.servicio
+        svc = esp.servicio  # Servicios que no están asociados al polo
+        tipo_servicio = svc.tipo_servicio.tipo if svc.tipo_servicio else None  # Obtener el tipo de servicio
         servicios.append(
             schemas.ServicioOut(
                 id_servicio=svc.id_servicio,
                 datos=svc.datos,
-                id_tipo_servicio=svc.id_tipo_servicio
+                id_tipo_servicio=svc.id_tipo_servicio,
+                tipo_servicio=tipo_servicio  # Incluir el tipo de servicio
             )
         )
 
-    # Servicios asociados al Polo (asegurarse de que siempre haya una lista, incluso vacía)
+    # Servicios asociados al Polo (asegurándose de que siempre haya una lista, incluso vacía)
     servicios_polo = []
     for esp in emp.servicios_polo:
-        svc = esp.servicio_polo
-        lotes = [schemas.LoteOut.from_orm(l) for l in svc.lotes]  # Lotes asociados al servicio
+        svc = esp  # Servicio Polo asociado a la empresa
+        tipo_servicio_polo = svc.tipo_servicio.tipo if svc.tipo_servicio else None  # Tipo de servicio del Polo
+        # Lotes asociados al servicio del polo
+        lotes = [schemas.LoteOut.from_orm(l) for l in svc.lotes] if svc.lotes else []
+
         servicios_polo.append(
             schemas.ServicioPoloOut(
                 id_servicio_polo=svc.id_servicio_polo,
                 nombre=svc.nombre,
-                tipo=svc.tipo_servicio.tipo,  # Aseguramos que se incluya el tipo del servicio
                 horario=svc.horario,
                 datos=svc.datos,
-                lotes=lotes
+                propietario=svc.propietario,
+                id_tipo_servicio_polo=svc.id_tipo_servicio_polo,
+                cuil=svc.cuil,
+                tipo_servicio_polo=tipo_servicio_polo,  # Incluir el tipo de servicio del Polo
+                lotes=lotes  # Incluir los lotes relacionados
             )
         )
 

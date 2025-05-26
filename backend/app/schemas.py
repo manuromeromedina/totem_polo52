@@ -1,3 +1,4 @@
+#schemas.py
 from pydantic import BaseModel
 from uuid import UUID  # Usamos UUID
 from datetime import date
@@ -120,6 +121,18 @@ class EmpresaAdminUpdate(BaseModel):
 # admin_polo: Servicios Polo
 # ──────────────────────────────────────────────────────────
 
+class ServicioPoloCreate(BaseModel):
+    nombre: str
+    horario: Optional[str]
+    datos: Optional[dict]
+    propietario: Optional[str]
+    id_tipo_servicio_polo: Optional[int]
+    cuil: int  # Este es el campo nuevo que relaciona con la empresa
+
+    class Config:
+        from_attributes = True
+
+
 class ServicioPoloOut(BaseModel):
     id_servicio_polo: int
     nombre: str
@@ -127,24 +140,27 @@ class ServicioPoloOut(BaseModel):
     datos: Optional[dict]
     propietario: Optional[str]
     id_tipo_servicio_polo: Optional[int]
+    cuil: int  # Incluimos el cuil para la respuesta
 
     class Config:
         from_attributes = True
 
 
-class ServicioPoloUpdate(BaseModel):
-    nombre: Optional[str]
-    horario: Optional[str]
-    datos: Optional[dict]
-    propietario: Optional[str]
-    id_tipo_servicio_polo: Optional[int]
+class LoteCreate(BaseModel):
+    dueno: str
+    lote: int
+    manzana: int
+    id_servicio_polo: int  # Esto debe ser el ID del servicio polo al cual se le asigna el lote
 
     class Config:
         from_attributes = True
 
 
-class EmpresaServicioPoloAssign(BaseModel):
-    cuil: int
+class LoteOut(BaseModel):
+    id_lotes: int
+    dueno: str
+    lote: int
+    manzana: int
     id_servicio_polo: int
 
     class Config:

@@ -51,9 +51,9 @@ class Empresa(Base):
         passive_deletes=True,
     )
     servicios_polo  = relationship(
-        "EmpresaServicioPolo",
-        back_populates="empresa",
-        cascade="all, delete-orphan",
+        "ServicioPolo",  # Relación directa con ServicioPolo
+        back_populates="empresa",  # Necesitas que esta relación también esté definida en ServicioPolo
+        cascade="all, delete-orphan",  # Asegura que los registros se eliminen en cascada si se elimina la empresa
         passive_deletes=True,
     )
     servicios       = relationship(
@@ -243,22 +243,17 @@ class ServicioPolo(Base):
         Integer,
         ForeignKey("tipo_servicio_polo.id_tipo_servicio_polo", ondelete="CASCADE"),
     )
+    cuil                  = Column(Integer, ForeignKey("empresa.cuil", ondelete="CASCADE"), nullable=False)
 
     tipo_servicio         = relationship("TipoServicioPolo", back_populates="servicios")
-    lotes                 = relationship(
-        "Lote",
-        back_populates="servicio_polo",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
+    lotes = relationship(
+    "Lote",
+    back_populates="servicio_polo",
+    cascade="all, delete-orphan",
+    passive_deletes=True,
+)
     contactos             = relationship("Contacto", back_populates="servicio_polo")
-    empresas_polo         = relationship(
-        "EmpresaServicioPolo",
-        back_populates="servicio_polo",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-
+    empresa               = relationship("Empresa", back_populates="servicios_polo")  # Relación con Empresa
 
 class Lote(Base):
     __tablename__ = "lotes"
@@ -274,22 +269,6 @@ class Lote(Base):
 
     servicio_polo     = relationship("ServicioPolo", back_populates="lotes")
 
-
-class EmpresaServicioPolo(Base):
-    __tablename__ = "empresa_servicio_polo"
-    cuil              = Column(
-        Integer,
-        ForeignKey("empresa.cuil", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    id_servicio_polo  = Column(
-        Integer,
-        ForeignKey("servicio_polo.id_servicio_polo", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-    empresa           = relationship("Empresa",      back_populates="servicios_polo")
-    servicio_polo     = relationship("ServicioPolo", back_populates="empresas_polo")
 
 
 # ─── Servicios Propios ────────────────────────────────────────────────────────

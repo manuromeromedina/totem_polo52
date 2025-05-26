@@ -170,7 +170,7 @@ def delete_empresa(
     summary="Crear un servicio de polo"
 )
 def create_servicio_polo(
-    dto: schemas.ServicioPoloUpdate,  # Usamos el esquema que necesites para crear el servicio
+    dto: schemas.ServicioPoloCreate,  # Usamos el esquema actualizado
     db: Session = Depends(get_db),
 ):
     servicio = models.ServicioPolo(
@@ -178,98 +178,73 @@ def create_servicio_polo(
         horario=dto.horario,
         datos=dto.datos,
         propietario=dto.propietario,
-        id_tipo_servicio_polo=dto.id_tipo_servicio_polo
+        id_tipo_servicio_polo=dto.id_tipo_servicio_polo,
+        cuil=dto.cuil  # Asociamos el servicio con la empresa mediante el cuil
     )
     db.add(servicio)
     db.commit()
     db.refresh(servicio)
     return servicio
 
-@router.put("/serviciopolo/{id_servicio_polo}",
-    response_model=schemas.ServicioPoloOut,
-    summary="Actualizar un servicio de polo"
-)
-def update_servicio_polo(
-    id_servicio_polo: int,
-    dto: schemas.ServicioPoloUpdate,
-    db: Session = Depends(get_db),
-):
-    servicio = db.query(models.ServicioPolo).filter(models.ServicioPolo.id_servicio_polo == id_servicio_polo).first()
-    if not servicio:
-        raise HTTPException(status_code=404, detail="Servicio del polo no encontrado")
-    
-    for field, value in dto.dict().items():
-        if value is not None:
-            setattr(servicio, field, value)
-    
-    db.commit()
-    db.refresh(servicio)
-    return servicio
-
 @router.delete("/serviciopolo/{id_servicio_polo}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar un servicio de polo"
-)
+               status_code=status.HTTP_204_NO_CONTENT,
+               summary="Eliminar un servicio de polo")
 def delete_servicio_polo(
     id_servicio_polo: int,
     db: Session = Depends(get_db),
 ):
+    # Verificamos si el servicio existe
     servicio = db.query(models.ServicioPolo).filter(models.ServicioPolo.id_servicio_polo == id_servicio_polo).first()
+    
     if not servicio:
         raise HTTPException(status_code=404, detail="Servicio del polo no encontrado")
     
+    # Eliminamos los lotes relacionados si es necesario (esto depende del comportamiento que se desee)
+    for lote in servicio.lotes:
+        db.delete(lote)
+
+    # Finalmente, eliminamos el servicio
     db.delete(servicio)
     db.commit()
+    
     return {"msg": "Servicio del polo eliminado exitosamente"}
 
-@router.post("/empresas/{cuil}/serviciopolo/{id_servicio_polo}", 
-             response_model=schemas.EmpresaServicioPoloAssign, 
-             summary="Asociar empresa con un servicio polo")
-def assign_servicio_polo_to_empresa(
-    cuil: int,
-    id_servicio_polo: int,
+
+@router.post("/lotes",
+    response_model=schemas.LoteOut,
+    summary="Crear un lote y asociarlo a un servicio de polo"
+)
+def create_lote(
+    dto: schemas.LoteCreate,
     db: Session = Depends(get_db),
 ):
-    # Verificar si la empresa existe
-    empresa = db.query(models.Empresa).filter_by(cuil=cuil).first()
-    if not empresa:
-        raise HTTPException(status_code=404, detail="Empresa no encontrada")
-
-    # Verificar si el servicio de polo existe
-    servicio_polo = db.query(models.ServicioPolo).filter_by(id_servicio_polo=id_servicio_polo).first()
-    if not servicio_polo:
-        raise HTTPException(status_code=404, detail="Servicio de Polo no encontrado")
-
-    # Verificar si la asociación ya existe
-    if db.query(models.EmpresaServicioPolo).filter_by(cuil=cuil, id_servicio_polo=id_servicio_polo).first():
-        raise HTTPException(status_code=400, detail="La empresa ya está asociada con este servicio de polo")
-
-    # Crear la asociación
-    empresa_servicio_polo = models.EmpresaServicioPolo(
-        cuil=cuil,
-        id_servicio_polo=id_servicio_polo,
+    lote = models.Lote(
+        dueno=dto.dueno,
+        lote=dto.lote,
+        manzana=dto.manzana,
+        id_servicio_polo=dto.id_servicio_polo,  # Asociamos el lote con el servicio de polo
     )
-    
-    db.add(empresa_servicio_polo)
+    db.add(lote)
     db.commit()
-    db.refresh(empresa_servicio_polo)
-    return empresa_servicio_polo
+    db.refresh(lote)
+    return lote
 
-@router.delete("/empresas/{cuil}/serviciopolo/{id_servicio_polo}",
-               status_code=status.HTTP_204_NO_CONTENT, 
-               summary="Desasociar empresa de un servicio polo")
-def remove_servicio_polo_from_empresa(
-    cuil: int,
-    id_servicio_polo: int,
+@router.delete("/lotes/{id_lotes}",
+               status_code=status.HTTP_204_NO_CONTENT,
+               summary="Eliminar un lote")
+def delete_lote(
+    id_lotes: int,
     db: Session = Depends(get_db),
 ):
-    # Verificar si la asociación existe
-    empresa_servicio_polo = db.query(models.EmpresaServicioPolo).filter_by(cuil=cuil, id_servicio_polo=id_servicio_polo).first()
-    if not empresa_servicio_polo:
-        raise HTTPException(status_code=404, detail="La empresa no está asociada a este servicio de polo")
-
-    # Eliminar la asociación
-    db.delete(empresa_servicio_polo)
+    # Verificamos si el lote existe
+    lote = db.query(models.Lote).filter(models.Lote.id_lotes == id_lotes).first()
+    
+    if not lote:
+        raise HTTPException(status_code=404, detail="Lote no encontrado")
+    
+    # Eliminamos el lote
+    db.delete(lote)
     db.commit()
-    return {"msg": "Asociación eliminada exitosamente"}
+    
+    return {"msg": "Lote eliminado exitosamente"}
 
