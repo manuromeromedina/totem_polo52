@@ -1,4 +1,3 @@
-#admin_users.py
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from datetime import date
@@ -9,7 +8,13 @@ from app.models import Empresa
 from app.schemas import EmpresaOut, EmpresaCreate, RolOut
 from typing import List
 from app.models import Rol
-router = APIRouter()
+from app.routes.auth import require_admin_polo  # Importamos la validación de roles desde auth.py
+
+router = APIRouter(
+    prefix="",
+    tags=["Admin_polo"],
+    dependencies=[Depends(require_admin_polo)],
+)
 
 def get_db():
     db = SessionLocal()
@@ -25,6 +30,7 @@ def get_db():
     "/roles",
     response_model=List[RolOut],
     summary="Listar roles disponibles",
+    dependencies=[Depends(require_admin_polo)]  # Se requiere el rol admin_polo
 )
 def list_roles(db: Session = Depends(get_db)):
     """
@@ -32,7 +38,7 @@ def list_roles(db: Session = Depends(get_db)):
     """
     return db.query(Rol).all()
 
-@router.get("/{user_id}", response_model=schemas.UserOut, summary="Ver usuario")
+@router.get("/{user_id}", response_model=schemas.UserOut, summary="Ver usuario", dependencies=[Depends(require_admin_polo)])  
 def get_user(user_id: UUID, db: Session = Depends(get_db)):  
     u = db.query(models.Usuario).get(user_id)
     if not u:
@@ -42,7 +48,8 @@ def get_user(user_id: UUID, db: Session = Depends(get_db)):
 @router.post(
     "/usuarios",
     response_model=schemas.UserOut,
-    summary="Crear un nuevo usuario y asignarle un rol"
+    summary="Crear un nuevo usuario y asignarle un rol",
+    dependencies=[Depends(require_admin_polo)]  # Se requiere el rol admin_polo
 )
 def create_user(
     dto: schemas.UserCreate,
@@ -75,7 +82,7 @@ def create_user(
     db.refresh(new_user)
     return new_user
 
-@router.put("/usuarios/{user_id}", response_model=schemas.UserOut, summary="Actualizar usuario")
+@router.put("/usuarios/{user_id}", response_model=schemas.UserOut, summary="Actualizar usuario", dependencies=[Depends(require_admin_polo)])  
 def update_user(user_id: UUID, dto: schemas.UserUpdate, db: Session = Depends(get_db)):  # Usamos UUID
     u = db.query(models.Usuario).get(user_id)
     if not u:
@@ -89,7 +96,7 @@ def update_user(user_id: UUID, dto: schemas.UserUpdate, db: Session = Depends(ge
     return u
 
 
-@router.delete("/usuarios/{user_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Inhabilitar usuario")
+@router.delete("/usuarios/{user_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Inhabilitar usuario", dependencies=[Depends(require_admin_polo)])  
 def delete_user(user_id: UUID, db: Session = Depends(get_db)):  # Usamos UUID
     u = db.query(models.Usuario).get(user_id)
     if not u:
@@ -103,11 +110,11 @@ def delete_user(user_id: UUID, db: Session = Depends(get_db)):  # Usamos UUID
 
 # ─── Empresas (sólo atributos básicos) ────────────────────────────────────────
 
-
 @router.post(
     "/empresas",
     response_model=EmpresaOut,
-    summary="Crear una nueva empresa"
+    summary="Crear una nueva empresa",
+    dependencies=[Depends(require_admin_polo)]  # Se requiere el rol admin_polo
 )
 def create_empresa(
     dto: EmpresaCreate,
@@ -133,7 +140,8 @@ def create_empresa(
 @router.put(
     "/empresas/{cuil}",
     response_model=schemas.EmpresaOut,
-    summary="[admin_polo] Actualizar sólo nombre y rubro de una empresa"
+    summary="[admin_polo] Actualizar sólo nombre y rubro de una empresa",
+    dependencies=[Depends(require_admin_polo)]  # Se requiere el rol admin_polo
 )
 def admin_update_empresa_nombre_rubro(
     cuil: int,
@@ -157,7 +165,8 @@ def admin_update_empresa_nombre_rubro(
 @router.delete(
     "/empresas/{cuil}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar una empresa"
+    summary="Eliminar una empresa",
+    dependencies=[Depends(require_admin_polo)]  # Se requiere el rol admin_polo
 )
 def delete_empresa(
     cuil: int,
@@ -174,7 +183,8 @@ def delete_empresa(
 
 @router.post("/serviciopolo",
     response_model=schemas.ServicioPoloOut,
-    summary="Crear un servicio de polo"
+    summary="Crear un servicio de polo",
+    dependencies=[Depends(require_admin_polo)]  # Se requiere el rol admin_polo
 )
 def create_servicio_polo(
     dto: schemas.ServicioPoloCreate,  # Usamos el esquema actualizado
@@ -195,7 +205,9 @@ def create_servicio_polo(
 
 @router.delete("/serviciopolo/{id_servicio_polo}",
                status_code=status.HTTP_204_NO_CONTENT,
-               summary="Eliminar un servicio de polo")
+               summary="Eliminar un servicio de polo",
+               dependencies=[Depends(require_admin_polo)]  # Se requiere el rol admin_polo
+)
 def delete_servicio_polo(
     id_servicio_polo: int,
     db: Session = Depends(get_db),
@@ -219,7 +231,8 @@ def delete_servicio_polo(
 
 @router.post("/lotes",
     response_model=schemas.LoteOut,
-    summary="Crear un lote y asociarlo a un servicio de polo"
+    summary="Crear un lote y asociarlo a un servicio de polo",
+    dependencies=[Depends(require_admin_polo)]  # Se requiere el rol admin_polo
 )
 def create_lote(
     dto: schemas.LoteCreate,
@@ -238,7 +251,9 @@ def create_lote(
 
 @router.delete("/lotes/{id_lotes}",
                status_code=status.HTTP_204_NO_CONTENT,
-               summary="Eliminar un lote")
+               summary="Eliminar un lote",
+               dependencies=[Depends(require_admin_polo)]  # Se requiere el rol admin_polo
+)
 def delete_lote(
     id_lotes: int,
     db: Session = Depends(get_db),
@@ -254,4 +269,3 @@ def delete_lote(
     db.commit()
     
     return {"msg": "Lote eliminado exitosamente"}
-
