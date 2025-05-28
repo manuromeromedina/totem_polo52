@@ -1,9 +1,16 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.config import SessionLocal
-from app import models, schemas
+from app.models import Empresa, Contacto, ServicioPolo, Lote, TipoContacto, TipoServicioPolo
+from app import schemas, models
+from app.schemas import EmpresaOut, EmpresaDetailOutPublic, ContactoOutPublic, VehiculoOut, ServicioOut, ServicioPoloOutPublic, LoteOut
+from app.routes.auth import require_public_role  # Asegúrate de que esté implementada correctamente
 
-router = APIRouter(tags=["público"])
+router = APIRouter(
+    prefix="/public",  # Para que todas las rutas sean de tipo /public/...
+    tags=["public"],
+    dependencies=[Depends(require_public_role)],  # Solo accesible por usuarios con rol 'publico'
+)
 
 def get_db():
     db = SessionLocal()
@@ -12,128 +19,98 @@ def get_db():
     finally:
         db.close()
 
-@router.get(
-    "/search_companies",
-    response_model=list[schemas.EmpresaDetailOut],
-    summary="Listar empresas (filtrable por nombre, rubro o tipo de servicio del polo)"
-)
-def list_companies_full(
-    nombre:           str | None = Query(None, description="Filtro parcial por nombre de empresa"),
-    rubro:            str | None = Query(None, description="Filtro parcial por rubro"),
-    tipo_servicio:    str | None = Query(None, alias="servicio_tipo", description="Filtro parcial por tipo de servicio del polo"),
-    db:               Session    = Depends(get_db),
+
+@router.get("/search", response_model=list[EmpresaDetailOutPublic], summary="Buscar empresas por nombre, rubro o servicio_polo")
+def search_companies(
+    name: str = None,  # Parametro para nombre de la empresa
+    rubro: str = None,  # Parametro para rubro
+    servicio_polo: str = None,  # Parametro para tipo de servicio de polo
+    db: Session = Depends(get_db)
 ):
-    q = db.query(models.Empresa)
-
-    # Si me filtran por tipo de servicio, hago el join y filtro por ServicioPolo.tipo
-    if tipo_servicio:
-        q = (
-            q
-            .join(models.Empresa.servicios_polo)
-            .join(models.EmpresaServicioPolo.servicio_polo)
-            .filter(models.ServicioPolo.tipo.ilike(f"%{tipo_servicio}%"))
-        )
-
-    if nombre:
-        q = q.filter(models.Empresa.nombre.ilike(f"%{nombre}%"))
+    query = db.query(Empresa)
+    
+    # Filtrar por nombre
+    if name:
+        query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
+    
+    # Filtrar por rubro
     if rubro:
-        q = q.filter(models.Empresa.rubro.ilike(f"%{rubro}%"))
+        query = query.filter(Empresa.rubro.ilike(f"%{rubro}%"))
+    
+    # Filtrar por tipo de servicio_polo (aquí cambiamos el filtro para que sea por TipoServicioPolo)
+    if servicio_polo:
+        # Realizamos el join con ServicioPolo y luego con TipoServicioPolo para filtrar por tipo
+        query = query.join(ServicioPolo).join(TipoServicioPolo).filter(TipoServicioPolo.tipo.ilike(f"%{servicio_polo}%"))
 
-    empresas = q.all()
-    result: list[schemas.EmpresaDetailOut] = []
+    # Obtener las empresas filtradas
+    companies = query.all()
 
-    for emp in empresas:
-        # Vehículos relacionados con la empresa (utilizando la relación con VehiculosEmpresa)
-        vehs = [schemas.VehiculoOut.from_orm(v.vehiculo) for v in emp.vehiculos_emp]  # Corregido aquí, accediendo a 'vehiculo' dentro de la relación 'vehiculos_emp'
-        
-        # Contactos relacionados con la empresa
-        conts = [schemas.ContactoOut.from_orm(c) for c in emp.contactos]
+    if not companies:
+        raise HTTPException(status_code=404, detail="No se encontraron empresas")
+    
+    # Crear la lista de empresas con detalles completos
+    empresa_details = []
+    for empresa in companies:
+        empresa_details.append(build_empresa_detail(empresa))
+    
+    return empresa_details
 
-        # Servicios del Polo + sus lotes
-        servs = []
-        for esp in emp.servicios_polo:
-            svc = esp.servicio_polo
-            lotes = [schemas.LoteOut.from_orm(l) for l in svc.lotes]
-            servs.append(
-                schemas.ServicioPoloOut(
-                    id_servicio_polo=svc.id_servicio_polo,
-                    nombre=svc.nombre,
-                    tipo=svc.tipo,
-                    horario=svc.horario,
-                    datos=svc.datos,
-                    lotes=lotes
-                )
-            )
 
-        # Servicios propios de la empresa
-        serv_propios = [schemas.ServicioOut.from_orm(s) for s in emp.servicios]
+# Ruta para obtener una lista completa de empresas con todos los detalles de sus contactos, servicios, y lotes
+@router.get("/all", response_model=list[EmpresaDetailOutPublic], summary="Obtener todas las empresas con detalles completos")
+def get_all_companies(db: Session = Depends(get_db)):
+    empresas = db.query(Empresa).all()
+    if not empresas:
+        raise HTTPException(status_code=404, detail="No se encontraron empresas")
+    
+    empresa_details = []
+    for empresa in empresas:
+        # Obtener los detalles completos de cada empresa
+        empresa_details.append(build_empresa_detail(empresa))
+    
+    return empresa_details
 
-        result.append(
-            schemas.EmpresaDetailOut(
-                cuil=emp.cuil,
-                nombre=emp.nombre,
-                rubro=emp.rubro,
-                cant_empleados=emp.cant_empleados,
-                observaciones=emp.observaciones,
-                fecha_ingreso=emp.fecha_ingreso,
-                horario_trabajo=emp.horario_trabajo,
-                vehiculos=vehs,
-                contactos=conts,
-                servicios_polo=servs,
-                servicios=serv_propios,  # Servicios propios de la empresa
+
+def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
+    # Creamos las listas para cada relación de la empresa
+
+    conts = []
+    for c in emp.contactos:
+        tipo_contacto = c.tipo_contacto.tipo if c.tipo_contacto else None  # Obtener el tipo de contacto
+        conts.append(
+            schemas.ContactoOutPublic(
+                nombre=c.nombre,
+                telefono=c.telefono,
+                datos=c.datos,
+                direccion=c.direccion,
+                tipo_contacto=tipo_contacto  # Incluir el tipo de contacto
             )
         )
 
-    return result
+    # Servicios asociados al Polo (asegurándose de que siempre haya una lista, incluso vacía)
+    servicios_polo = []
+    for esp in emp.servicios_polo:
+        svc = esp  # Servicio Polo asociado a la empresa
+        tipo_servicio_polo = svc.tipo_servicio.tipo if svc.tipo_servicio else None  # Tipo de servicio del Polo
+        # Lotes asociados al servicio del polo
+        lotes = [schemas.LoteOut.from_orm(l) for l in svc.lotes] if svc.lotes else []
 
-
-@router.get(
-    "/companies_all",
-    response_model=list[schemas.EmpresaDetailOut],
-    summary="Listar empresas con todos sus datos relacionados"
-)
-def list_companies_all(db: Session = Depends(get_db)):
-    emps = db.query(models.Empresa).all()
-    result: list[schemas.EmpresaDetailOut] = []
-
-    for emp in emps:
-        # Vehículos relacionados con la empresa
-        vehs = [schemas.VehiculoOut.from_orm(v) for v in emp.vehiculos_emp]  # Corregido aquí
-        # Contactos relacionados con la empresa
-        conts = [schemas.ContactoOut.from_orm(c) for c in emp.contactos]
-        # Servicios del Polo + sus lotes
-        servs = []
-        for esp in emp.servicios_polo:
-            svc = esp.servicio_polo
-            lotes = [schemas.LoteOut.from_orm(l) for l in svc.lotes]
-            # construyo el output a mano para inyectar los lotes
-            out_svc = schemas.ServicioPoloOut(
-                id_servicio_polo=svc.id_servicio_polo,
+        servicios_polo.append(
+            schemas.ServicioPoloOutPublic(
                 nombre=svc.nombre,
-                tipo=svc.tipo,
                 horario=svc.horario,
-                datos=svc.datos,
-                lotes=lotes
-            )
-            servs.append(out_svc)
-
-        # Servicios propios de la empresa
-        serv_propios = [schemas.ServicioOut.from_orm(s) for s in emp.servicios]
-
-        result.append(
-            schemas.EmpresaDetailOut(
-                cuil=emp.cuil,
-                nombre=emp.nombre,
-                rubro=emp.rubro,
-                cant_empleados=emp.cant_empleados,
-                observaciones=emp.observaciones,
-                fecha_ingreso=emp.fecha_ingreso,
-                horario_trabajo=emp.horario_trabajo,
-                vehiculos=vehs,
-                contactos=conts,
-                servicios_polo=servs,
-                servicios=serv_propios,  # Servicios propios de la empresa
+                propietario=svc.propietario,
+                tipo_servicio_polo=tipo_servicio_polo,  # Incluir el tipo de servicio del Polo
+                lotes=lotes  # Incluir los lotes relacionados
             )
         )
 
-    return result
+    # Ahora armamos y devolvemos el objeto con los detalles completos de la empresa
+    return schemas.EmpresaDetailOutPublic(
+        nombre=emp.nombre,
+        rubro=emp.rubro,
+        fecha_ingreso=emp.fecha_ingreso,
+        horario_trabajo=emp.horario_trabajo,
+        contactos=conts,
+        servicios_polo=servicios_polo  # Siempre pasa una lista, aunque esté vacía
+    )
