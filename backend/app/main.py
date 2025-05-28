@@ -144,14 +144,6 @@ app.include_router(
 
 # ─── ROLES ROUTER ────────────────────────────────────────────────────────────
 
-from app.routes.roles import router as roles_router
-
-app.include_router(
-    roles_router,
-    prefix="/roles",
-    tags=["roles"],
-)
-
 from app.routes.public import router as public_router
 
 app.include_router(public_router)

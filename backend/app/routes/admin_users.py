@@ -5,10 +5,10 @@ from datetime import date
 from uuid import UUID
 from app.config import SessionLocal
 from app import models, schemas, services
-import uuid
 from app.models import Empresa
-from app.schemas import EmpresaOut, EmpresaCreate
-
+from app.schemas import EmpresaOut, EmpresaCreate, RolOut
+from typing import List
+from app.models import Rol
 router = APIRouter()
 
 def get_db():
@@ -21,9 +21,16 @@ def get_db():
 
 # ─── Usuarios ─────────────────────────────────────────────────────────────────
 
-@router.get("/", response_model=list[schemas.UserOut], summary="Listar usuarios")
-def list_users(db: Session = Depends(get_db)):
-    return db.query(models.Usuario).all()
+@router.get(
+    "/roles",
+    response_model=List[RolOut],
+    summary="Listar roles disponibles",
+)
+def list_roles(db: Session = Depends(get_db)):
+    """
+    Devuelve todos los roles que existen en la tabla `rol`.
+    """
+    return db.query(Rol).all()
 
 @router.get("/{user_id}", response_model=schemas.UserOut, summary="Ver usuario")
 def get_user(user_id: UUID, db: Session = Depends(get_db)):  

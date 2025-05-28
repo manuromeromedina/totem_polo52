@@ -75,6 +75,12 @@ class UserUpdate(BaseModel):
 
     class Config:
            from_attributes = True
+           
+class UserUpdateCompany(BaseModel):
+    password: Optional[str]
+
+    class Config:
+           from_attributes = True
 
 
 # ──────────────────────────────────────────────────────────
