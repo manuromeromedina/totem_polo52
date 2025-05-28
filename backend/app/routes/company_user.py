@@ -2,12 +2,12 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from app.config import SessionLocal
-from app.main import get_current_user, require_empresa_role
+from app.routes.auth import get_current_user, require_empresa_role
 from app import models, schemas, services
 
 router = APIRouter(
     prefix="",
-    tags=["empresa"],
+    tags=["Admin_empresa"],
     dependencies=[Depends(require_empresa_role)],
 )
 
