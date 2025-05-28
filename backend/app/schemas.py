@@ -319,3 +319,37 @@ class EmpresaDetailOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ──────────────────────────────────────────────────────────
+# Esquemas para la salida de detalles de la empresa para el público
+
+class ContactoOutPublic(BaseModel):
+    nombre: Optional[str]
+    telefono: Optional[str]
+    datos: Optional[Dict]
+    direccion: Optional[str]
+    tipo_contacto: Optional[str]  # Tipo de contacto
+    class Config:
+        from_attributes = True
+
+class ServicioPoloOutPublic(BaseModel):
+    nombre: str
+    horario: Optional[str]
+    tipo_servicio_polo: Optional[str]  # Tipo de servicio del Polo
+    lotes: List[LoteOut]  # Lotes asociados al servicio del polo
+
+    class Config:
+        from_attributes = True
+
+class EmpresaDetailOutPublic(BaseModel):
+    nombre: str
+    rubro: str
+    fecha_ingreso: date
+    horario_trabajo: str
+    contactos: List[ContactoOutPublic]  # Contactos de la empresa
+    servicios_polo: List[ServicioPoloOutPublic]  # Servicios Polo asociados a la empresa
+
+    class Config:
+        from_attributes = True
+
+    

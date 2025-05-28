@@ -1,3 +1,4 @@
+#auth.py
 from fastapi import Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
@@ -73,8 +74,22 @@ def require_empresa_role(
         raise HTTPException(403, "Se requiere rol admin_empresa")
     return user
 
+def require_public_role(
+    current_user: Usuario = Depends(get_current_user),
+    db:           Session = Depends(get_db)
+) -> Usuario:
+    # Cargar roles de usuario
+    user = (
+        db.query(Usuario)
+        .options(joinedload(Usuario.roles))
+        .filter(Usuario.id_usuario == current_user.id_usuario)
+        .first()
+    )
+    if not any(r.tipo_rol == "publico" for r in user.roles):
+        raise HTTPException(403, "Se requiere rol 'publico'")
+    return current_user
 
-# ─── AUTH ENDPOINTS ───────────────────────────────────────────────────────────
+# --- Rutas Auth ---
 
 @router.post("/register", tags=["auth"])
 def register(dto: schemas.UserRegister, db: Session = Depends(get_db)):
