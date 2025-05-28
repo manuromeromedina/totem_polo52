@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from app.config import SessionLocal
 from app.main import get_current_user, require_empresa_role
-from app import models, schemas
+from app import models, schemas, services
 
 router = APIRouter(
     prefix="",
@@ -17,6 +17,31 @@ def get_db():
         yield db
     finally: 
         db.close()
+
+# ─── Actualizar contraseña del usuario ───────────────────────────────────────
+
+@router.put("/update_password", response_model=schemas.UserOut, summary="Actualizar la contraseña del usuario")
+def update_password(
+    dto: schemas.UserUpdateCompany,  # Recibimos los datos a actualizar
+    current_user: models.Usuario = Depends(get_current_user),  # Obtenemos al usuario logueado
+    db: Session = Depends(get_db)
+):
+    # Verificamos si la contraseña fue proporcionada
+    if dto.password is None:
+        raise HTTPException(status_code=400, detail="Se debe proporcionar una nueva contraseña")
+
+    # Recuperamos el usuario logueado
+    user = db.query(models.Usuario).filter(models.Usuario.id_usuario == current_user.id_usuario).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Actualizamos la contraseña del usuario
+    user.contrasena = services.hash_password(dto.password)  # Hasheamos la nueva contraseña
+    db.commit()
+    db.refresh(user)  # Refrescamos al usuario para reflejar los cambios
+
+    return user
+
 
 # ─── Vehiculos ────────────────────────────────────────────────────────
 @router.post("/vehiculos", response_model=schemas.VehiculoOut, summary="Crear un vehículo")
