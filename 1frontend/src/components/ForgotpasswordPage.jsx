@@ -1,6 +1,6 @@
 // components/ModalRecuperarContraseña.jsx
 import React from 'react'
-import '../styles/modal.css' // crea un archivo para los estilos si no lo tienes
+import '../styles/ForgotPasswordModal.css' // crea un archivo para los estilos si no lo tienes
 
 const ModalRecuperarContraseña = ({ visible, onClose }) => {
   const handleSubmit = (e) => {
