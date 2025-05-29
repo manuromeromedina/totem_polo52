@@ -1,3 +1,17 @@
+/*
+
+import axios from 'axios';
+
+export const login = async (email, password) => {
+  const response = await axios.post('http://TU_BACKEND/api/login', {
+    email,
+    password,
+  });
+
+  return response.data; 
+};
+*/
+
 export const login = (email, password) => {
     // Lógica de login (puede ser una llamada a tu API)
     return new Promise((resolve, reject) => {
@@ -16,4 +30,3 @@ export const login = (email, password) => {
       resolve()
     })
   }
-  

@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { register } from '../services/authService'
-import Input from '../components/Input'
-import Button from '../components/Button'
-import '../styles/main.css'
+import { register } from '../../services/authService'
+import Input from '../../components/Input'
+import Button from '../../components/Button'
+import '../../styles/registro.css'
 
 const RegisterPage = () => {
   const [nombre, setNombre] = useState('')
@@ -36,7 +36,7 @@ const RegisterPage = () => {
       <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Correo@dominio.com" />
       <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña" />
       <Input type="password" value={repeatPassword} onChange={(e) => setRepeatPassword(e.target.value)} placeholder="Repetir Contraseña" />
-      <Button type="submit">Registrarse</Button>
+      <Button class="registro-button" type="submit">Registrarse</Button>
       <p className='texto-chico'>
         ¿Ya tienes cuenta? <a href="/login">Inicia sesión aquí</a>
       </p>

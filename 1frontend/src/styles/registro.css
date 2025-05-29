@@ -35,14 +35,14 @@ body {
     width: 95%; /* o 90% si querés más margen */
     margin: 0 auto 1rem auto; /* centrarlos */
     display: block;
-    background-color: #400165;
+    background-color: #9B2C32;
     color: white;
     cursor: pointer;
     font-weight: bold;
   }
   
   button:hover {
-    background-color: #694d82;
+    background-color: #81252a;
   }
   
   input[type="email"], input[type="password"] {
@@ -56,7 +56,7 @@ body {
   
 
   .texto-chico{
-    padding-top: 20px;
+    padding-top:4.5rem;
     font-size: small;
   }
 
