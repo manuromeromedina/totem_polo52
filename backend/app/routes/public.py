@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from app.config import SessionLocal
 from app.models import Empresa, Contacto, ServicioPolo, Lote, TipoContacto, TipoServicioPolo
 from app import schemas, models
-from app.schemas import EmpresaOut, EmpresaDetailOutPublic, ContactoOutPublic, VehiculoOut, ServicioOut, ServicioPoloOutPublic, LoteOut
-from app.routes.auth import require_public_role  # Asegúrate de que esté implementada correctamente
+from app.schemas import EmpresaOut, EmpresaDetailOutPublic, ContactoOutPublic, VehiculoOut, ServicioOut, ServicioPoloOutPublic, LoteOut, LoteOutPublic
+from app.routes.auth import require_public_role
 
 router = APIRouter(
     prefix="/public",  # Para que todas las rutas sean de tipo /public/...
@@ -114,3 +114,81 @@ def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
         contactos=conts,
         servicios_polo=servicios_polo  # Siempre pasa una lista, aunque esté vacía
     )
+
+
+@router.get("/search/contactos", response_model=list[ContactoOutPublic], summary="Buscar empresas por nombre y devolver solo los contactos")
+def search_companies_contacts(
+    name: str = None,  # Parametro para nombre de la empresa
+    db: Session = Depends(get_db)
+):
+    query = db.query(Empresa)
+    
+    # Filtrar por nombre de empresa
+    if name:
+        query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
+
+    # Obtener las empresas filtradas
+    companies = query.all()
+
+    if not companies:
+        raise HTTPException(status_code=404, detail="No se encontraron empresas")
+    
+    # Crear una lista de contactos de todas las empresas
+    all_contacts = []
+    for empresa in companies:
+        for contacto in empresa.contactos:
+            tipo_contacto = contacto.tipo_contacto.tipo if contacto.tipo_contacto else None  # Obtener el tipo de contacto
+            all_contacts.append(
+                schemas.ContactoOutPublic(
+                    empresa_nombre=empresa.nombre,  # Nombre de la empresa
+                    nombre=contacto.nombre,
+                    telefono=contacto.telefono,
+                    datos=contacto.datos,
+                    direccion=contacto.direccion,
+                    tipo_contacto=tipo_contacto  # Incluir el tipo de contacto
+                )
+                    
+            )
+        
+    return all_contacts
+
+
+@router.get("/search/lotes", response_model=list[LoteOutPublic], summary="Buscar empresas por nombre y devolver solo los lotes")
+def search_companies_lotes(
+    name: str = None,  # Parametro para nombre de la empresa
+    db: Session = Depends(get_db)
+):
+    query = db.query(Empresa)
+    
+    # Filtrar por nombre de empresa
+    if name:
+        query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
+
+    # Obtener las empresas filtradas
+    companies = query.all()
+
+    if not companies:
+        raise HTTPException(status_code=404, detail="No se encontraron empresas")
+    
+    # Crear una lista de lotes de todas las empresas
+    all_lotes = []
+    for empresa in companies:
+        for servicio_polo in empresa.servicios_polo:
+            for lote in servicio_polo.lotes:
+                # Creamos el objeto LoteOutPublic manualmente
+                lote_data = schemas.LoteOutPublic(
+                    empresa_nombre=empresa.nombre,  # Asignamos el nombre de la empresa
+                    lote=lote.lote,  # Asignamos el número del lote
+                    manzana=lote.manzana  # Asignamos la manzana
+                )
+                all_lotes.append(lote_data)  # Añadimos el lote a la lista
+    
+    return all_lotes
+
+
+
+
+
+
+
+

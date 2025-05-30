@@ -324,11 +324,19 @@ class EmpresaDetailOut(BaseModel):
 # Esquemas para la salida de detalles de la empresa para el público
 
 class ContactoOutPublic(BaseModel):
+    empresa_nombre: str # Nombre de la empresa asociada
     nombre: Optional[str]
     telefono: Optional[str]
     datos: Optional[Dict]
     direccion: Optional[str]
     tipo_contacto: Optional[str]  # Tipo de contacto
+    class Config:
+        from_attributes = True
+
+class LoteOutPublic(BaseModel):
+    empresa_nombre: str # Nombre de la empresa asociada
+    lote: int
+    manzana: int
     class Config:
         from_attributes = True
 
