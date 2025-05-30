@@ -98,7 +98,7 @@ def register(dto: schemas.UserRegister, db: Session = Depends(get_db)):
     new = models.Usuario(
         nombre         = dto.nombre,
         contrasena     = services.hash_password(dto.password),
-        estado         = "activo",
+        estado         = True,
         fecha_registro = date.today(),  # Usamos la fecha actual
         cuil           = dto.cuil,
     )
