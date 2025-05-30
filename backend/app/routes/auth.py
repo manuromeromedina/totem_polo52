@@ -121,3 +121,9 @@ def login(
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     access_token = services.create_access_token(data={"sub": user.nombre})
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/logout", tags=["auth"], summary="Cerrar sesión")
+def logout(current_user: models.Usuario = Depends(get_current_user)):
+    # El JWT es stateless, solo necesitamos devolver un mensaje indicando que se ha cerrado la sesión
+    return {"message": "Sesión cerrada correctamente"}
+
