@@ -24,6 +24,9 @@ if not api_key:
     raise ValueError("No se encontró GOOGLE_API_KEY. Asegúrate de definirla en el archivo .env.")
 genai.configure(api_key=api_key)
 
+
+
+
 # Contexto para bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -42,6 +45,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     to_encode.update({"exp": expire})
     token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return token
+
+
+
 
 def normalize_text(text: str) -> str:
     normalized = ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
@@ -79,6 +85,11 @@ def get_database_schema(db: Session) -> str:
                 schema += f"  Relación: '{table_name}.{fk['constrained_columns'][0]}' -> '{fk['referred_table']}.{fk['referred_columns'][0]}'\n"
     return schema
 
+
+
+
+
+
 def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] = None):
     try:
         # Configurar el modelo
@@ -106,12 +117,13 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
             "Eres POLO, un asistente del Parque Industrial Polo 52. Tu objetivo es ayudar a los usuarios respondiendo preguntas sobre las empresas y datos relacionados del parque de manera fluida y natural. "
             "Se te proporcionará el esquema de la base de datos, el historial de la conversación y la pregunta actual del usuario. "
             "Tu tarea es:\n"
-            "1. Analizar la pregunta del usuario y el historial para determinar la intención (por ejemplo, ¿quiere información de una empresa específica, de todas las empresas, servicios, contactos, etc.?). "
-            "2. Si la pregunta contiene errores de escritura (por ejemplo, 'Jsoefina' en lugar de 'Josefina'), corrige los nombres o términos aproximados usando ILIKE para buscar coincidencias cercanas en las columnas relevantes (por ejemplo, SELECT nombre FROM tabla WHERE nombre ILIKE '%Jsoefina%'). "
-            "3. Si falta información clave (como el nombre de una empresa), responde con un JSON pidiendo aclaración: {'needs_more_info': true, 'question': '¿Puedes especificar de qué empresa quieres información?'}. "
-            "4. Si no entiendes la pregunta, responde con un JSON: {'needs_more_info': true, 'question': 'Lo siento, no entiendo tu pregunta. ¿Puedes reformularla o preguntar algo sobre las empresas del Parque Industrial Polo 52?'}. "
-            "5. Si la intención es clara, genera una consulta SQL para PostgreSQL basada únicamente en el esquema proporcionado. Usa ILIKE para búsquedas de texto insensibles a mayúsculas/minúsculas. Usa LEFT JOIN para incluir datos opcionales de tablas relacionadas. "
-            "6. Responde con un JSON: {'needs_more_info': false, 'sql_query': '...', 'corrected_entity': '...'}. Usa 'corrected_entity' solo si corriges un nombre (por ejemplo, 'corrected_entity': 'Josefina').\n\n"
+            "1. Analizar la pregunta del usuario y el historial para determinar la intención (por ejemplo, ¿quiere información de una empresa específica, de todas las empresas, servicios, contactos, o relaciones entre ellos?). "
+            "2. Si la pregunta contiene errores de escritura (por ejemplo, 'cuqles' en lugar de 'cuáles', o 'Jsoefina' en lugar de 'Josefina'), corrige los términos aproximados usando ILIKE para buscar coincidencias cercanas en las columnas relevantes (por ejemplo, SELECT nombre FROM tabla WHERE nombre ILIKE '%Jsoefina%'). "
+            "3. Si la pregunta requiere relacionar varias tablas (por ejemplo, 'qué empresas tienen el servicio de polo \"nave\"'), usa las relaciones definidas en el esquema (como claves foráneas) para generar una consulta SQL con JOIN. Por ejemplo, si 'servicio_polo' está relacionado con 'empresa' a través de 'cuil', genera una consulta como: SELECT e.nombre AS empresa_nombre FROM empresa e JOIN servicio_polo sp ON e.cuil = sp.cuil WHERE sp.nombre ILIKE '%nave%'. "
+            "4. Si falta información clave (como el nombre de una empresa o el tipo de servicio), responde con un JSON pidiendo aclaración: {'needs_more_info': true, 'question': '¿Puedes especificar de qué empresa o servicio quieres información?'}. "
+            "5. Si no entiendes la pregunta, responde con un JSON: {'needs_more_info': true, 'question': 'Lo siento, no entiendo tu pregunta. ¿Puedes reformularla o preguntar algo sobre las empresas del Parque Industrial Polo 52?'}. "
+            "6. Si la intención es clara, genera una consulta SQL para PostgreSQL basada únicamente en el esquema proporcionado. Usa ILIKE para búsquedas de texto insensibles a mayúsculas/minúsculas. Usa LEFT JOIN para incluir datos opcionales de tablas relacionadas. "
+            "7. Responde con un JSON: {'needs_more_info': false, 'sql_query': '...', 'corrected_entity': '...'}. Usa 'corrected_entity' solo si corriges un nombre (por ejemplo, 'corrected_entity': 'Josefina' o 'corrected_entity': 'nave').\n\n"
             "Esquema de la base de datos:\n"
             f"{db_schema}\n\n"
             "Historial de la conversación:\n"
@@ -154,26 +166,32 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
             entity = intent_data.get("corrected_entity", "desconocida")
             return f"No se encontraron datos para {entity}. ¿Quieres información sobre otra cosa? Por ejemplo, otra empresa o aspecto del Parque Industrial Polo 52."
 
-        # Convertir los resultados a una cadena para incluir en el prompt
-        db_info = "\n".join([str(result) for result in db_results])
+        # Convertir los resultados a un formato JSON-like más claro
+        db_info = json.dumps(db_results, ensure_ascii=False)
 
-        # Paso 3: Gemini genera la respuesta final con los datos de la base de datos
+        # Depuración: Imprimir el formato exacto de db_info
+        print(f"Datos enviados a Gemini (db_info): {db_info}")
+
+        ## Paso 3: Gemini genera la respuesta final con los datos de la base de datos
         final_prompt = (
-            "Eres POLO, un asistente del Parque Industrial Polo 52. Tu objetivo es ayudar a los usuarios respondiendo preguntas sobre el parque de manera fluida y profesional. "
-            "Se te proporcionarán los datos obtenidos de la base de datos, el historial de la conversación y la pregunta del usuario. "
+            "Eres POLO, un asistente del Parque Industrial Polo 52. Tu objetivo es ayudar a los usuarios respondiendo preguntas sobre el parque de manera fluida y profesional.\n"
+            "Se te proporcionarán los datos obtenidos de la base de datos en formato JSON, el historial de la conversación y la pregunta del usuario.\n"
             "Tu tarea es:\n"
-            "1. Analizar los datos devueltos y la pregunta del usuario para generar una respuesta en lenguaje natural. "
-            "2. Si los datos están relacionados con una o varias empresas, presenta la información de manera organizada (por ejemplo, 'La empresa [nombre] pertenece al rubro [rubro], tiene [empleados] empleados. Servicios: [servicio]. Contactos: [contacto].'). "
-            "3. Si no hay datos relevantes (por ejemplo, campos vacíos o nulos), indica que no se encontró información específica (por ejemplo, 'No se encontraron servicios.' o 'No se encontraron contactos.'). "
-            "4. Si no hay datos suficientes para responder, di 'No tengo información suficiente sobre esto. ¿Puedo ayudarte con otra cosa?' y ofrece opciones relevantes. "
-            "5. Siempre termina la respuesta ofreciendo más ayuda (por ejemplo, '¿Te gustaría saber más sobre este tema o sobre otro aspecto del Parque Industrial Polo 52?').\n\n"
-            "Datos de la base de datos:\n"
-            f"{db_info}\n\n"
+            "1. Analizar los datos devueltos (en formato JSON), la pregunta del usuario y el historial para generar una respuesta en lenguaje natural que sea relevante y útil.\n"
+            "2. Usa los datos devueltos tal como están, incluso si provienen de una consulta que relaciona múltiples tablas (como JOIN). Si los datos incluyen nombres de empresas, servicios, contactos u otros elementos, preséntalos de manera organizada y relacionados con la pregunta (por ejemplo, para '[{{\"nombre\": \"Josefina\"}}]', responde 'Las empresas con este servicio son: Josefina').\n"
+            "3. Si el array JSON no está vacío (no es []), considera que contiene datos válidos y relevantes, y úsalos en la respuesta adaptándolos al contexto de la pregunta, incluso si solo incluyen un campo como 'nombre'. Esto es obligatorio, sin excepciones.\n"
+            "4. Si el array JSON está completamente vacío (por ejemplo, []), responde con 'No se encontraron datos relacionados con tu solicitud.'\n"
+            "5. Adapta la respuesta al contexto de la pregunta: si pregunta por empresas con un servicio, lista las empresas; si pregunta por servicios disponibles, lista los servicios, etc.\n"
+            "6. Siempre termina la respuesta ofreciendo más ayuda (por ejemplo, '¿Te gustaría saber más sobre este tema o sobre otro aspecto del Parque Industrial Polo 52?').\n"
+            "Datos de la base de datos (en formato JSON):\n"
+            f"{db_info}\n"
             "Historial de la conversación:\n"
-            + chat_history +
-            "\n\nPregunta actual del usuario: " + user_input
+            f"{chat_history}\n"
+            "Pregunta actual del usuario:\n"
+            f"{user_input}"
         )
 
+        
         print(f"Prompt enviado a Gemini para respuesta final: {final_prompt}")
         final_response = model.generate_content(final_prompt)
         return final_response.text
