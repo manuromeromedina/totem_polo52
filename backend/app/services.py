@@ -162,21 +162,22 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
         # Convertir los resultados a una cadena para incluir en el prompt
         db_info = "\n".join([str(result) for result in db_results])
 
-        # Paso 3: Gemini genera la respuesta final con los datos de la base de datos
         final_prompt = (
-            "Eres POLO, un asistente del Parque Industrial Polo 52. Tu objetivo es ayudar a los usuarios respondiendo preguntas sobre el parque de manera fluida y profesional. "
-            "Se te proporcionarán los datos obtenidos de la base de datos, el historial de la conversación y la pregunta del usuario. "
+            "Eres POLO, un asistente del Parque Industrial Polo 52. Tu objetivo es ayudar a los usuarios respondiendo preguntas sobre el parque de manera fluida y profesional.\n"
+            "Se te proporcionarán los datos obtenidos de la base de datos en formato JSON, el historial de la conversación y la pregunta del usuario.\n"
             "Tu tarea es:\n"
-            "1. Analizar los datos devueltos y la pregunta del usuario para generar una respuesta en lenguaje natural. "
-            "2. Si los datos están relacionados con una o varias empresas, presenta la información de manera organizada (por ejemplo, 'La empresa [nombre] pertenece al rubro [rubro], tiene [empleados] empleados. Servicios: [servicio]. Contactos: [contacto].'). "
-            "3. Si no hay datos relevantes (por ejemplo, campos vacíos o nulos), indica que no se encontró información específica (por ejemplo, 'No se encontraron servicios.' o 'No se encontraron contactos.'). "
-            "4. Si no hay datos suficientes para responder, di 'No tengo información suficiente sobre esto. ¿Puedo ayudarte con otra cosa?' y ofrece opciones relevantes. "
-            "5. Siempre termina la respuesta ofreciendo más ayuda (por ejemplo, '¿Te gustaría saber más sobre este tema o sobre otro aspecto del Parque Industrial Polo 52?').\n\n"
-            "Datos de la base de datos:\n"
-            f"{db_info}\n\n"
+            "1. Analizar los datos devueltos (en formato JSON), la pregunta del usuario y el historial para generar una respuesta en lenguaje natural que sea relevante y útil.\n"
+            "2. Usa los datos devueltos tal como están, incluso si provienen de una consulta que relaciona múltiples tablas (como JOIN). Si los datos incluyen nombres de empresas, servicios, contactos u otros elementos, preséntalos de manera organizada y relacionados con la pregunta (por ejemplo, para '[{{\"nombre\": \"Josefina\"}}]', responde 'Las empresas con este servicio son: Josefina').\n"
+            "3. Si el array JSON no está vacío (no es []), considera que contiene datos válidos y relevantes, y úsalos en la respuesta adaptándolos al contexto de la pregunta, incluso si solo incluyen un campo como 'nombre'. Esto es obligatorio, sin excepciones.\n"
+            "4. Si el array JSON está completamente vacío (por ejemplo, []), responde con 'No se encontraron datos relacionados con tu solicitud.'\n"
+            "5. Adapta la respuesta al contexto de la pregunta: si pregunta por empresas con un servicio, lista las empresas; si pregunta por servicios disponibles, lista los servicios, etc.\n"
+            "6. Siempre termina la respuesta ofreciendo más ayuda (por ejemplo, '¿Te gustaría saber más sobre este tema o sobre otro aspecto del Parque Industrial Polo 52?').\n"
+            "Datos de la base de datos (en formato JSON):\n"
+            f"{db_info}\n"
             "Historial de la conversación:\n"
-            + chat_history +
-            "\n\nPregunta actual del usuario: " + user_input
+            f"{chat_history}\n"
+            "Pregunta actual del usuario:\n"
+            f"{user_input}"
         )
 
         print(f"Prompt enviado a Gemini para respuesta final: {final_prompt}")
