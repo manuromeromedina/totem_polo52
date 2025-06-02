@@ -1,4 +1,4 @@
-
+// chat.component.ts
 import { Component, OnInit } from '@angular/core';
 import { ChatService } from './chat.service';
 import { FormsModule } from '@angular/forms';
@@ -12,7 +12,7 @@ interface Message {
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [FormsModule, CommonModule], 
+  imports: [FormsModule, CommonModule],
   template: `
     <div class="chat-container">
       <h2>Chatbot del Parque Industrial Polo 52</h2>
@@ -42,29 +42,29 @@ interface Message {
         border: 1px solid #ccc;
         padding: 10px;
         margin-bottom: 10px;
-        display: flex; 
-        flex-direction: column; 
-        border-radius:15px;
+        display: flex;
+        flex-direction: column;
+        border-radius: 15px;
       }
       .user-message {
         text-align: right;
-        background-color:rgb(221, 241, 250);
+        background-color: rgb(221, 241, 250);
         padding: 15px;
         margin: 10px 0;
         border-radius: 15px;
-        display: block; 
-        max-width: 70%; 
-        word-wrap: break-word; 
+        display: block;
+        max-width: 70%;
+        word-wrap: break-word;
         margin-left: auto;
       }
       .bot-message {
         text-align: left;
-        background-color:rgb(242, 235, 235);
+        background-color: rgb(242, 235, 235);
         padding: 10px;
         margin: 5px 0;
         border-radius: 15px;
-        display: inline-block; 
-        max-width: 70%; 
+        display: inline-block;
+        max-width: 70%;
         word-wrap: break-word;
       }
       .chat-input {
@@ -79,17 +79,17 @@ interface Message {
       }
       button {
         padding: 10px 20px;
-        background-color:rgb(145, 15, 15);
+        background-color: rgb(145, 15, 15);
         color: white;
         border: none;
         cursor: pointer;
         border-radius: 10px;
       }
       button:hover {
-        background-color:rgb(179, 36, 0);
+        background-color: rgb(179, 36, 0);
       }
-    `
-  ]
+    `,
+  ],
 })
 export class ChatbotComponent implements OnInit {
   messages: Message[] = [];
@@ -100,24 +100,48 @@ export class ChatbotComponent implements OnInit {
   ngOnInit() {
     this.messages.push({
       sender: 'bot',
-      content: '¡Bienvenido al Parque Industrial Polo 52! Pregúntame sobre las empresas del parque.'
+      content: '¡Bienvenido al Parque Industrial Polo 52! Pregúntame sobre las empresas del parque.',
     });
+  }
+
+  private getChatHistory(): Array<{ user: string; assistant: string }> {
+    const history: Array<{ user: string; assistant: string }> = [];
+    let lastUserMessage: string | null = null;
+
+    for (const message of this.messages) {
+      if (message.sender === 'user') {
+        lastUserMessage = message.content;
+      } else if (message.sender === 'bot' && lastUserMessage) {
+        history.push({ user: lastUserMessage, assistant: message.content });
+        lastUserMessage = null;
+      }
+    }
+    console.log('Historial enviado:', history); // Depuración
+    return history;
   }
 
   sendMessage() {
     if (this.userMessage.trim()) {
       this.messages.push({ sender: 'user', content: this.userMessage });
-      this.chatService.sendMessage(this.userMessage).subscribe({
-        next: (response: any) => {
-          this.messages.push({ sender: 'bot', content: response.reply });
+
+      const history = this.getChatHistory();
+
+      this.chatService.sendMessage(this.userMessage, history).subscribe({
+        next: (response) => {
+          console.log('Respuesta del backend:', response); // Depuración
+          if (response && 'reply' in response) {
+            this.messages.push({ sender: 'bot', content: response.reply });
+          } else {
+            this.messages.push({ sender: 'bot', content: 'Respuesta inválida del servidor.' });
+          }
         },
         error: (error) => {
+          console.error('Error en la solicitud:', error); // Depuración
           this.messages.push({ sender: 'bot', content: 'Lo siento, hubo un error. Intenta de nuevo.' });
-          console.error(error);
-        }
+        },
       });
+
       this.userMessage = '';
     }
   }
 }
-  
