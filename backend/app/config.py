@@ -3,9 +3,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
-from dotenv import load_dotenv  # Asegúrate de importar load_dotenv
+from dotenv import load_dotenv
 
-# Cargar las variables de entorno desde el archivo .env
+
+
 load_dotenv()
 
 # Obtener la URL de la base de datos desde las variables de entorno
@@ -16,6 +17,9 @@ if not DATABASE_URL:
     raise ValueError(
         "No se encontró DATABASE_URL. Asegúrate de definirla en el archivo .env o como variable de entorno."
     )
+
+
+
 engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
