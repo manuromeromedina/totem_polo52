@@ -29,7 +29,6 @@ load_dotenv(dotenv_path=env_path)
 
 # === 🔐 Configurar API Key ===
 api_key = os.getenv("GOOGLE_API_KEY")
-print(f"🔐 API Key cargada: {api_key}")
 genai.configure(api_key=api_key)
 
 # === ⚙️ Configurar el modelo Gemini ===
