@@ -32,16 +32,13 @@ api_key = os.getenv("GOOGLE_API_KEY")
 print(f"🔐 API Key cargada: {api_key}")
 genai.configure(api_key=api_key)
 
-
-
-
 # === ⚙️ Configurar el modelo Gemini ===
 model = genai.GenerativeModel(
     model_name='gemini-1.5-flash',
     generation_config=GenerationConfig(
         temperature=0.2,
         top_p=1.0,
-        max_output_tokens=512,
+        max_output_tokens=1024,  # Aumentado para permitir respuestas más largas
         stop_sequences=None
     )
 )
@@ -72,9 +69,11 @@ def execute_sql_query(db: Session, query: str) -> List[Dict]:
         if not query.strip().lower().startswith("select"):
             print(f"Consulta no permitida: {query}")
             return [{"error": "Solo se permiten consultas SELECT."}]
-        result = db.execute(text(query))
+        result = db.execute(text(query), execution_options={"no_cache": True})  # Deshabilitar caché
         columns = result.keys()
-        return [dict(zip(columns, row)) for row in result.fetchall()]
+        raw_results = [dict(zip(columns, row)) for row in result.fetchall()]
+        print(f"Resultados crudos de la consulta: {raw_results}")  # Log para depuración
+        return raw_results
     except Exception as e:
         print(f"Error al ejecutar la consulta SQL: {str(e)}")
         return [{"error": f"Error al ejecutar la consulta: {str(e)}"}]
@@ -98,16 +97,11 @@ def get_database_schema(db: Session) -> str:
                 schema += f"  Relación: '{table_name}.{fk['constrained_columns'][0]}' -> '{fk['referred_table']}.{fk['referred_columns'][0]}'\n"
     return schema
 
-
-
-
-
 # Función auxiliar para manejar tipos no serializables
 def custom_json_serializer(obj):
     if isinstance(obj, date):
         return obj.isoformat()  # Convierte datetime.date a formato ISO (por ejemplo, "2021-11-05")
     raise TypeError(f"Type {type(obj)} not serializable")
-
 
 def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] = None):
     try:
@@ -141,11 +135,11 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
             "2. Diferenciar entre 'servicio' y 'servicio polo':\n"
             "   - 'Servicio' se refiere a servicios generales que no son específicos del parque, como 'agua', 'residuos', 'electricidad', entre otros. Por defecto, asume que servicios como estos deben buscarse en la tabla 'servicio', vinculados a empresas a través de 'empresa_servicio' y 'tipo_servicio'. Solo usa esta tabla a menos que el usuario especifique lo contrario.\n"
             "   - 'Servicio polo' se refiere a servicios específicos que las empresas contratan dentro del Parque Industrial Polo 52, como 'nave', 'container', 'oficina'. Usa la tabla 'servicio_polo' solo si la pregunta menciona explícitamente 'servicio polo' o ejemplos como 'nave', 'container', 'oficina'.\n"
-            "3. Si la pregunta contiene errores de escritura , corrige los términos aproximados usando ILIKE para buscar coincidencias cercanas en las columnas relevantes, pero solo en campos de tipo texto.\n"
-            "4. Si la pregunta requiere relacionar varias tablas , usa las relaciones definidas en el esquema (como claves foráneas) para generar una consulta SQL con JOIN. Identifica las columnas adecuadas para las uniones basándote en las relaciones del esquema.\n"
+            "3. Si la pregunta contiene errores de escritura, corrige los términos aproximados usando ILIKE para buscar coincidencias cercanas en las columnas relevantes, pero solo en campos de tipo texto.\n"
+            "4. Si la pregunta requiere relacionar varias tablas, usa las relaciones definidas en el esquema (como claves foráneas) para generar una consulta SQL con JOIN. Identifica las columnas adecuadas para las uniones basándote en las relaciones del esquema.\n"
             "5. Si falta información clave, responde con un JSON pidiendo aclaración: {'needs_more_info': true, 'question': '¿Puedes especificar de qué empresa o servicio quieres información?'}. "
             "6. Si no entiendes la pregunta, responde con un JSON: {'needs_more_info': true, 'question': 'Lo siento, no entiendo tu pregunta. ¿Puedes reformularla o preguntar algo sobre las empresas del Parque Industrial Polo 52?'}. "
-            "7. Si la intención es clara, genera una consulta SQL para PostgreSQL basada únicamente en el esquema proporcionado. Usa ILIKE para búsquedas de texto insensibles a mayúsculas/minúsculas y solo en campos de tipo texto (como 'nombre'). Para campos numéricos (como 'cuil'), usa operadores numéricos como '='. Usa LEFT JOIN para incluir datos opcionales de tablas relacionadas.\n"
+            "7. Si la intención es clara, genera una consulta SQL para PostgreSQL basada únicamente en el esquema proporcionado. Usa ILIKE para búsquedas de texto insensibles a mayúsculas/minúsculas y solo en campos de tipo texto (como 'nombre'). Para campos numéricos (como 'cuil'), usa operadores numéricos como '='. Usa LEFT JOIN for incluir datos opcionales de tablas relacionadas. Si la consulta es para listar todas las empresas, incluye un ORDER BY nombre para ordenar los resultados.\n"
             "8. Responde con un JSON: {'needs_more_info': false, 'sql_query': '...', 'corrected_entity': '...'}. Usa 'corrected_entity' solo si corriges un nombre (por ejemplo, 'corrected_entity': 'Josefina' o 'corrected_entity': 'nave').\n\n"
             "Esquema de la base de datos:\n"
             f"{db_schema}\n\n"
@@ -168,7 +162,6 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
         print(f"Respuesta de Gemini: {intent_data}")
 
         # Paso 2: Si Gemini necesita más información, devolver la pregunta aclaratoria
-        
         if intent_data.get("needs_more_info", False):
             return intent_data["question"], [], intent_data.get("corrected_entity")
 
@@ -185,24 +178,13 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
             entity = intent_data.get("corrected_entity", "desconocida")
             return f"No se encontraron datos para {entity}. ¿Quieres información sobre otra cosa? Por ejemplo, otra empresa o aspecto del Parque Industrial Polo 52.", [], intent_data.get("corrected_entity")
 
-        # Preprocesar resultados...
-        processed_results = []
-        seen = set()
-        for item in db_results:
-    # Convertir los valores a strings para hacerlos hasheables
-            item_key = tuple(sorted((k, json.dumps(v, sort_keys=True)) for k, v in item.items()))
-        if item_key not in seen:
-            seen.add(item_key)
-            processed_results.append(item)
-
+        # Preprocesar resultados
+        processed_results = db_results  # Eliminado el filtrado de duplicados
 
         if processed_results:
             results_text = json.dumps(processed_results, ensure_ascii=False, default=custom_json_serializer)
         else:
             results_text = "[]"
-
-
-
 
         input_text = f"Pregunta del usuario: {message}\nResultados de la base de datos: {results_text}"
         final_prompt = (
