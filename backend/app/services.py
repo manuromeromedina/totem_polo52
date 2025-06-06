@@ -191,6 +191,7 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
             "Tu tarea es usar la información proporcionada sobre la pregunta del usuario y los resultados de la base de datos para responder de manera clara, simple y fácil de entender, sin mostrar detalles técnicos de la consulta SQL al usuario final. "
             "Instrucciones:\n"
             "- La información incluye la pregunta del usuario y los resultados de la base de datos como texto. Los resultados son la respuesta directa a la pregunta del usuario y ya han sido procesados para ser relevantes.\n"
+            "- Nunca muestres IDs o CUIL de una empresa, mostra los nombres directamente.\n"
             "- Si los resultados de la base de datos son distintos de 'No se encontraron resultados', significa que hay datos válidos para responder. Usa esos datos directamente para responder a la pregunta.\n"
             "- Estructura la respuesta de manera amigable y organizada. Comienza con una salutación ('Hola, soy POLO, tu asistente del Parque Industrial Polo 52.'), presenta la información basada en los resultados (por ejemplo, 'Los tipos de servicio de polo disponibles son: coworking, oficina.'), y termina ofreciendo más ayuda ('¿Te gustaría saber más sobre otro aspecto del Parque Industrial Polo 52?').\n"
             "- Si los resultados de la base de datos son exactamente 'No se encontraron resultados', responde with: 'Hola, soy POLO, tu asistente del Parque Industrial Polo 52. No se encontraron resultados para tu solicitud. ¿Te gustaría saber más?'.\n"
