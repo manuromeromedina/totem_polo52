@@ -1,5 +1,5 @@
 #schemas.py
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from uuid import UUID  # Usamos UUID
 from datetime import date
 from typing import Optional, List, Dict
@@ -11,6 +11,7 @@ from typing import Optional, List, Dict
 
 class UserRegister(BaseModel):
     nombre: str
+    email: EmailStr
     password: str
     cuil: int
 
@@ -19,7 +20,7 @@ class UserRegister(BaseModel):
 
 
 class UserLogin(BaseModel):
-    nombre: str
+    identifier: str
     password: str
 
     class Config:
@@ -32,6 +33,13 @@ class Token(BaseModel):
 
     class Config:
            from_attributes = True
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
 
 
 # ──────────────────────────────────────────────────────────
@@ -48,6 +56,7 @@ class RolOut(BaseModel):
 
 class UserOut(BaseModel):
     id_usuario: UUID  # Cambio a UUID
+    email: EmailStr
     nombre: str
     estado: bool  # Cambio a booleano
     cuil: int
@@ -60,6 +69,7 @@ class UserOut(BaseModel):
 
 class UserCreate(BaseModel):
     nombre: str
+    email: EmailStr
     password: str
     cuil: int
     estado: Optional[bool] = True  # Asumimos estado por defecto a True

@@ -67,6 +67,7 @@ class Empresa(Base):
 class Usuario(Base):
     __tablename__ = "usuario"
     id_usuario     = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    email          = Column(String,  unique=True, index=True, nullable=False)
     nombre         = Column(String,  unique=True, index=True)
     contrasena     = Column(String,  nullable=False)
     estado         = Column(Boolean,  nullable=False)
@@ -315,4 +316,3 @@ class EmpresaServicio(Base):
 
     empresa = relationship("Empresa", back_populates="servicios")
     servicio = relationship("Servicio", back_populates="empresas_servicio")
-

@@ -60,6 +60,7 @@ def create_user(
         raise HTTPException(status_code=400, detail="Ya existe un usuario con ese nombre")
 
     new_user = models.Usuario(
+        email         = dto.email,
         nombre        = dto.nombre,
         contrasena    = services.hash_password(dto.password),
         estado        = dto.estado,

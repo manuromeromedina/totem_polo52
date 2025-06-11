@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from passlib.context import CryptContext
-from jose import jwt
+from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect
 from sqlalchemy.sql import text
@@ -58,6 +58,25 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     to_encode.update({"exp": expire})
     token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return token
+
+def create_password_reset_token(email: str, expires_minutes: int = 60) -> str:
+    now = datetime.utcnow()
+    exp = now + timedelta(minutes=expires_minutes)
+    to_encode = {"sub": email, "exp": exp, "type": "password_reset"}
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+# 2) Verificar token de recuperación y devolver el email
+def verify_password_reset_token(token: str) -> str:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "password_reset":
+            raise HTTPException(401, "Token de tipo inválido")
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(401, "Token inválido")
+        return email
+    except JWTError:
+        raise HTTPException(401, "Token de recuperación inválido o expirado")
 
 def normalize_text(text: str) -> str:
     normalized = ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
