@@ -1,12 +1,11 @@
-// app.config.ts
-import { ApplicationConfig } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-import { provideHttpClient, withFetch } from '@angular/common/http'; // Importa withFetch
+import { importProvidersFrom } from '@angular/core';
+import { HttpClientModule } from '@angular/common/http';
 
-export const appConfig: ApplicationConfig = {
+export const appConfig = {
   providers: [
-    provideRouter(routes),
-    provideHttpClient(withFetch()), // Añade withFetch aquí
-  ],
+    importProvidersFrom(HttpClientModule),  // <-- IMPORTANTE para HttpClient
+    provideRouter(routes)
+  ]
 };
