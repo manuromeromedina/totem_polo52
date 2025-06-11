@@ -1,31 +1,64 @@
 #schemas.py
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from uuid import UUID  # Usamos UUID
 from datetime import date
 from typing import Optional, List, Dict
+import re
 
+PASSWORD_REGEX = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$'
 
 # ──────────────────────────────────────────────────────────
 # DTOs de autenticación
 # ──────────────────────────────────────────────────────────
 
 class UserRegister(BaseModel):
-    nombre: str
-    email: EmailStr
-    password: str
-    cuil: int
+    nombre: str = Field(
+        ..., min_length=3, max_length=50,
+        description="Entre 3 y 50 caracteres"
+    )
+    email: EmailStr = Field(
+        ..., max_length=255,
+        description="Email válido"
+    )
+    password: str = Field(
+        ..., min_length=8, max_length=128,
+        description=(
+            "8–128 caracteres, al menos una mayúscula, "
+            "una minúscula y un dígito"
+        ),
+    )
+    cuil: int = Field(
+        ..., gt=0,
+        description="CUIL numérico positivo"
+    )
+
+    @field_validator('password')
+    def password_complexity(cls, v: str) -> str:
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un dígito')
+        return v
 
     class Config:
         from_attributes = True
+
 
 
 class UserLogin(BaseModel):
-    identifier: str
-    password: str
+    identifier: str = Field(
+        ..., min_length=3, max_length=255,
+        description="Nombre de usuario o email"
+    )
+    password: str = Field(
+        ..., min_length=8, max_length=128,
+        description="Password registrada"
+    )
 
     class Config:
         from_attributes = True
-
 
 class Token(BaseModel):
     access_token: str
@@ -35,11 +68,38 @@ class Token(BaseModel):
            from_attributes = True
 
 class PasswordResetRequest(BaseModel):
-    email: EmailStr
+    email: EmailStr = Field(
+        ..., max_length=255,
+        description="Email registrado"
+    )
+    class Config:
+        from_attributes = True
+
 
 class PasswordResetConfirm(BaseModel):
-    token: str
-    new_password: str
+    token: str = Field(
+        ..., description="Token de recuperación válido"
+    )
+    new_password: str = Field(
+        ..., min_length=8, max_length=128,
+        description=(
+            "8–128 caracteres, al menos una mayúscula, una minúscula "
+            "y un dígito"
+        ),
+    )
+
+    @field_validator('new_password')
+    def password_complexity(cls, v: str) -> str:
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un dígito')
+        return v
+
+    class Config:
+        from_attributes = True
 
 
 # ──────────────────────────────────────────────────────────
@@ -68,30 +128,94 @@ class UserOut(BaseModel):
 
 
 class UserCreate(BaseModel):
-    nombre: str
-    email: EmailStr
-    password: str
-    cuil: int
-    estado: Optional[bool] = True  # Asumimos estado por defecto a True
-    id_rol: int  # Rol a asignar
+    nombre: str = Field(
+        ..., min_length=3, max_length=50,
+        description="Entre 3 y 50 caracteres"
+    )
+    email: EmailStr = Field(
+        ..., max_length=255,
+        description="Email válido"
+    )
+    password: str = Field(
+        ..., min_length=8, max_length=128,
+        description=(
+            "8–128 caracteres, al menos una mayúscula, una minúscula "
+            "y un dígito"
+        ),
+    )
+    cuil: int = Field(
+        ..., gt=0,
+        description="CUIL numérico positivo"
+    )
+    estado: Optional[bool] = Field(
+        True,
+        description="True = activo, False = inactivo"
+    )
+    id_rol: int = Field(
+        ..., gt=0,
+        description="ID del rol a asignar (>0)"
+    )
+
+    @field_validator('password')
+    def password_complexity(cls, v: str) -> str:
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un dígito')
+        return v
 
     class Config:
-           from_attributes = True
+        from_attributes = True
 
 
 class UserUpdate(BaseModel):
-    password: Optional[str]
-    estado: Optional[bool]
+    password: Optional[str] = Field(
+        None, min_length=8, max_length=128,
+        description="Si se envía, aplica mismas reglas de complejidad"
+    )
+    estado: Optional[bool] = Field(
+        None,
+        description="True = activo, False = inactivo"
+    )
+
+    @field_validator('password')
+    def password_complexity(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un dígito')
+        return v
 
     class Config:
-           from_attributes = True
-           
+        from_attributes = True
+
+
 class UserUpdateCompany(BaseModel):
-    password: Optional[str]
+    password: Optional[str] = Field(
+        None, min_length=8, max_length=128,
+        description="Si se envía, aplica mismas reglas de complejidad"
+    )
+
+    @field_validator('password')
+    def password_complexity(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un dígito')
+        return v
 
     class Config:
-           from_attributes = True
-
+        from_attributes = True
 
 # ──────────────────────────────────────────────────────────
 # admin_polo: Empresas
