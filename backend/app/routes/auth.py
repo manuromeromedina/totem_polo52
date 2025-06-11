@@ -2,11 +2,14 @@
 from fastapi import Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_
 from jose import JWTError, jwt
 from datetime import date  # Agregada para usar la fecha actual en el registro
 from app.config import SessionLocal, SECRET_KEY, ALGORITHM
 from app import models, schemas, services
 from app.models import Usuario
+from app.schemas import PasswordResetRequest, PasswordResetConfirm
+
 
 router = APIRouter()
 
@@ -97,6 +100,7 @@ def register(dto: schemas.UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Nombre ya existe")
     new = models.Usuario(
         nombre         = dto.nombre,
+        email          = dto.email,
         contrasena     = services.hash_password(dto.password),
         estado         = True,
         fecha_registro = date.today(),  # Usamos la fecha actual
@@ -106,19 +110,16 @@ def register(dto: schemas.UserRegister, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Usuario creado"}
 
-@router.post(
-    "/login",
-    response_model=schemas.Token,
-    tags=["auth"],
-    summary="Login (OAuth2 password flow)"
-)
+
+ 
+@router.post("/login", response_model=schemas.Token, tags=["auth"])
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db:        Session                  = Depends(get_db),
-):
-    user = db.query(models.Usuario).filter(models.Usuario.nombre == form_data.username).first()
+     form_data: OAuth2PasswordRequestForm = Depends(),
+     db:        Session                  = Depends(get_db),
+ ):
+    user = (db.query(models.Usuario).filter(or_(models.Usuario.nombre == form_data.username, models.Usuario.email  == form_data.username)).first())
     if not user or not services.verify_password(form_data.password, user.contrasena):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     access_token = services.create_access_token(data={"sub": user.nombre})
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -127,3 +128,23 @@ def logout(current_user: models.Usuario = Depends(get_current_user)):
     # El JWT es stateless, solo necesitamos devolver un mensaje indicando que se ha cerrado la sesión
     return {"message": "Sesión cerrada correctamente"}
 
+@router.post("/password-reset/request", tags=["auth"])
+def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_db)):
+    user = db.query(models.Usuario).filter(models.Usuario.email == dto.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Email no registrado")
+    token = services.create_password_reset_token(user.email)
+    # Aquí deberías disparar un email real. 
+    # Por ahora devolvemos el token para pruebas:
+    return {"reset_token": token}
+
+
+@router.post("/password-reset/confirm", tags=["auth"])
+def password_reset_confirm(dto: PasswordResetConfirm, db: Session = Depends(get_db)):
+    email = services.verify_password_reset_token(dto.token)
+    user  = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    user.contrasena = services.hash_password(dto.new_password)
+    db.commit()
+    return {"message": "Contraseña actualizada correctamente"}
