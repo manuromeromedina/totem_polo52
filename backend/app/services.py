@@ -35,8 +35,8 @@ genai.configure(api_key=api_key)
 model = genai.GenerativeModel(
     model_name='gemini-1.5-flash',
     generation_config=GenerationConfig(
-        temperature=0.7,
-        top_p=1.0,
+        temperature=0.3,
+        top_p=0.9,
         max_output_tokens=1024,  # Aumentado para permitir respuestas más largas
         stop_sequences=None
     )
@@ -123,14 +123,8 @@ def custom_json_serializer(obj):
 
 def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] = None):
     try:
-        # Configurar el modelo
-        model = genai.GenerativeModel('gemini-1.5-flash')
-
-        # Normalizar el mensaje del usuario
+        # Normalizar y montar historial (sin cambios)
         user_input = normalize_text(message)
-        print(f"Mensaje recibido: {message}")
-
-        # Construir el historial de la conversación
         chat_history = ""
         if history:
             for entry in history:
@@ -139,95 +133,76 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
                 if entry.get("assistant"):
                     chat_history += f"Asistente: {entry['assistant']}\n"
 
-        # Obtener la estructura de la base de datos
+        # Obtener esquema (sin cambios)
         db_schema = get_database_schema(db)
-        print(f"Esquema de la base de datos: {db_schema}")
 
-        # Paso 1: Gemini analiza la pregunta y genera la consulta SQL
+        # ─── Prompt para generación de SQL ─────────────────────────────────────
         intent_prompt = (
-            "Tu nombre es POLO, un asistente del Parque Industrial Polo 52. Tu objetivo es ayudar a los usuarios respondiendo preguntas sobre las empresas y datos relacionados del parque de manera fluida y natural, tienes que generar una conversacion fluida, como si fueses una persona. "
-            "Se te proporcionará el esquema de la base de datos, el historial de la conversación y la pregunta actual del usuario. "
-            "Solo podés usar nombres de columnas y tablas que existan explícitamente en el esquema proporcionado."
-            "Tu tarea es:\n"
-            "1. Analizar la pregunta del usuario y el historial para determinar la intención (por ejemplo, ¿quiere información de una empresa específica, de todas las empresas, servicios, contactos, o relaciones entre ellos?). "
-            "2. Diferenciar entre 'servicio' y 'servicio polo':\n"
-            "   - 'Servicio' se refiere a servicios generales que no son específicos del parque, como 'agua', 'residuos', 'electricidad', entre otros. Por defecto, asume que servicios como estos deben buscarse en la tabla 'servicio', vinculados a empresas a través de 'empresa_servicio' y 'tipo_servicio'. Solo usa esta tabla a menos que el usuario especifique lo contrario.\n"
-            "   - 'Servicio polo' se refiere a servicios específicos que las empresas contratan dentro del Parque Industrial Polo 52, como 'nave', 'container', 'oficina'. Usa la tabla 'servicio_polo' solo si la pregunta menciona explícitamente 'servicio polo' o ejemplos como 'nave', 'container', 'oficina'.\n"
-            "3. Si la pregunta contiene errores de escritura, corrige los términos aproximados usando ILIKE para buscar coincidencias cercanas en las columnas relevantes, pero solo en campos de tipo texto.\n"
-            "4. Si la pregunta requiere relacionar varias tablas, usa las relaciones definidas en el esquema (como claves foráneas) para generar una consulta SQL con JOIN. Identifica las columnas adecuadas para las uniones basándote en las relaciones del esquema.\n"
-            "5. Si falta información clave, responde con un JSON pidiendo aclaración: {'needs_more_info': true, 'question': '¿Puedes especificar de qué empresa o servicio quieres información?'}. "
-            "6. Si no entiendes la pregunta, responde con un JSON: {'needs_more_info': true, 'question': 'Lo siento, no entiendo tu pregunta. ¿Puedes reformularla o preguntar algo sobre las empresas del Parque Industrial Polo 52?'}. "
-            "7. Si la intención es clara, genera una consulta SQL para PostgreSQL basada únicamente en el esquema proporcionado. Usa ILIKE para búsquedas de texto insensibles a mayúsculas/minúsculas y solo en campos de tipo texto (como 'nombre'). Para campos numéricos (como 'cuil'), usa operadores numéricos como '='. Usa LEFT JOIN for incluir datos opcionales de tablas relacionadas. Si la consulta es para listar todas las empresas, incluye un ORDER BY nombre para ordenar los resultados.\n"
-            "8. Responde con un JSON: {'needs_more_info': false, 'sql_query': '...', 'corrected_entity': '...'}. Usa 'corrected_entity' solo si corriges un nombre (por ejemplo, 'corrected_entity': 'Josefina' o 'corrected_entity': 'nave').\n\n"
+            "Eres POLO, asistente del Parque Industrial Polo 52. "
+            "Devuélveme **solo** un JSON válido (con **comillas dobles** en claves y valores), "
+            "sin explicaciones extra. Debe tener siempre estas cuatro claves:\n"
+            "  \"needs_more_info\"  (true|false),\n"
+            "  \"sql_query\"        (string),\n"
+            "  \"corrected_entity\" (string),\n"
+            "  \"question\"         (string)\n"
+            "Ejemplo:\n"
+            "```json\n"
+            "{\n"
+            '  "needs_more_info": true,\n'
+            '  "sql_query": "",\n'
+            '  "corrected_entity": "",\n'
+            '  "question": "¿Podrías indicar de qué empresa hablas?"\n'
+            "}\n"
+            "```\n\n"
             "Esquema de la base de datos:\n"
-            f"{db_schema}\n\n"
+            + db_schema + "\n\n"
             "Historial de la conversación:\n"
-            + chat_history +
-            "\n\nPregunta actual del usuario: " + user_input
+            + chat_history + "\n\n"
+            "Pregunta actual:\n"
+            + user_input
         )
-
-        print(f"Prompt enviado a Gemini para análisis de intención y generación de SQL: {intent_prompt}")
         intent_response = model.generate_content(intent_prompt)
-        intent_response_text = intent_response.text
+        intent_data = json.loads(intent_response.text.strip("```json\n").strip("\n```"))
 
-        # Parsear la respuesta de Gemini como JSON
-        try:
-            intent_data = json.loads(intent_response_text.strip("```json\n").strip("\n```"))
-        except json.JSONDecodeError:
-            print(f"Error al parsear la respuesta de Gemini: {intent_response_text}")
-            raise HTTPException(status_code=500, detail="Error al procesar la respuesta del modelo.")
-
-        print(f"Respuesta de Gemini: {intent_data}")
-
-        # Paso 2: Si Gemini necesita más información, devolver la pregunta aclaratoria
+        # ─── Si faltan datos, uso siempre 'question' del JSON ─────────────────
         if intent_data.get("needs_more_info", False):
             return intent_data["question"], [], intent_data.get("corrected_entity")
 
-        sql_query = intent_data.get("sql_query")
-        if not sql_query:
-            return "Lo siento, no se pudo generar una consulta válida para tu pregunta. ¿Puedes reformularla?", [], intent_data.get("corrected_entity")
-
+        # ─── Ejecución de la query y chequeos (sin cambios) ───────────────────
+        sql_query  = intent_data["sql_query"]
         db_results = execute_sql_query(db, sql_query)
+        if not db_results or "error" in db_results[0]:
+            return db_results[0].get("error", "Error interno"), [], intent_data.get("corrected_entity")
 
-        if db_results and "error" in db_results[0]:
-            return db_results[0]["error"], [], intent_data.get("corrected_entity")
+        # ─── Serializo resultados para el prompt final ────────────────────────
+        results_text = json.dumps(db_results, ensure_ascii=False, default=custom_json_serializer)
+        input_text   = f"Resultados de la consulta:\n{results_text}\nPregunta:\n{message}"
 
-        if not db_results:
-            entity = intent_data.get("corrected_entity", "desconocida")
-            return f"No se encontraron datos para {entity}. ¿Quieres información sobre otra cosa? Por ejemplo, otra empresa o aspecto del Parque Industrial Polo 52.", [], intent_data.get("corrected_entity")
+        # ─── Prompt para la respuesta final ───────────────────────────────────
+        final_prompt = f"""
+        Eres POLO, el asistente conversacional oficial del Parque Industrial Polo 52.
+        1) Sólo saluda (“Hola, soy POLO, tu asistente…”) si:
+        - Es la primera vez que pisas la conversación, o
+        - El usuario empezó con un saludo (“hola”, “buenas”).
+        2) Nunca uses “Sobre tu consulta”.
+        3) Presenta la información en 1–2 párrafos fluidos, sin viñetas ni Markdown.  
+        Incluye todos los datos relevantes (nombre, rubro, empleados, horarios, etc.),  
+        pero **nunca** IDs ni CUIL.
+        4) Integra la información de “Información de la consulta” de forma natural: explica qué datos obtuviste y qué significan.
+        5) Si ves palabras de agradecimiento (“gracias”, “muy amable”), responde **una sola vez**:
+        “¡De nada! Siempre a tu servicio.”
+        6) Termina SIEMPRE con una pregunta abierta:  
+        “¿Te gustaría saber algo más sobre otra empresa o servicio del parque?”
 
-        # Preprocesar resultados
-        processed_results = db_results  # Eliminado el filtrado de duplicados
 
-        if processed_results:
-            results_text = json.dumps(processed_results, ensure_ascii=False, default=custom_json_serializer)
-        else:
-            results_text = "[]"
+        Información disponible:
+        {input_text}
 
-        input_text = f"Pregunta del usuario: {message}\nResultados de la base de datos: {results_text}"
-        final_prompt = (
-            "Tu nombre es POLO, un asistente conversacional del Parque Industrial Polo 52. Tu tarea es usar la información proporcionada...\n"
-            "Instrucciones:\n"
-            "- Toma la consulta SQL que generaste (campo `sql_query`), extrae el nombre de la tabla principal tras el FROM, forma su plural (añadiendo “s” o “es” según corresponda), cuenta los resultados y comienza tu respuesta con “Hay {n} {tabla_plural}: ”, luego lista sólo los valores de las columnas que devolvió la consulta.",
-            "- Solo tu primera respuesta debe comenzar con: 'Hola, soy POLO, tu asistente del Parque Industrial Polo 52. ¿En qué puedo ayudarte hoy?'\n"
-            "- Ese saludo solo se usará tras la primera consulta O tras detectar un saludo del usuario.",
-            "- No uses Markdown ni símbolos como * o **.\n"
-            "- La información incluye la pregunta del usuario y los resultados de la base de datos.\n"
-            "- Nunca muestres IDs o CUIL de una empresa, muestra los nombres directamente.\n"
-            "- Si la pregunta es para listar empresas, primero di “Hay {n} empresas:” y a continuación solo lista sus nombres separados por comas.",
-            "- Si los resultados de la base de datos son distintos de 'No se encontraron resultados', significa que hay datos válidos para responder. Usa esos datos directamente.\n"
-            "- Si los resultados son exactamente 'No se encontraron resultados', responde: 'No se encontraron resultados para tu solicitud. ¿Te gustaría saber más?'.\n"
-            "- Estructura la respuesta de manera amigable y organizada. Termina ofreciendo más ayuda ('¿Te gustaría saber más sobre otro aspecto del Parque Industrial Polo 52?').\n"
-            "- Adapta la respuesta al contexto de la pregunta. Usa el historial de conversación si es necesario.\n"
-            "- Si el usuario expresa agradecimiento responde con un agradecimiento de uso.'.\n"
-            f"Información proporcionada:\n{input_text}\n"
-            f"Historial de la conversación:\n{chat_history}"
-        )
-
+        Historial:
+        {chat_history}
+        """
         final_response = model.generate_content(final_prompt)
-        final_response_text = final_response.text
-        return final_response_text, processed_results, intent_data.get("corrected_entity")
+        return final_response.text, db_results, intent_data.get("corrected_entity")
 
     except Exception as e:
-        print(f"Error al procesar el mensaje: {str(e)}")
         return f"Error al procesar el mensaje: {str(e)}", [], None
