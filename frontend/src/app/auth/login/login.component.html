@@ -1,45 +1,61 @@
-<div class="login-container">
-  
+<div class="login-page">
+  <div class="login-image"></div>
+
   <div class="login-form">
-    <h2>Login</h2>
-    <p class="description">Please login to continue to your account.</p>
+    <!-- Cambié el título -->
+    <h1>Iniciar sesión</h1>
+    <p class="description">Por favor ingresa tu correo o usuario y contraseña.</p>
+
     <form (ngSubmit)="onLogin()" #loginForm="ngForm">
+      <!-- Email o Usuario -->
       <div class="form-group">
-        <label for="username">Usuario</label>
+        <label for="username">Correo o usuario</label>
         <input
           id="username"
           name="username"
+          type="text"
           [(ngModel)]="username"
-          placeholder="NombreUsuario"
+          placeholder="jonas_kahnwald@gmail.com"
           required
-          [ngClass]="{'error': usernameError}"
-        >
+          [ngClass]="{ 'error': usernameError }"
+        />
       </div>
+
+      <!-- Password -->
       <div class="form-group">
-        <label for="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          name="password"
-          [(ngModel)]="password"
-          required
-        >
+        <label for="password">Contraseña</label>
+        <div class="password-wrapper">
+          <input
+            id="password"
+            name="password"
+            [type]="showPassword ? 'text' : 'password'"
+            [(ngModel)]="password"
+            placeholder="••••••••"
+            required
+            [ngClass]="{ 'error': passwordError }"
+          />
+          <button type="button" class="eye-btn" (click)="togglePassword()">
+            <span [class.open]="showPassword">👁️</span>
+          </button>
+        </div>
       </div>
-      <div class="form-group checkbox-group">
-        <input
-          type="checkbox"
-          id="keepLoggedIn"
-          name="keepLoggedIn"
-          [(ngModel)]="keepLoggedIn"
-        >
-        <label for="keepLoggedIn">Keep me logged in</label>
-      </div>
-      <button type="submit" [disabled]="loginForm.invalid" class="login-btn">Login</button>
+
+      <button
+        type="submit"
+        class="btn-signin"
+        [disabled]="loginForm.invalid || loading"
+      >
+        {{ loading ? 'Entrando…' : 'Entrar' }}
+      </button>
+
+      <p *ngIf="loginMessage" class="login-error">{{ loginMessage }}</p>
+
+      <!-- Al final del formulario, antes de cerrar </form> -->
+          <div class="links">
+            <span>¿No tienes cuenta?</span>
+            <a routerLink="/register">Regístrate</a>
+          </div>
     </form>
-    <div class="links">
-      <span>No tienes cuenta?</span>
-      <a routerLink="/register">Registrate</a>
-    </div>
-    <p *ngIf="loginMessage" class="message">{{ loginMessage }}</p>
   </div>
 </div>
+
