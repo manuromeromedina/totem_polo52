@@ -1,0 +1,126 @@
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #ffffff; /* Fondo oscuro como en la imagen */
+  padding: 20px;
+}
+
+.image-section {
+  flex: 1; /* Ocupa el 50% del espacio */
+  margin-right: 20px;
+}
+
+.login-image {
+  width: 100%;
+  height: auto;
+  border-radius: 5px;
+}
+
+.login-form {
+
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  width: 400px; /* Ancho fijo para el formulario */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+h2 {
+  font-size: 27px;
+  color: #000;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.description {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.form-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-group input.error {
+  border: 1px solid #660e0e; /* Borde rojo para error */
+  background-color: #fff0f0;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.checkbox-group input {
+  margin-right: 10px;
+}
+
+.checkbox-group label {
+  font-size: 14px;
+  color: #333;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #8b0000; /* Rojo oscuro como en la imagen */
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.login-btn:disabled {
+  background-color: #791111; /* Gris cuando deshabilitado */
+  cursor: not-allowed;
+}
+
+.login-btn:enabled:hover {
+  background-color: #450909; /* Rojo más oscuro al pasar el ratón */
+}
+
+.links {
+  margin-top: 15px;
+  font-size: 14px;
+  color: #666;
+}
+
+.links a {
+  color: #1e90ff;
+  text-decoration: none;
+  margin-left: 5px;
+}
+
+.links a:hover {
+  text-decoration: underline;
+}
+
+.message {
+  margin-top: 15px;
+  font-size: 14px;
+  color: #660e0e;
+  text-align: center;
+}
