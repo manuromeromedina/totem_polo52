@@ -1,56 +1,78 @@
+// src/app/auth.service.ts
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { Observable, of } from 'rxjs';
+import { tap, map, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
-@Injectable({
-  providedIn: 'root'
-})
+interface LoginResponse {
+  access_token: string;
+  token_type: string;
+}
+interface RegisterResponse {
+  message: string;
+}
+
+@Injectable({ providedIn: 'root' })
 export class AuthenticationService {
-  private usersKey = 'users';
-  private sessionKey = 'sessionToken';
+  private loginUrl    = `${environment.apiUrl}/login`;
+  private registerUrl = `${environment.apiUrl}/register`;
+  private sessionKey  = 'sessionToken';
 
-  constructor() {}
+  constructor(private http: HttpClient, private router: Router) {}
 
-  register(username: string, email: string, password: string): boolean {
-    const users = this.getUsers();
-    if (users.find(user => user.username === username)) {
-      return false; // User already exists
-    }
-    users.push({ username, email, password });
-    localStorage.setItem(this.usersKey, JSON.stringify(users));
-    return true;
+  register(username: string, email: string, password: string): Observable<boolean> {
+    return this.http.post<RegisterResponse>(this.registerUrl, {
+      nombre: username,
+      email,
+      password
+    }).pipe(
+      map(() => true),
+      catchError(err => {
+        console.error('Registro fallido', err);
+        return of(false);
+      })
+    );
   }
 
-  login(username: string, password: string, keepLoggedIn: boolean): boolean {
-    const users = this.getUsers();
-    const user = users.find(u => u.username === username && u.password === password);
-    if (user) {
-      const token = 'mock-token-' + Math.random().toString(36).substr(2);
-      if (keepLoggedIn) {
-        localStorage.setItem(this.sessionKey, token);
-      } else {
-        sessionStorage.setItem(this.sessionKey, token);
-      }
-      return true;
-    }
-    return false;
-  }
+  login(username: string, password: string, keepLoggedIn: boolean): Observable<boolean> {
+    const body = new HttpParams()
+      .set('grant_type', 'password')
+      .set('username', username)
+      .set('password', password);
 
-  isLoggedIn(): boolean {
-    return !!localStorage.getItem(this.sessionKey) || !!sessionStorage.getItem(this.sessionKey);
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/x-www-form-urlencoded'
+    });
+
+    return this.http
+      .post<LoginResponse>(this.loginUrl, body.toString(), { headers })
+      .pipe(
+        tap(res => {
+          const storage = keepLoggedIn ? localStorage : sessionStorage;
+          storage.setItem(this.sessionKey, res.access_token);
+        }),
+        map(() => true),
+        catchError(err => {
+          console.error('Login fallido', err);
+          return of(false);
+        })
+      );
   }
 
   logout(): void {
     localStorage.removeItem(this.sessionKey);
     sessionStorage.removeItem(this.sessionKey);
+    this.router.navigate(['/login']);
   }
 
-  recoverPassword(email: string): string {
-    const users = this.getUsers();
-    const user = users.find(u => u.email === email);
-    return user ? `Se ha enviado un enlace de recuperación a ${email}` : 'Email no encontrado';
+  isLoggedIn(): boolean {
+    return !!this.getToken();
   }
 
-  private getUsers(): any[] {
-    const users = localStorage.getItem(this.usersKey);
-    return users ? JSON.parse(users) : [];
+  getToken(): string | null {
+    return localStorage.getItem(this.sessionKey)
+        || sessionStorage.getItem(this.sessionKey);
   }
 }
