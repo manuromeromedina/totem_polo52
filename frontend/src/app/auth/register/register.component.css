@@ -1,48 +1,113 @@
-/* src/app/auth/register.component.css */
-.auth-page {
+:host {
   display: flex;
+  width: 100%;
   height: 100vh;
-  justify-content: center;
-  align-items: center;
+  margin: 0;
+  padding: 0;
 }
-.form-box {
-  width: 320px;
+
+.signup-page {
+  display: flex;
+  flex: 1;
+}
+
+.signup-image {
+  flex: 0.6;
+  background: url('../../../assets/images/polo-inicio.jpg') center/cover no-repeat;
+  opacity: 50%;
+  border-radius: 10px;
+}
+
+.signup-form {
+  flex: 1;
+  max-width: 400px;
+  margin: auto;
   padding: 2rem;
-  border-radius: 6px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   background: #fff;
 }
-.form-box h1 {
-  margin-bottom: 1rem;
-  text-align: center;
+
+.signup-form h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  font-family: Arial, sans-serif;
 }
-.form-box label {
-  font-size: .9rem;
-  color: #333;
-  margin-top: .8rem;
+
+.description {
+  color: #666;
+  margin-bottom: 1.5rem;
+  font-family: Arial, sans-serif;
 }
-.form-box input {
+
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.9rem;
+  color: #b22222;
+  margin-bottom: 0.3rem;
+  font-family: Arial, sans-serif;
+}
+
+.form-group input {
   width: 100%;
-  padding: .6rem;
-  margin-top: .3rem;
-  border: 1px solid #ccc;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #b22222;
   border-radius: 4px;
+  font-family: Arial, sans-serif;
 }
-.form-box button {
-  margin-top: 1.2rem;
+
+.form-group input.error {
+  background-color: #fff0f0;
+}
+
+.btn-signup {
   width: 100%;
-  padding: .7rem;
-  background: #8b0000;
+  padding: 0.75rem;
+  font-size: 1rem;
+  background-color: #8b0000;
   color: #fff;
-  border: 0;
+  border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-family: Arial, sans-serif;
 }
-.form-box button:disabled {
-  background: #ccc;
+
+.btn-signup:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
-.error {
+
+.btn-signup:not(:disabled):hover {
+  background-color: #450909;
+}
+
+.signup-error {
+  margin-top: 1rem;
   color: #b22222;
-  margin-top: .8rem;
   text-align: center;
+}
+
+.links {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.links span {
+  color: #666;
+  margin-right: 0.5rem;
+  font-family: Arial, sans-serif;
+}
+
+.links a {
+  color: #8b0000;
+  text-decoration: none;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+}
+
+.links a:hover {
+  text-decoration: underline;
 }

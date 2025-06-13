@@ -63,6 +63,7 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    tipo_rol: str 
 
     class Config:
            from_attributes = True

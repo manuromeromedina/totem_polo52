@@ -9,6 +9,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+class Settings:
+    EMAIL_USER = os.getenv("EMAIL_USER")
+    EMAIL_PASS = os.getenv("EMAIL_PASS")
+
+settings = Settings()
+
 # Obtener la URL de la base de datos desde las variables de entorno
 DATABASE_URL = os.getenv("DATABASE_URL")
 

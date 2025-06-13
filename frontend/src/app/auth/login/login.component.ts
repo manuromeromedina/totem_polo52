@@ -28,6 +28,14 @@ export class LoginComponent {
   // visibilidad de contraseña
   showPassword = false;
 
+  showResetPassword = false;
+  resetEmail = '';
+  resetMessage = '';
+  resetError = '';
+  resetToken = '';  // Agregado para mostrar el token
+
+
+
   constructor(
     private authService: AuthenticationService,
     private router: Router
@@ -38,30 +46,67 @@ export class LoginComponent {
   }
 
   onLogin() {
-    // reset errores
-    this.usernameError = !this.username;
-    this.passwordError = !this.password;
-    this.loginMessage = '';
+  // Reset de errores
+  this.usernameError = !this.username;
+  this.passwordError = !this.password;
+  this.loginMessage = '';
 
-    if (this.usernameError || this.passwordError) {
-      this.loginMessage = 'Por favor, completa todos los campos.';
-      return;
-    }
-
-    this.loading = true;
-    this.authService
-      .login(this.username, this.password, /* keepLoggedIn */ false)
-      .pipe(finalize(() => this.loading = false))
-      .subscribe(success => {
-        if (success) {
-          this.router.navigate(['/dashboard']);
-        } else {
-          this.usernameError = true;
-          this.passwordError = true;
-          this.loginMessage = 'Usuario o contraseña inválidos.';
-        }
-      }, () => {
-        this.loginMessage = 'Error de conexión. Intenta de nuevo más tarde.';
-      });
+  if (this.usernameError || this.passwordError) {
+    this.loginMessage = 'Por favor, completa todos los campos.';
+    return;
   }
+
+  this.loading = true;
+  this.authService
+    .login(this.username, this.password, /* keepLoggedIn */ false)
+    .pipe(finalize(() => this.loading = false))
+    .subscribe(success => {
+      if (success) {
+        const rol = this.authService.getUserRole();
+
+        switch (rol) {
+          case 'admin_polo':
+            this.router.navigate(['/admin_polo']);
+            break;
+          case 'admin_empresa':
+            this.router.navigate(['/admin_empresa']);
+            break;
+          case 'usuario':
+            this.router.navigate(['/publico']);
+            break;
+          default:
+            this.loginMessage = 'Rol no reconocido.';
+            break;
+        }
+      } else {
+        this.usernameError = true;
+        this.passwordError = true;
+        this.loginMessage = 'Usuario o contraseña inválidos.';
+      }
+    }, () => {
+      this.loginMessage = 'Error de conexión. Intenta de nuevo más tarde.';
+    });
+}
+
+requestPasswordReset() {
+  this.resetMessage = '';
+  this.resetError = '';
+
+  this.authService.passwordResetRequest(this.resetEmail).subscribe({
+    next: (res: any) => {
+      if (res?.reset_token) {
+        this.resetMessage = 'Se ha enviado un enlace para restablecer tu contraseña a tu correo. Por favor, revisa tu bandeja de entrada.';
+        // Keep modal open to show message
+      } else {
+        this.resetError = 'Respuesta inesperada del servidor.';
+      }
+    },
+    error: (err) => {
+      console.error('Error en recuperación:', err);
+      this.resetError = err?.error?.detail || 'Error al solicitar recuperación.';
+    }
+  });
+}
+
+
 }
