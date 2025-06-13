@@ -3,6 +3,8 @@ import { Component, OnInit } from '@angular/core';
 import { ChatService } from './chat.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
+
 
 interface Message {
   sender: 'user' | 'bot';
@@ -12,8 +14,10 @@ interface Message {
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, LogoutButtonComponent],
   template: `
+      <app-logout-button></app-logout-button>
+
     <div class="chat-container">
       <h2>Chatbot del Parque Industrial Polo 52</h2>
       <div class="chat-messages">
