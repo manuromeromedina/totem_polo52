@@ -1,0 +1,395 @@
+/* Botón de Logout */
+.logout-btn {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  background-color: #8b0000;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 100;
+}
+
+.logout-btn:hover:not(:disabled) {
+  background-color: #450909;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.logout-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.logout-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.3);
+}
+
+.logout-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.logout-btn .loading {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Modal de confirmación */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  animation: slideIn 0.3s ease;
+}
+
+.modal-content h3 {
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.modal-content p {
+  margin-bottom: 1.5rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.btn-cancel, .btn-confirm {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.btn-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-cancel:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+.btn-confirm {
+  background-color: #8b0000;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background-color: #450909;
+  transform: translateY(-1px);
+}
+
+/* Popups de notificación */
+.popup {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 1001;
+  min-width: 300px;
+  max-width: 400px;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  animation: slideInRight 0.4s ease;
+}
+
+.success-popup {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.error-popup {
+  background: linear-gradient(135deg, #dc3545, #fd7e14);
+  color: white;
+}
+
+.popup-content {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  gap: 0.75rem;
+}
+
+.popup-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.popup-message {
+  font-weight: 500;
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .logout-btn {
+    top: 1rem;
+    right: 1rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+  
+  .popup {
+    top: 1rem;
+    right: 1rem;
+    left: 1rem;
+    min-width: auto;
+  }
+  
+  .modal-content {
+    margin: 1rem;
+    width: calc(100% - 2rem);
+  }
+  
+  .modal-buttons {
+    flex-direction: column;
+  }
+}
+
+/* Variante con icono (opcional) */
+.logout-btn-with-icon {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  background-color: #8b0000;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logout-btn-with-icon:hover {
+  background-color: #450909;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.logout-btn-with-icon:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.logout-btn-with-icon:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.3);
+}
+
+.logout-icon {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+/* Versión minimalista solo con icono */
+.logout-btn-icon-only {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: #8b0000;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-btn-icon-only:hover {
+  background-color: #450909;
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.logout-btn-icon-only:active {
+  transform: translateY(0) scale(1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.logout-btn-icon-only:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.3);
+}
+
+/* Responsivo - para pantallas pequeñas */
+@media (max-width: 768px) {
+  .logout-btn,
+  .logout-btn-with-icon {
+    top: 1rem;
+    right: 1rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+  
+  .logout-btn-icon-only {
+    top: 1rem;
+    right: 1rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 1rem;
+  }
+}
+
+/* Modal de confirmación de logout (opcional) */
+.logout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.logout-modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  max-width: 350px;
+  width: 90%;
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+.logout-modal-content h3 {
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.logout-modal-content p {
+  margin-bottom: 1.5rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.logout-modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.logout-modal-buttons button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-family: Arial, sans-serif;
+}
+
+.logout-confirm-btn {
+  background-color: #8b0000;
+  color: white;
+}
+
+.logout-confirm-btn:hover {
+  background-color: #450909;
+}
+
+.logout-cancel-btn {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.logout-cancel-btn:hover {
+  background-color: #bdbdbd;
+}

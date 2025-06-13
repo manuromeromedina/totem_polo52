@@ -1,0 +1,53 @@
+<!-- logout-button.component.html -->
+
+<!-- Opción 1: Botón con confirmación modal -->
+<button 
+  class="logout-btn" 
+  (click)="showLogoutModal()" 
+  [disabled]="loading">
+  <span *ngIf="!loading">🚪 Cerrar sesión</span>
+  <span *ngIf="loading" class="loading">⏳ Cerrando...</span>
+</button>
+
+<!-- Modal de confirmación -->
+<div class="modal-overlay" *ngIf="showModal" (click)="cancelLogout()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h3>Confirmar cierre de sesión</h3>
+    <p>¿Estás seguro de que deseas cerrar tu sesión?</p>
+    <div class="modal-buttons">
+      <button class="btn-cancel" (click)="cancelLogout()">
+        ❌ Cancelar
+      </button>
+      <button class="btn-confirm" (click)="confirmLogout()">
+        ✅ Cerrar sesión
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Opción 2: Botón directo (comentado, usa si prefieres sin modal) -->
+<!--
+<button 
+  class="logout-btn" 
+  (click)="logout()" 
+  [disabled]="loading">
+  <span *ngIf="!loading">🚪 Cerrar sesión</span>
+  <span *ngIf="loading" class="loading">⏳ Cerrando...</span>
+</button>
+-->
+
+<!-- Popup de éxito -->
+<div class="popup success-popup" *ngIf="successMessage">
+  <div class="popup-content">
+    <span class="popup-icon">✅</span>
+    <span class="popup-message">{{ successMessage }}</span>
+  </div>
+</div>
+
+<!-- Popup de error -->
+<div class="popup error-popup" *ngIf="errorMessage">
+  <div class="popup-content">
+    <span class="popup-icon">⚠️</span>
+    <span class="popup-message">{{ errorMessage }}</span>
+  </div>
+</div>

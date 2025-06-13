@@ -1,43 +1,63 @@
 <div class="login-page">
-  <div class="login-image"></div>
+  <div class="login-image">
+    <div class="welcome-overlay">
+      <div class="welcome-content">
+        <div class="polo-brand">POLO 52</div>
+        <h1 class="welcome-title">¡Bienvenido!</h1>
+        <p class="welcome-subtitle">Accede a tu cuenta para continuar</p>
+      </div>
+    </div>
+  </div>
 
   <div class="login-form">
-    <!-- Cambié el título -->
     <h1>Iniciar sesión</h1>
-    <p class="description">Por favor ingresa tu correo o usuario y contraseña.</p>
+    <p class="description">Ingresa tus credenciales para acceder al sistema</p>
 
     <form (ngSubmit)="onLogin()" #loginForm="ngForm">
       <!-- Email o Usuario -->
       <div class="form-group">
-        <label for="username">Correo o usuario</label>
+        <label for="username">
+          Correo o usuario
+        </label>
         <input
           id="username"
           name="username"
           type="text"
           [(ngModel)]="username"
-          placeholder="mail@dominio.com"
+          placeholder="ejemplo@correo.com"
           required
           [ngClass]="{ 'error': usernameError }"
         />
+        <span *ngIf="usernameError" class="field-error">{{ usernameErrorMessage }}</span>
       </div>
 
       <!-- Password -->
       <div class="form-group">
-        <label for="password">Contraseña</label>
+        <label for="password">
+          Contraseña
+        </label>
         <div class="password-wrapper">
           <input
             id="password"
             name="password"
             [type]="showPassword ? 'text' : 'password'"
             [(ngModel)]="password"
-            placeholder="password"
+            placeholder="Tu contraseña"
             required
             [ngClass]="{ 'error': passwordError }"
           />
           <button type="button" class="eye-btn" (click)="togglePassword()">
-            <span [class.open]="showPassword">👁️</span>
+            <span [class.open]="showPassword">{{ showPassword ? '🙈' : '👁️' }}</span>
           </button>
         </div>
+        <span *ngIf="passwordError" class="field-error">{{ passwordErrorMessage }}</span>
+      </div>
+
+      <!-- Olvidar contraseña -->
+      <div class="forgot-password">
+        <a href="#" (click)="showResetPassword = true; resetEmail = ''; resetMessage = ''; resetError = ''; $event.preventDefault()">
+          ¿Olvidaste tu contraseña?
+        </a>
       </div>
 
       <button
@@ -45,21 +65,24 @@
         class="btn-signin"
         [disabled]="loginForm.invalid || loading"
       >
-        {{ loading ? 'Entrando…' : 'Entrar' }}
+        {{ loading ? 'Entrando…' : 'Iniciar sesión' }}
       </button>
 
       <p *ngIf="loginMessage" class="login-error">{{ loginMessage }}</p>
 
-<!-- dentro del form, justo antes del botón Entrar -->
-<div class="forgot-password">
-  <a href="#" (click)="showResetPassword = true; resetEmail = ''; resetMessage = ''; resetError = ''; $event.preventDefault()">
-    ¿Olvidaste tu contraseña?
-  </a>
+      <!-- Links de registro -->
+      <div class="links">
+        <span>¿No tienes cuenta?</span>
+        <a routerLink="/register">Regístrate aquí</a>
+      </div>
+    </form>
+  </div>
 </div>
 
-<div *ngIf="showResetPassword" class="modal-overlay">
-  <div class="modal-content">
-    <h3>Recuperar contraseña</h3>
+<!-- Modal de recuperación FUERA del div login-form -->
+<div *ngIf="showResetPassword" class="modal-overlay" (click)="showResetPassword = false">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h3>🔐 Recuperar contraseña</h3>
     <form (ngSubmit)="requestPasswordReset()" #resetForm="ngForm">
       <input
         type="email"
@@ -70,26 +93,18 @@
         email
       />
       <div class="modal-buttons">
-        <button type="submit" [disabled]="resetForm.invalid">Enviar link</button>
-        <button type="button" (click)="showResetPassword = false">Cancelar</button>
+        <button type="submit" [disabled]="resetForm.invalid || resetLoading">
+          {{ resetLoading ? 'Enviando...' : 'Enviar link' }}
+        </button>
+        <button type="button" (click)="showResetPassword = false">
+          Cancelar
+        </button>
       </div>
     </form>
     <p *ngIf="resetMessage" style="color:green">{{ resetMessage }}</p>
     <p *ngIf="resetError" style="color:red">{{ resetError }}</p>
-    <button *ngIf="resetMessage" type="button" (click)="showResetPassword = false" class="close-btn">Cerrar</button>
+    <button *ngIf="resetMessage" type="button" (click)="showResetPassword = false" class="close-btn">
+      Cerrar
+    </button>
   </div>
 </div>
-
-
-
-
-      <!-- Al final del formulario, antes de cerrar </form> -->
-          <div class="links">
-            <span>¿No tienes cuenta?</span>
-            <a routerLink="/register">Regístrate</a>
-          </div>
-    </form>
-
-  </div>
-</div>
-

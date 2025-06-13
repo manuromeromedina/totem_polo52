@@ -1,1 +1,196 @@
-<p>admin-empresa works!</p>
+<!-- Opción 1: Diseño básico mejorado -->
+<div class="empresa-container">
+  <div class="empresa-header">
+    <h1 class="empresa-title">Panel de Empresa</h1>
+    <app-logout-button></app-logout-button>
+  </div>
+
+  <div class="empresa-form">
+    <h2>Mis datos de empresa</h2>
+    
+    <form (ngSubmit)="actualizar()" #empresaForm="ngForm" [class.loading]="loading">
+      <div class="form-group">
+        <label for="empleados">Cantidad de Empleados</label>
+        <input 
+          id="empleados"
+          type="number" 
+          [(ngModel)]="empresa.cant_empleados" 
+          name="empleados"
+          min="1"
+          placeholder="Ej: 25"
+          required>
+      </div>
+      
+      <div class="form-group">
+        <label for="horario">Horario de Trabajo</label>
+        <input 
+          id="horario"
+          type="text" 
+          [(ngModel)]="empresa.horario_trabajo" 
+          name="horario"
+          placeholder="Ej: Lunes a Viernes 8:00 - 17:00"
+          required>
+      </div>
+      
+      <div class="form-group">
+        <label for="observaciones">Observaciones</label>
+        <textarea 
+          id="observaciones"
+          [(ngModel)]="empresa.observaciones" 
+          name="observaciones"
+          placeholder="Ingrese observaciones adicionales sobre su empresa..."></textarea>
+      </div>
+      
+      <button type="submit" class="btn-guardar" [disabled]="!empresaForm.form.valid || loading">
+        {{ loading ? 'Guardando...' : 'Guardar Cambios' }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Opción 2: Diseño con iconos y layout en grid -->
+<div class="empresa-container">
+  <div class="empresa-header">
+    <h1 class="empresa-title">Panel de Empresa</h1>
+    <app-logout-button></app-logout-button>
+  </div>
+
+  <div class="empresa-form">
+    <h2>📊 Mis datos de empresa</h2>
+    
+    <form (ngSubmit)="actualizar()" #empresaForm="ngForm" [class.loading]="loading">
+      <div class="form-row">
+        <div class="form-group form-group-with-icon">
+          <label for="empleados">👥 Cantidad de Empleados</label>
+          <span class="field-icon">👥</span>
+          <input 
+            id="empleados"
+            type="number" 
+            [(ngModel)]="empresa.cant_empleados" 
+            name="empleados"
+            min="1"
+            placeholder="Ej: 25"
+            required>
+          <span class="error-message" *ngIf="empleados.invalid && empleados.touched">
+            La cantidad de empleados es requerida
+          </span>
+        </div>
+        
+        <div class="form-group form-group-with-icon">
+          <label for="horario">🕒 Horario de Trabajo</label>
+          <span class="field-icon">🕒</span>
+          <input 
+            id="horario"
+            type="text" 
+            [(ngModel)]="empresa.horario_trabajo" 
+            name="horario"
+            #horario="ngModel"
+            placeholder="Ej: Lunes a Viernes 8:00 - 17:00"
+            required>
+          <span class="error-message" *ngIf="horario.invalid && horario.touched">
+            El horario de trabajo es requerido
+          </span>
+        </div>
+      </div>
+      
+      <div class="form-group form-full-width">
+        <label for="observaciones">📝 Observaciones</label>
+        <textarea 
+          id="observaciones"
+          [(ngModel)]="empresa.observaciones" 
+          name="observaciones"
+          placeholder="Ingrese observaciones adicionales sobre su empresa, políticas internas, beneficios, cultura organizacional, etc..."></textarea>
+      </div>
+      
+      <button type="submit" class="btn-guardar" [disabled]="!empresaForm.form.valid || loading">
+        <span *ngIf="!loading">💾 Guardar Cambios</span>
+        <span *ngIf="loading">⏳ Guardando...</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Opción 3: Diseño con secciones organizadas -->
+<div class="empresa-container">
+  <div class="empresa-header">
+    <h1 class="empresa-title">Gestión de Empresa</h1>
+    <app-logout-button></app-logout-button>
+  </div>
+
+  <div class="empresa-form">
+    <h2>Configuración de la Empresa</h2>
+    
+    <form (ngSubmit)="actualizar()" #empresaForm="ngForm" [class.loading]="loading">
+      
+      <!-- Sección: Información Básica -->
+      <div class="form-section">
+        <h3 class="section-title">Información Básica</h3>
+        
+        <div class="form-group">
+          <label for="empleados">Cantidad de Empleados</label>
+          <input 
+            id="empleados"
+            type="number" 
+            [(ngModel)]="empresa.cant_empleados" 
+            name="empleados"
+            #empleados="ngModel"
+            min="1"
+            max="10000"
+            placeholder="Número de empleados"
+            required>
+          <span class="error-message" *ngIf="empleados.invalid && empleados.touched">
+            Ingrese un número válido de empleados (1-10000)
+          </span>
+        </div>
+      </div>
+
+      <!-- Sección: Horarios -->
+      <div class="form-section">
+        <h3 class="section-title">Horarios de Trabajo</h3>
+        
+        <div class="form-group">
+          <label for="horario">Horario de Trabajo</label>
+          <input 
+            id="horario"
+            type="text" 
+            [(ngModel)]="empresa.horario_trabajo" 
+            name="horario"
+            #horario="ngModel"
+            placeholder="Ej: Lunes a Viernes 8:00 - 17:00"
+            maxlength="100"
+            required>
+          <span class="error-message" *ngIf="horario.invalid && horario.touched">
+            El horario de trabajo es requerido
+          </span>
+        </div>
+      </div>
+
+      <!-- Sección: Información Adicional -->
+      <div class="form-section">
+        <h3 class="section-title">Información Adicional</h3>
+        
+        <div class="form-group">
+          <label for="observaciones">Observaciones y Notas</label>
+          <textarea 
+            id="observaciones"
+            [(ngModel)]="empresa.observaciones" 
+            name="observaciones"
+            maxlength="1000"
+            placeholder="Describa políticas internas, beneficios, cultura organizacional, o cualquier información relevante sobre su empresa..."></textarea>
+        </div>
+      </div>
+      
+      <button type="submit" class="btn-guardar" [disabled]="!empresaForm.form.valid || loading">
+        {{ loading ? 'Guardando cambios...' : 'Guardar Cambios' }}
+      </button>
+    </form>
+
+    <!-- Mensaje de éxito/error -->
+    <div *ngIf="successMessage" class="success-message">
+      ✅ {{ successMessage }}
+    </div>
+    <div *ngIf="errorMessage" class="error-message">
+      ❌ {{ errorMessage }}
+    </div>
+  </div>
+</div>

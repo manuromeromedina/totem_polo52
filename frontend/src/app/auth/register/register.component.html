@@ -1,40 +1,145 @@
-<div class="signup-page">
-  <div class="signup-image"></div>
-
-  <div class="signup-form">
-    <h1>Registro</h1>
-    <p class="description">Crea tu cuenta ingresando los siguientes datos.</p>
-
-    <form (ngSubmit)="onRegister()" #form="ngForm">
-      <div class="form-group">
-        <label for="nombre">Nombre</label>
-        <input name="nombre" id="nombre" [(ngModel)]="nombre" required />
+<div class="register-page">
+  <div class="register-image">
+    <div class="welcome-overlay">
+      <div class="welcome-content">
+        <div class="polo-brand">POLO 52</div>
+        <h1 class="welcome-title">¡Únete a nosotros!</h1>
+        <p class="welcome-subtitle">Crea tu cuenta y forma parte del parque industrial más innovador</p>
       </div>
-
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input name="email" id="email" type="email" [(ngModel)]="email" required />
-      </div>
-
-      <div class="form-group">
-        <label for="cuil">CUIL</label>
-        <input name="cuil" id="cuil" [(ngModel)]="cuil" required />
-      </div>
-
-      <div class="form-group">
-        <label for="password">Contraseña</label>
-        <input name="password" id="password" type="password" [(ngModel)]="password" required />
-      </div>
-      <button type="submit" class="btn-signup" [disabled]="form.invalid || loading">
-        {{ loading ? 'Registrando…' : 'Registrarse' }}
-      </button>
-    </form>
-
-    <p class="signup-error" *ngIf="errorMessage">{{ errorMessage }}</p>
-
-    <div class="links">
-      <span>¿Ya tienes cuenta?</span>
-      <a routerLink="/login">Iniciar sesión</a>
     </div>
+  </div>
+
+  <div class="register-form">
+    <h1>Crear cuenta</h1>
+    <p class="description">Completa los siguientes datos para registrarte</p>
+
+    <!-- Mensajes de estado -->
+    <div class="message-container">
+      <div *ngIf="successMessage" class="success-message">
+        <span class="message-icon">✅</span>
+        {{ successMessage }}
+      </div>
+      
+      <div *ngIf="errorMessage" class="error-message">
+        <span class="message-icon">⚠️</span>
+        {{ errorMessage }}
+      </div>
+    </div>
+
+    <form (ngSubmit)="onRegister()" #registerForm="ngForm" novalidate>
+      
+      <!-- Campo Nombre -->
+      <div class="form-group" [class.error]="nombreError">
+        <label for="nombre">
+          Nombre completo
+        </label>
+        <input
+          id="nombre"
+          name="nombre"
+          type="text"
+          [(ngModel)]="nombre"
+          (input)="onNombreChange()"
+          (blur)="validateNombre()"
+          placeholder="Tu nombre completo"
+          autocomplete="name"
+          [disabled]="loading"
+          required
+        />
+        <span *ngIf="nombreError" class="field-error">{{ nombreErrorMessage }}</span>
+      </div>
+
+      <!-- Campo Email -->
+      <div class="form-group" [class.error]="emailError">
+        <label for="email">
+          Correo electrónico
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          [(ngModel)]="email"
+          (input)="onEmailChange()"
+          (blur)="validateEmail()"
+          placeholder="ejemplo@correo.com"
+          autocomplete="email"
+          [disabled]="loading"
+          required
+        />
+        <span *ngIf="emailError" class="field-error">{{ emailErrorMessage }}</span>
+      </div>
+
+      <!-- Campo CUIL -->
+      <div class="form-group" [class.error]="cuilError">
+        <label for="cuil">
+          CUIL
+        </label>
+        <input
+          id="cuil"
+          name="cuil"
+          type="text"
+          [(ngModel)]="cuil"
+          (input)="onCuilChange(); formatCuil()"
+          (blur)="validateCuil()"
+          placeholder="12345678901"
+          maxlength="11"
+          [disabled]="loading"
+          required
+        />
+        <span *ngIf="cuilError" class="field-error">{{ cuilErrorMessage }}</span>
+      </div>
+
+      <!-- Campo Contraseña -->
+      <div class="form-group" [class.error]="passwordError">
+        <label for="password">
+          Contraseña
+        </label>
+        <div class="password-wrapper">
+          <input
+            id="password"
+            name="password"
+            [type]="showPassword ? 'text' : 'password'"
+            [(ngModel)]="password"
+            (input)="onPasswordChange()"
+            (blur)="validatePassword()"
+            placeholder="Crea una contraseña"
+            autocomplete="new-password"
+            [disabled]="loading"
+            required
+          />
+          <button 
+            type="button" 
+            class="eye-btn" 
+            (click)="togglePassword()"
+            [disabled]="loading"
+            [title]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+            {{ showPassword ? '🙈' : '👁️' }}
+          </button>
+        </div>
+        <span *ngIf="passwordError" class="field-error">{{ passwordErrorMessage }}</span>
+      </div>
+
+      <!-- Botón de registro -->
+      <button
+        type="submit"
+        class="btn-register"
+        [disabled]="registerForm.invalid || loading"
+        [class.loading]="loading">
+        
+        <div class="button-content" *ngIf="!loading">
+          Crear cuenta
+        </div>
+        
+        <div class="button-content" *ngIf="loading">
+          <span class="spinner"></span>
+          Creando cuenta...
+        </div>
+      </button>
+
+      <!-- Link de login -->
+      <div class="login-link">
+        ¿Ya tienes cuenta? 
+        <a routerLink="/login">Inicia sesión aquí</a>
+      </div>
+    </form>
   </div>
 </div>
