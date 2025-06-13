@@ -15,7 +15,7 @@
           name="username"
           type="text"
           [(ngModel)]="username"
-          placeholder="jonas_kahnwald@gmail.com"
+          placeholder="mail@dominio.com"
           required
           [ngClass]="{ 'error': usernameError }"
         />
@@ -30,7 +30,7 @@
             name="password"
             [type]="showPassword ? 'text' : 'password'"
             [(ngModel)]="password"
-            placeholder="••••••••"
+            placeholder="password"
             required
             [ngClass]="{ 'error': passwordError }"
           />
@@ -50,12 +50,46 @@
 
       <p *ngIf="loginMessage" class="login-error">{{ loginMessage }}</p>
 
+<!-- dentro del form, justo antes del botón Entrar -->
+<div class="forgot-password">
+  <a href="#" (click)="showResetPassword = true; resetEmail = ''; resetMessage = ''; resetError = ''; $event.preventDefault()">
+    ¿Olvidaste tu contraseña?
+  </a>
+</div>
+
+<div *ngIf="showResetPassword" class="modal-overlay">
+  <div class="modal-content">
+    <h3>Recuperar contraseña</h3>
+    <form (ngSubmit)="requestPasswordReset()" #resetForm="ngForm">
+      <input
+        type="email"
+        name="email"
+        [(ngModel)]="resetEmail"
+        placeholder="Tu email registrado"
+        required
+        email
+      />
+      <div class="modal-buttons">
+        <button type="submit" [disabled]="resetForm.invalid">Enviar link</button>
+        <button type="button" (click)="showResetPassword = false">Cancelar</button>
+      </div>
+    </form>
+    <p *ngIf="resetMessage" style="color:green">{{ resetMessage }}</p>
+    <p *ngIf="resetError" style="color:red">{{ resetError }}</p>
+    <button *ngIf="resetMessage" type="button" (click)="showResetPassword = false" class="close-btn">Cerrar</button>
+  </div>
+</div>
+
+
+
+
       <!-- Al final del formulario, antes de cerrar </form> -->
           <div class="links">
             <span>¿No tienes cuenta?</span>
             <a routerLink="/register">Regístrate</a>
           </div>
     </form>
+
   </div>
 </div>
 

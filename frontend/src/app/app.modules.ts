@@ -1,17 +1,16 @@
- // src/app/app.module.ts
- import { NgModule } from '@angular/core';
- import { BrowserModule } from '@angular/platform-browser';
- import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
- import { RouterModule } from '@angular/router';
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms'; // Imported for ngModel and form handling
 
-import { AppComponent }    from './app.component';  // es standalone
+import { AppComponent } from './app.component'; // Standalone component for bootstrap
+import { AuthInterceptor } from './auth/auth.interceptor';
 
- import { AuthInterceptor } from './auth/auth.interceptor';
-
- @NgModule({
+@NgModule({
   imports: [
     BrowserModule,
-   AppComponent,        // ← aquí lo importas
+    FormsModule,
     HttpClientModule,
     RouterModule.forRoot([
       {
@@ -29,6 +28,11 @@ import { AppComponent }    from './app.component';  // es standalone
         loadChildren: () =>
           import('./dashboard/dashboard.module').then(m => m.DashboardModule)
       },
+      {
+        path: 'reset-password',
+        loadComponent: () =>
+          import('./auth/login/password-reset/password-reset.component').then(m => m.ResetPasswordComponent)
+      },
       { path: '', redirectTo: 'login', pathMatch: 'full' },
       { path: '**', redirectTo: 'login' }
     ])
@@ -36,6 +40,6 @@ import { AppComponent }    from './app.component';  // es standalone
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
   ],
-  bootstrap: [AppComponent]
- })
- export class AppModule {}
+  bootstrap: [AppComponent] // Only here, not in imports
+})
+export class AppModule {}

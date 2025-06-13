@@ -1,0 +1,40 @@
+<div class="signup-page">
+  <div class="signup-image"></div>
+
+  <div class="signup-form">
+    <h1>Registro</h1>
+    <p class="description">Crea tu cuenta ingresando los siguientes datos.</p>
+
+    <form (ngSubmit)="onRegister()" #form="ngForm">
+      <div class="form-group">
+        <label for="nombre">Nombre</label>
+        <input name="nombre" id="nombre" [(ngModel)]="nombre" required />
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input name="email" id="email" type="email" [(ngModel)]="email" required />
+      </div>
+
+      <div class="form-group">
+        <label for="cuil">CUIL</label>
+        <input name="cuil" id="cuil" [(ngModel)]="cuil" required />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input name="password" id="password" type="password" [(ngModel)]="password" required />
+      </div>
+      <button type="submit" class="btn-signup" [disabled]="form.invalid || loading">
+        {{ loading ? 'Registrando…' : 'Registrarse' }}
+      </button>
+    </form>
+
+    <p class="signup-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+    <div class="links">
+      <span>¿Ya tienes cuenta?</span>
+      <a routerLink="/login">Iniciar sesión</a>
+    </div>
+  </div>
+</div>

@@ -9,7 +9,10 @@ from app.config import SessionLocal, SECRET_KEY, ALGORITHM
 from app import models, schemas, services
 from app.models import Usuario
 from app.schemas import PasswordResetRequest, PasswordResetConfirm
-
+from email.mime.text import MIMEText
+import smtplib
+from app import models, services  # Ajusta los imports según tu estructura
+from app.config import settings  # Para las variables de entorno
 
 router = APIRouter()
 
@@ -120,8 +123,22 @@ def login(
     user = (db.query(models.Usuario).filter(or_(models.Usuario.nombre == form_data.username, models.Usuario.email  == form_data.username)).first())
     if not user or not services.verify_password(form_data.password, user.contrasena):
          raise HTTPException(status_code=401, detail="Credenciales inválidas")
+      # Obtener roles del usuario
+    roles = (
+        db.query(models.Rol.tipo_rol)
+        .join(models.RolUsuario, models.Rol.id_rol == models.RolUsuario.id_rol)
+        .filter(models.RolUsuario.id_usuario == user.id_usuario)
+        .all()
+    )
+
+    # Extraer primer rol o asignar un valor por defecto
+    rol = roles[0][0] if roles else "usuario"
+
     access_token = services.create_access_token(data={"sub": user.nombre})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "tipo_rol": rol}
+
+
+
 
 @router.post("/logout", tags=["auth"], summary="Cerrar sesión")
 def logout(current_user: models.Usuario = Depends(get_current_user)):
@@ -133,11 +150,26 @@ def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_
     user = db.query(models.Usuario).filter(models.Usuario.email == dto.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Email no registrado")
+    
     token = services.create_password_reset_token(user.email)
-    # Aquí deberías disparar un email real. 
-    # Por ahora devolvemos el token para pruebas:
+    reset_link = f"http://http://localhost:4200/password-reset?token={token}"  # Replace with your frontend URL
+    
+    # Email setup
+    msg = MIMEText(f"Click this link to reset your password: {reset_link}")
+    msg["Subject"] = "Password Reset Request"
+    msg["From"] = settings.EMAIL_USER  # e.g., "your-email@gmail.com"
+    msg["To"] = dto.email
+    
+    # Send email
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)  # Use app password for Gmail
+            server.send_message(msg)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error sending email: {str(e)}")
+    
     return {"reset_token": token}
-
 
 @router.post("/password-reset/confirm", tags=["auth"])
 def password_reset_confirm(dto: PasswordResetConfirm, db: Session = Depends(get_db)):
