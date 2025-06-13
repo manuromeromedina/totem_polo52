@@ -9,7 +9,16 @@ export const routes: Routes = [
   { path: 'chat', component: ChatbotComponent },      // Ruta para el chat
   { path: 'login', component: LoginComponent },    // Ruta para el inicio de sesión
   { path: 'register', component: RegisterComponent },  
-  { path: 'password-reset', component: ResetPasswordComponent },  // Ruta para el inicio de sesión
+  { path: 'password-reset', component: ResetPasswordComponent }, 
+  {
+  path: 'empresas',
+  loadComponent: () => import('./admin-polo/empresas/empresas.component').then(m => m.EmpresasComponent)
+},
+{
+  path: 'me',
+  loadComponent: () => import('./admin-empresa/admin-empresa.component').then(m => m.EmpresaMeComponent)
+},
+ // Ruta para el inicio de sesión
 
   { path: '', redirectTo: '/login', pathMatch: 'full' } // Ruta por defecto (opcional)
 ];

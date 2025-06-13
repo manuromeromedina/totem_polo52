@@ -1,0 +1,322 @@
+<!-- empresas.component.html -->
+<div class="empresas-container">
+  <!-- Header con logout -->
+  <div class="empresas-header">
+    <h1 class="empresas-title">🏢 Administración de Empresas</h1>
+    <app-logout-button></app-logout-button>
+  </div>
+
+  <!-- Estadísticas rápidas -->
+  <div class="stats-grid" *ngIf="!loading">
+    <div class="stat-card">
+      <div class="stat-number">{{ estadisticas.totalEmpresas }}</div>
+      <div class="stat-label">Empresas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ estadisticas.totalEmpleados | number }}</div>
+      <div class="stat-label">Empleados Total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ estadisticas.promedioEmpleados }}</div>
+      <div class="stat-label">Promedio Empleados</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ estadisticas.rubrosActivos }}</div>
+      <div class="stat-label">Rubros Activos</div>
+    </div>
+  </div>
+
+  <!-- Panel de filtros -->
+  <div class="filtros-panel">
+    <div class="filtros-header">
+      <h3>🔍 Filtros y Búsqueda</h3>
+      <div class="filtros-actions">
+        <button class="btn-clear" (click)="limpiarFiltros()">🗑️ Limpiar</button>
+        <button class="btn-export" (click)="exportarCSV()">📥 Exportar CSV</button>
+      </div>
+    </div>
+
+    <div class="filtros-grid">
+      <!-- Búsqueda general -->
+      <div class="filtro-group">
+        <label>Buscar empresa o CUIL</label>
+        <input 
+          type="text" 
+          [(ngModel)]="filtros.busqueda"
+          (input)="onBusquedaChange()"
+          placeholder="Nombre de empresa o CUIL..."
+          class="filtro-input">
+      </div>
+
+      <!-- Filtro por rubro -->
+      <div class="filtro-group">
+        <label>Rubro</label>
+        <select 
+          [(ngModel)]="filtros.rubro"
+          (change)="onFiltroChange()"
+          class="filtro-select">
+          <option value="">Todos los rubros</option>
+          <option *ngFor="let rubro of rubrosUnicos" [value]="rubro">
+            {{ obtenerIconoRubro(rubro) }} {{ rubro }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Filtro empleados mínimo -->
+      <div class="filtro-group">
+        <label>Empleados mínimo</label>
+        <input 
+          type="number" 
+          [(ngModel)]="filtros.empleadosMin"
+          (input)="onFiltroChange()"
+          placeholder="Ej: 10"
+          min="1"
+          class="filtro-input">
+      </div>
+
+      <!-- Filtro empleados máximo -->
+      <div class="filtro-group">
+        <label>Empleados máximo</label>
+        <input 
+          type="number" 
+          [(ngModel)]="filtros.empleadosMax"
+          (input)="onFiltroChange()"
+          placeholder="Ej: 100"
+          min="1"
+          class="filtro-input">
+      </div>
+
+      <!-- Ordenamiento -->
+      <div class="filtro-group">
+        <label>Ordenar por</label>
+        <select 
+          [(ngModel)]="filtros.ordenarPor"
+          (change)="onFiltroChange()"
+          class="filtro-select">
+          <option value="nombre">Nombre</option>
+          <option value="fecha_ingreso">Fecha ingreso</option>
+          <option value="cant_empleados">Empleados</option>
+          <option value="rubro">Rubro</option>
+        </select>
+      </div>
+
+      <!-- Dirección ordenamiento -->
+      <div class="filtro-group">
+        <label>Dirección</label>
+        <select 
+          [(ngModel)]="filtros.ordenDireccion"
+          (change)="onFiltroChange()"
+          class="filtro-select">
+          <option value="asc">↑ Ascendente</option>
+          <option value="desc">↓ Descendente</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controles de vista -->
+  <div class="vista-controls">
+    <div class="vista-buttons">
+      <button 
+        [class.active]="vistaActual === 'tabla'"
+        (click)="cambiarVista('tabla')"
+        class="btn-vista">
+        📋 Tabla
+      </button>
+      <button 
+        [class.active]="vistaActual === 'tarjetas'"
+        (click)="cambiarVista('tarjetas')"
+        class="btn-vista">
+        📱 Tarjetas
+      </button>
+    </div>
+
+    <div class="pagination-info">
+      Mostrando {{ (paginaActual - 1) * empresasPorPagina + 1 }} - 
+      {{ paginaActual * empresasPorPagina > empresasFiltradas.length ? empresasFiltradas.length : paginaActual * empresasPorPagina }} 
+      de {{ empresasFiltradas.length }} empresas
+    </div>
+
+    <button class="btn-reload" (click)="recargar()" [disabled]="loading">
+      🔄 Recargar
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Cargando empresas...</p>
+  </div>
+
+  <!-- Mensaje de error -->
+  <div *ngIf="errorMessage" class="error-container">
+    <div class="error-icon">⚠️</div>
+    <h3>Error al cargar empresas</h3>
+    <p>{{ errorMessage }}</p>
+    <button class="btn-retry" (click)="recargar()">🔄 Reintentar</button>
+  </div>
+
+  <!-- Contenido principal -->
+  <div *ngIf="!loading && !errorMessage">
+    
+    <!-- Vista tabla -->
+    <div *ngIf="vistaActual === 'tabla'" class="tabla-container">
+      <div class="tabla-responsive">
+        <table class="empresas-tabla">
+          <thead>
+            <tr>
+              <th (click)="cambiarOrden('nombre')" class="sortable">
+                Empresa
+                <span class="sort-indicator" 
+                      [class.active]="filtros.ordenarPor === 'nombre'"
+                      [class.desc]="filtros.ordenarPor === 'nombre' && filtros.ordenDireccion === 'desc'">
+                  ↕️
+                </span>
+              </th>
+              <th>CUIL</th>
+              <th (click)="cambiarOrden('rubro')" class="sortable">
+                Rubro
+                <span class="sort-indicator" 
+                      [class.active]="filtros.ordenarPor === 'rubro'"
+                      [class.desc]="filtros.ordenarPor === 'rubro' && filtros.ordenDireccion === 'desc'">
+                  ↕️
+                </span>
+              </th>
+              <th (click)="cambiarOrden('cant_empleados')" class="sortable">
+                Empleados
+                <span class="sort-indicator" 
+                      [class.active]="filtros.ordenarPor === 'cant_empleados'"
+                      [class.desc]="filtros.ordenarPor === 'cant_empleados' && filtros.ordenDireccion === 'desc'">
+                  ↕️
+                </span>
+              </th>
+              <th>Horario</th>
+              <th (click)="cambiarOrden('fecha_ingreso')" class="sortable">
+                Fecha Ingreso
+                <span class="sort-indicator" 
+                      [class.active]="filtros.ordenarPor === 'fecha_ingreso'"
+                      [class.desc]="filtros.ordenarPor === 'fecha_ingreso' && filtros.ordenDireccion === 'desc'">
+                  ↕️
+                </span>
+              </th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let empresa of empresasPaginadas; trackBy: trackByEmpresa" class="empresa-row">
+              <td class="empresa-nombre">
+                <div class="empresa-info">
+                  <strong>{{ empresa.nombre }}</strong>
+                </div>
+              </td>
+              <td class="empresa-cuil">{{ formatearCUIL(empresa.cuil) }}</td>
+              <td class="empresa-rubro">
+                <span class="rubro-badge">
+                  {{ obtenerIconoRubro(empresa.rubro) }} {{ empresa.rubro }}
+                </span>
+              </td>
+              <td class="empresa-empleados">
+                <span class="empleados-badge">{{ empresa.cant_empleados }}</span>
+              </td>
+              <td class="empresa-horario">{{ truncarTexto(empresa.horario_trabajo, 30) }}</td>
+              <td class="empresa-fecha">{{ formatearFecha(empresa.fecha_ingreso) }}</td>
+              <td class="empresa-observaciones">
+                <span *ngIf="empresa.observaciones" 
+                      [title]="empresa.observaciones">
+                  {{ truncarTexto(empresa.observaciones, 40) }}
+                </span>
+                <span *ngIf="!empresa.observaciones" class="sin-datos">Sin observaciones</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vista tarjetas -->
+    <div *ngIf="vistaActual === 'tarjetas'" class="tarjetas-container">
+      <div class="tarjetas-grid">
+        <div *ngFor="let empresa of empresasPaginadas; trackBy: trackByEmpresa" class="empresa-card">
+          <div class="card-header">
+            <h3>{{ empresa.nombre }}</h3>
+            <span class="rubro-badge">{{ obtenerIconoRubro(empresa.rubro) }} {{ empresa.rubro }}</span>
+          </div>
+          
+          <div class="card-body">
+            <div class="card-row">
+              <span class="label">CUIL:</span>
+              <span class="value">{{ formatearCUIL(empresa.cuil) }}</span>
+            </div>
+            
+            <div class="card-row">
+              <span class="label">👥 Empleados:</span>
+              <span class="value empleados-badge">{{ empresa.cant_empleados }}</span>
+            </div>
+            
+            <div class="card-row">
+              <span class="label">🕒 Horario:</span>
+              <span class="value">{{ empresa.horario_trabajo }}</span>
+            </div>
+            
+            <div class="card-row">
+              <span class="label">📅 Fecha ingreso:</span>
+              <span class="value">{{ formatearFecha(empresa.fecha_ingreso) }}</span>
+            </div>
+            
+            <div *ngIf="empresa.observaciones" class="card-observaciones">
+              <span class="label">📝 Observaciones:</span>
+              <p class="observaciones-text">{{ empresa.observaciones }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensaje sin resultados -->
+    <div *ngIf="empresasFiltradas.length === 0" class="sin-resultados">
+      <div class="sin-resultados-icon">🔍</div>
+      <h3>No se encontraron empresas</h3>
+      <p>Intenta ajustar los filtros de búsqueda</p>
+      <button class="btn-clear" (click)="limpiarFiltros()">🗑️ Limpiar filtros</button>
+    </div>
+
+    <!-- Paginación -->
+    <div *ngIf="totalPaginas > 1" class="pagination">
+      <button 
+        class="pagination-btn"
+        [disabled]="paginaActual === 1"
+        (click)="cambiarPagina(1)">
+        ⏮️ Primero
+      </button>
+      
+      <button 
+        class="pagination-btn"
+        [disabled]="paginaActual === 1"
+        (click)="cambiarPagina(paginaActual - 1)">
+        ◀️ Anterior
+      </button>
+
+      <button 
+        *ngFor="let pagina of paginasArray"
+        class="pagination-btn"
+        [class.active]="pagina === paginaActual"
+        (click)="cambiarPagina(pagina)">
+        {{ pagina }}
+      </button>
+
+      <button 
+        class="pagination-btn"
+        [disabled]="paginaActual === totalPaginas"
+        (click)="cambiarPagina(paginaActual + 1)">
+        Siguiente ▶️
+      </button>
+      
+      <button 
+        class="pagination-btn"
+        [disabled]="paginaActual === totalPaginas"
+        (click)="cambiarPagina(totalPaginas)">
+        Último ⏭️
+      </button>
+    </div>
+  </div>
+</div>

@@ -31,6 +31,7 @@ class UserRegister(BaseModel):
         ..., gt=0,
         description="CUIL numérico positivo"
     )
+   
 
     @field_validator('password')
     def password_complexity(cls, v: str) -> str:
