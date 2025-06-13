@@ -142,60 +142,32 @@ export class RegisterComponent {
       return;
     }
 
-    // 🔍 DEBUG: Mostrar datos antes de enviar
-    console.log('📝 Datos del formulario:');
-    console.log('Nombre:', this.nombre.trim());
-    console.log('Email:', this.email.trim());
-    console.log('Password:', this.password);
-    console.log('CUIL:', this.cuil);
-
     this.loading = true;
 
     this.authService.register(this.nombre.trim(), this.email.trim(), this.password, this.cuil)
       .pipe(finalize(() => this.loading = false))
       .subscribe({
         next: (success) => {
-          console.log('✅ Registro completado exitosamente');
-          this.successMessage = '¡Registro exitoso! Redirigiendo al login...';
-          setTimeout(() => {
-            this.router.navigate(['/login']);
-          }, 2000);
+          if (success) {
+            this.successMessage = '¡Registro exitoso! Redirigiendo al login...';
+            setTimeout(() => {
+              this.router.navigate(['/login']);
+            }, 2000);
+          } else {
+            this.errorMessage = 'Error al registrar usuario. Intenta nuevamente.';
+          }
         },
         error: (error) => {
-          console.error('❌ Error detallado de registro:', error);
-          console.log('📊 Status Code:', error.status);
-          console.log('📄 Error Response:', error.error);
-          console.log('📋 Error Message:', error.message);
+          console.error('Error de registro:', error);
           
-          // Manejo específico por tipo de error
-          if (error.status === 422) {
-            // Error de validación - datos inválidos
-            let errorDetail = '';
-            
-            if (error.error && error.error.detail) {
-              if (Array.isArray(error.error.detail)) {
-                // FastAPI validation errors
-                errorDetail = error.error.detail.map((err: any) => 
-                  `${err.loc ? err.loc.join('.') : 'Campo'}: ${err.msg}`
-                ).join(', ');
-              } else {
-                errorDetail = error.error.detail;
-              }
-            }
-            
-            this.errorMessage = errorDetail || 'Datos inválidos. Verifica la información ingresada.';
-            console.log('🔍 Detalles del error 422:', errorDetail);
-            
-          } else if (error.status === 409) {
+          if (error.status === 409) {
             this.errorMessage = 'El email o CUIL ya está registrado.';
-          } else if (error.status === 400) {
-            this.errorMessage = 'Solicitud incorrecta. Verifica los datos.';
+          } else if (error.status === 422) {
+            this.errorMessage = 'Datos inválidos. Verifica la información.';
           } else if (error.status === 0) {
             this.errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
-          } else if (error.status >= 500) {
-            this.errorMessage = 'Error del servidor. Intenta más tarde.';
           } else {
-            this.errorMessage = error?.error?.detail || error?.error?.message || 'Error al registrar usuario.';
+            this.errorMessage = error?.error?.detail || 'Error al registrar usuario.';
           }
         }
       });

@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
@@ -45,38 +45,19 @@ export class AuthenticationService {
       );
   }
 
-  // 🔧 MÉTODO REGISTER CORREGIDO
   register(username: string, email: string, password: string, cuil: string): Observable<boolean> {
-    const body = {
+    return this.http.post<RegisterResponse>(this.registerUrl, {
       nombre: username,
-      email: email,
-      password: password,
-      cuil: cuil
-    };
-
-    // 🔍 DEBUG: Log de los datos enviados
-    console.log('🚀 Datos enviados al backend:', body);
-
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
-    return this.http.post<RegisterResponse>(this.registerUrl, body, { headers })
-      .pipe(
-        tap(response => {
-          console.log('✅ Registro exitoso:', response);
-        }),
-        map(() => true),
-        catchError(err => {
-          console.error('❌ Error de registro completo:', err);
-          console.error('Status:', err.status);
-          console.error('Error body:', err.error);
-          console.error('Headers:', err.headers);
-          
-          // 🚨 IMPORTANTE: Re-lanzar el error para que llegue al componente
-          return throwError(() => err);
-        })
-      );
+      email,
+      password,
+      cuil
+    }).pipe(
+      map(() => true),
+      catchError(err => {
+        console.error('Registro fallido', err);
+        return of(false);
+      })
+    );
   }
 
   login(username: string, password: string, keepLoggedIn: boolean): Observable<boolean> {
@@ -96,27 +77,27 @@ export class AuthenticationService {
           const storage = keepLoggedIn ? localStorage : sessionStorage;
           storage.setItem(this.sessionKey, res.access_token);
           storage.setItem('rol', res.tipo_rol);
+          // 🔍 Log para verificar
+  console.log('✅ TOKEN GUARDADO:', res.access_token);
+  console.log('📦 STORAGE ACTUAL:', storage.getItem(this.sessionKey));
         }),
         map(() => true),
         catchError(err => {
           console.error('Login fallido', err);
-          return throwError(() => err); // También corregido para propagar errores
+          return of(false);
         })
       );
   }
 
-  // Nuevo método logout mejorado
   logout(): Observable<boolean> {
     const token = this.getToken();
-    
+
     if (!token) {
-      // Si no hay token, solo limpiar y redirigir
       this.clearSession();
       this.router.navigate(['/login']);
       return of(true);
     }
 
-    // Hacer petición al backend para cerrar sesión
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -124,15 +105,13 @@ export class AuthenticationService {
 
     return this.http.post<LogoutResponse>(this.logoutUrl, {}, { headers })
       .pipe(
-        tap(response => {
-          console.log('Logout response:', response);
+        tap(() => {
           this.clearSession();
           this.router.navigate(['/login']);
         }),
         map(() => true),
         catchError(err => {
           console.error('Error en logout:', err);
-          // Aunque falle el backend, limpiar la sesión local
           this.clearSession();
           this.router.navigate(['/login']);
           return of(false);
@@ -140,7 +119,6 @@ export class AuthenticationService {
       );
   }
 
-  // Método para limpiar la sesión local
   private clearSession(): void {
     localStorage.removeItem(this.sessionKey);
     localStorage.removeItem('rol');
@@ -148,7 +126,6 @@ export class AuthenticationService {
     sessionStorage.removeItem('rol');
   }
 
-  // Método para logout sin llamada al backend (emergencia)
   logoutLocal(): void {
     this.clearSession();
     this.router.navigate(['/login']);
@@ -163,6 +140,7 @@ export class AuthenticationService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.sessionKey) || sessionStorage.getItem(this.sessionKey);
-  }
+  return localStorage.getItem(this.sessionKey) || sessionStorage.getItem(this.sessionKey);
+}
+
 }
