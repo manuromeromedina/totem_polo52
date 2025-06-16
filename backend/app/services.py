@@ -35,10 +35,11 @@ genai.configure(api_key=api_key)
 model = genai.GenerativeModel(
     model_name='gemini-1.5-flash',
     generation_config=GenerationConfig(
-        temperature=0.3,
-        top_p=0.9,
-        max_output_tokens=1024,  # Aumentado para permitir respuestas más largas
-        stop_sequences=None
+        temperature=0.2,      # Más determinista
+        top_p=0.85,          # Más enfocado  
+        top_k=40,            # Limita opciones
+        max_output_tokens=2048,  # Respuestas completas
+        candidate_count=1
     )
 )
 
