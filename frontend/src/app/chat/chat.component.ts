@@ -321,7 +321,7 @@ interface Message {
       }
 
       .user-message {
-        background: #495057;  /* Cambiado de azul a gris oscuro */
+        background: #495057;  /* Gris oscuro en modo claro */
         color: white;
         padding: 12px 16px;
         border-radius: 16px 16px 4px 16px;
@@ -330,8 +330,9 @@ interface Message {
       }
 
       .dark-mode .user-message {
-        background: #007bff;  /* En modo oscuro sí usa azul para contraste */
-        border: 1px solid #007bff;
+        background: #e9ecef;  /* Gris claro en modo oscuro */
+        color: #212529;       /* Texto oscuro en modo oscuro */
+        border: 1px solid #e9ecef;
       }
 
       .bot-message {
@@ -539,7 +540,7 @@ interface Message {
 
       .send-button {
         padding: 12px 24px;
-        background: #495057;  /* Cambiado de azul a gris oscuro */
+        background: #495057;  /* Gris oscuro en modo claro */
         color: white;
         border: none;
         border-radius: 6px;
@@ -556,11 +557,12 @@ interface Message {
       }
 
       .dark-mode .send-button {
-        background: #007bff;
+        background: #e9ecef;  /* Gris claro en modo oscuro */
+        color: #212529;       /* Texto oscuro en modo oscuro */
       }
 
       .dark-mode .send-button:hover:not(:disabled) {
-        background: #0056b3;
+        background: #dee2e6;  /* Versión más oscura del gris claro */
       }
 
       .send-button:disabled {
