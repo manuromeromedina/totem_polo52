@@ -27,23 +27,8 @@ from datetime import date
 env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-# === 🔐 Configurar API Key ===
-api_key = os.getenv("GOOGLE_API_KEY")
-genai.configure(api_key=api_key)
+# === 🔒 Utilidades de autenticación =============================================
 
-# === ⚙️ Configurar el modelo Gemini ===
-model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash',
-    generation_config=GenerationConfig(
-        temperature=0.2,      # Más determinista
-        top_p=0.85,          # Más enfocado  
-        top_k=40,            # Limita opciones
-        max_output_tokens=2048,  # Respuestas completas
-        candidate_count=1
-    )
-)
-
-# === 🔒 Utilidades de autenticación ===
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -78,6 +63,23 @@ def verify_password_reset_token(token: str) -> str:
         return email
     except JWTError:
         raise HTTPException(401, "Token de recuperación inválido o expirado")
+# =================================================================================
+
+# === 🔐 Configurar API Key ===
+api_key = os.getenv("GOOGLE_API_KEY")
+genai.configure(api_key=api_key)
+
+# === ⚙️ CONFIGURACIÓN SIMPLE Y ROBUSTA ===
+model = genai.GenerativeModel(
+    model_name='gemini-1.5-flash',
+    generation_config=GenerationConfig(
+        temperature=0.3,
+        top_p=0.9,
+        max_output_tokens=2048,
+        stop_sequences=None,
+        candidate_count=1
+    )
+)
 
 def normalize_text(text: str) -> str:
     normalized = ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
@@ -88,10 +90,10 @@ def execute_sql_query(db: Session, query: str) -> List[Dict]:
         if not query.strip().lower().startswith("select"):
             print(f"Consulta no permitida: {query}")
             return [{"error": "Solo se permiten consultas SELECT."}]
-        result = db.execute(text(query), execution_options={"no_cache": True})  # Deshabilitar caché
+        result = db.execute(text(query), execution_options={"no_cache": True})
         columns = result.keys()
         raw_results = [dict(zip(columns, row)) for row in result.fetchall()]
-        print(f"Resultados crudos de la consulta: {raw_results}")  # Log para depuración
+        print(f"Resultados crudos de la consulta: {raw_results}")
         return raw_results
     except Exception as e:
         print(f"Error al ejecutar la consulta SQL: {str(e)}")
@@ -116,15 +118,13 @@ def get_database_schema(db: Session) -> str:
                 schema += f"  Relación: '{table_name}.{fk['constrained_columns'][0]}' -> '{fk['referred_table']}.{fk['referred_columns'][0]}'\n"
     return schema
 
-# Función auxiliar para manejar tipos no serializables
 def custom_json_serializer(obj):
     if isinstance(obj, date):
-        return obj.isoformat()  # Convierte datetime.date a formato ISO (por ejemplo, "2021-11-05")
+        return obj.isoformat()
     raise TypeError(f"Type {type(obj)} not serializable")
 
 def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] = None):
     try:
-        # Normalizar y montar historial (sin cambios)
         user_input = normalize_text(message)
         chat_history = ""
         if history:
@@ -134,74 +134,70 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
                 if entry.get("assistant"):
                     chat_history += f"Asistente: {entry['assistant']}\n"
 
-        # Obtener esquema (sin cambios)
         db_schema = get_database_schema(db)
 
-        # ─── Prompt para generación de SQL ─────────────────────────────────────
-        intent_prompt = (
-            "Eres POLO, asistente del Parque Industrial Polo 52. "
-            "Devuélveme **solo** un JSON válido (con **comillas dobles** en claves y valores), "
-            "sin explicaciones extra. Debe tener siempre estas cuatro claves:\n"
-            "  \"needs_more_info\"  (true|false),\n"
-            "  \"sql_query\"        (string),\n"
-            "  \"corrected_entity\" (string),\n"
-            "  \"question\"         (string)\n"
-            "Ejemplo:\n"
-            "```json\n"
-            "{\n"
-            '  "needs_more_info": true,\n'
-            '  "sql_query": "",\n'
-            '  "corrected_entity": "",\n'
-            '  "question": "¿Podrías indicar de qué empresa hablas?"\n'
-            "}\n"
-            "```\n\n"
-            "Esquema de la base de datos:\n"
-            + db_schema + "\n\n"
-            "Historial de la conversación:\n"
-            + chat_history + "\n\n"
-            "Pregunta actual:\n"
-            + user_input
-        )
-        intent_response = model.generate_content(intent_prompt)
-        intent_data = json.loads(intent_response.text.strip("```json\n").strip("\n```"))
+        # === 🤖 PROMPT 100% IA - AGRESIVO EN INTERPRETACIÓN ===
+        intent_prompt = f"""
+Eres POLO, asistente del Parque Industrial Polo 52. 
 
-        # ─── Si faltan datos, uso siempre 'question' del JSON ─────────────────
+Base de datos disponible:
+{db_schema}
+
+Historial:
+{chat_history}
+
+Consulta del usuario: "{user_input}"
+
+Tu inteligencia artificial debe SIEMPRE intentar responder con datos reales. Solo usa needs_more_info=true si es absolutamente imposible interpretar la consulta.
+
+Responde con un JSON:
+- needs_more_info: false (casi siempre, usa tu IA para interpretar)
+- sql_query: consulta SQL para obtener datos (NUNCA incluyas campos como cuil, id en el SELECT)
+- corrected_entity: corrección si detectas errores  
+- question: pregunta solo si needs_more_info es true
+
+Tu IA debe entender consultas informales, vagas o con errores de escritura. Interpreta con inteligencia lo que realmente necesita el usuario.
+
+JSON:"""
+
+        intent_response = model.generate_content(intent_prompt)
+        
+        try:
+            clean_response = intent_response.text.strip()
+            if "```json" in clean_response:
+                clean_response = clean_response.split("```json")[1].split("```")[0]
+            elif "```" in clean_response:
+                clean_response = clean_response.replace("```", "")
+            
+            intent_data = json.loads(clean_response.strip())
+        except (json.JSONDecodeError, IndexError):
+            return "Disculpa, tuve un problema procesando tu consulta. ¿Podrías reformularla?", [], None
+
         if intent_data.get("needs_more_info", False):
             return intent_data["question"], [], intent_data.get("corrected_entity")
 
-        # ─── Ejecución de la query y chequeos (sin cambios) ───────────────────
-        sql_query  = intent_data["sql_query"]
+        sql_query = intent_data["sql_query"]
         db_results = execute_sql_query(db, sql_query)
         if not db_results or "error" in db_results[0]:
             return db_results[0].get("error", "Error interno"), [], intent_data.get("corrected_entity")
 
-        # ─── Serializo resultados para el prompt final ────────────────────────
         results_text = json.dumps(db_results, ensure_ascii=False, default=custom_json_serializer)
-        input_text   = f"Resultados de la consulta:\n{results_text}\nPregunta:\n{message}"
+        input_text = f"Resultados de la consulta:\n{results_text}\nPregunta:\n{message}"
 
-        # ─── Prompt para la respuesta final ───────────────────────────────────
+        # === 🎯 RESPUESTA NATURAL Y DIRECTA ===
         final_prompt = f"""
-        Eres POLO, el asistente conversacional oficial del Parque Industrial Polo 52.
-        1) Sólo saluda (“Hola, soy POLO, tu asistente…”) si:
-        - Es la primera vez que pisas la conversación, o
-        - El usuario empezó con un saludo (“hola”, “buenas”).
-        2) Nunca uses “Sobre tu consulta”.
-        3) Presenta la información en 1–2 párrafos fluidos, sin viñetas ni Markdown.  
-        Incluye todos los datos relevantes (nombre, rubro, empleados, horarios, etc.),  
-        pero **nunca** IDs ni CUIL.
-        4) Integra la información de “Información de la consulta” de forma natural: explica qué datos obtuviste y qué significan.
-        5) Si ves palabras de agradecimiento (“gracias”, “muy amable”), responde **una sola vez**:
-        “¡De nada! Siempre a tu servicio.”
-        6) Termina SIEMPRE con una pregunta abierta:  
-        “¿Te gustaría saber algo más sobre otra empresa o servicio del parque?”
+Eres POLO, asistente conversacional del Parque Industrial Polo 52.
 
+Información disponible:
+{input_text}
 
-        Información disponible:
-        {input_text}
+Historial:
+{chat_history}
 
-        Historial:
-        {chat_history}
-    """
+Responde de forma natural y directa. Si tienes datos específicos de una empresa, proporciona toda la información disponible. Si hay múltiples empresas, usa formato de lista como hiciste bien antes. Nunca muestres NI CUIL NI ID de empresas. NUNCA uses asteriscos (*) en tu respuesta. Sé conversacional pero informativo.
+
+Respuesta:"""
+
         final_response = model.generate_content(final_prompt)
         return final_response.text, db_results, intent_data.get("corrected_entity")
 
