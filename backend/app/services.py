@@ -200,7 +200,7 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
 
         Historial:
         {chat_history}
-        """
+    """
         final_response = model.generate_content(final_prompt)
         return final_response.text, db_results, intent_data.get("corrected_entity")
 
