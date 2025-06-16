@@ -17,7 +17,7 @@ interface Message {
   standalone: true,
   imports: [FormsModule, CommonModule, LogoutButtonComponent],
   template: `
-    <div class="chat-wrapper">
+    <div class="chat-wrapper" [class.dark-mode]="isDarkMode">
       <div class="chat-header">
         <div class="header-content">
           <div class="bot-avatar">
@@ -29,10 +29,18 @@ interface Message {
             <p class="status-text">{{ isTyping ? 'Escribiendo...' : 'Disponible para consultas' }}</p>
           </div>
         </div>
-        <app-logout-button></app-logout-button>
+        <div class="header-actions">
+          <app-logout-button></app-logout-button>
+        </div>
       </div>
 
       <div class="chat-container">
+        <div class="chat-controls">
+          <button class="theme-toggle" (click)="toggleTheme()" [attr.aria-label]="isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
+            <span *ngIf="!isDarkMode">Modo Oscuro</span>
+            <span *ngIf="isDarkMode">Modo Claro</span>
+          </button>
+        </div>
         <div class="chat-messages" #messagesContainer>
           <div 
             *ngFor="let message of messages; trackBy: trackByMessageId" 
@@ -60,6 +68,16 @@ interface Message {
         
         <div class="chat-input-container">
           <div class="chat-input">
+            <button 
+              class="mic-button" 
+              (click)="toggleSpeechRecognition()"
+              [disabled]="isTyping"
+              [class.listening]="isListening"
+              [attr.aria-label]="isListening ? 'Detener grabación' : 'Iniciar grabación de voz'"
+            >
+              <span *ngIf="!isListening">MIC</span>
+              <span *ngIf="isListening" class="mic-recording">REC</span>
+            </button>
             <input 
               #messageInput
               [(ngModel)]="userMessage" 
@@ -78,7 +96,10 @@ interface Message {
             </button>
           </div>
           <div class="input-footer">
-            <small>Presione Enter para enviar su consulta</small>
+            <small>
+              <span *ngIf="!isListening">Presione Enter para enviar su consulta o use el micrófono para hablar</span>
+              <span *ngIf="isListening" class="listening-text">Grabando... Hable ahora</span>
+            </small>
           </div>
         </div>
       </div>
@@ -93,6 +114,13 @@ interface Message {
         background: #f8f9fa;
         font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
         color: #495057;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* === MODO OSCURO === */
+      .chat-wrapper.dark-mode {
+        background: #1a1a1a;
+        color: #e0e0e0;
       }
 
       .chat-header {
@@ -103,12 +131,55 @@ interface Message {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+      }
+
+      .dark-mode .chat-header {
+        background: #2d2d2d;
+        border-bottom: 1px solid #404040;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
 
       .header-content {
         display: flex;
         align-items: center;
         gap: 14px;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .theme-toggle {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+        color: #495057;
+      }
+
+      .theme-toggle:hover {
+        background: #e9ecef;
+        transform: translateY(-1px);
+      }
+
+      .dark-mode .theme-toggle {
+        background: #404040;
+        border: 1px solid #555;
+        color: #e0e0e0;
+      }
+
+      .dark-mode .theme-toggle:hover {
+        background: #505050;
       }
 
       .bot-avatar {
@@ -123,6 +194,11 @@ interface Message {
         color: white;
         font-weight: 600;
         font-size: 10px;
+        transition: background-color 0.3s ease;
+      }
+
+      .dark-mode .bot-avatar {
+        background: #505050;
       }
 
       .avatar-icon {
@@ -142,8 +218,13 @@ interface Message {
         transition: background-color 0.3s ease;
       }
 
+      .dark-mode .status-indicator {
+        border: 2px solid #2d2d2d;
+      }
+
       .status-indicator.active {
         background: #28a745;
+        box-shadow: 0 0 8px rgba(40, 167, 69, 0.4);
       }
 
       .header-info h2 {
@@ -152,6 +233,11 @@ interface Message {
         font-size: 16px;
         font-weight: 600;
         line-height: 1.2;
+        transition: color 0.3s ease;
+      }
+
+      .dark-mode .header-info h2 {
+        color: #e0e0e0;
       }
 
       .status-text {
@@ -160,6 +246,11 @@ interface Message {
         font-size: 14px;
         font-weight: 400;
         margin-top: 2px;
+        transition: color 0.3s ease;
+      }
+
+      .dark-mode .status-text {
+        color: #a0a0a0;
       }
 
       .chat-container {
@@ -175,6 +266,24 @@ interface Message {
         border: 1px solid #dee2e6;
         border-radius: 8px;
         overflow: hidden;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+      }
+
+      .dark-mode .chat-container {
+        background: #2d2d2d;
+        border: 1px solid #404040;
+      }
+
+      .chat-controls {
+        display: flex;
+        justify-content: flex-end;
+        padding: 12px 0;
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 12px;
+      }
+
+      .dark-mode .chat-controls {
+        border-bottom: 1px solid #404040;
       }
 
       .chat-messages {
@@ -186,6 +295,11 @@ interface Message {
         gap: 16px;
         background: #ffffff;
         scroll-behavior: smooth;
+        transition: background-color 0.3s ease;
+      }
+
+      .dark-mode .chat-messages {
+        background: #2d2d2d;
       }
 
       .message-wrapper {
@@ -207,10 +321,16 @@ interface Message {
       }
 
       .user-message {
-        background: #007bff;
+        background: #495057;  /* Cambiado de azul a gris oscuro */
         color: white;
         padding: 12px 16px;
         border-radius: 16px 16px 4px 16px;
+        border: 1px solid #495057;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+      }
+
+      .dark-mode .user-message {
+        background: #007bff;  /* En modo oscuro sí usa azul para contraste */
         border: 1px solid #007bff;
       }
 
@@ -220,6 +340,13 @@ interface Message {
         padding: 12px 16px;
         border-radius: 16px 16px 16px 4px;
         border: 1px solid #dee2e6;
+        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+      }
+
+      .dark-mode .bot-message {
+        background: #404040;
+        color: #e0e0e0;
+        border: 1px solid #555;
       }
 
       .message-text {
@@ -242,6 +369,11 @@ interface Message {
 
       .bot-message .message-time {
         color: #6c757d;
+        transition: color 0.3s ease;
+      }
+
+      .dark-mode .bot-message .message-time {
+        color: #a0a0a0;
       }
 
       .typing-indicator {
@@ -252,6 +384,12 @@ interface Message {
         background: #f8f9fa;
         border: 1px solid #dee2e6;
         padding: 12px 16px;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+      }
+
+      .dark-mode .typing-message {
+        background: #404040;
+        border: 1px solid #555;
       }
 
       .typing-dots {
@@ -266,6 +404,11 @@ interface Message {
         background: #6c757d;
         border-radius: 50%;
         animation: typing 1.4s infinite ease-in-out;
+        transition: background-color 0.3s ease;
+      }
+
+      .dark-mode .typing-dots span {
+        background: #a0a0a0;
       }
 
       .typing-dots span:nth-child(2) {
@@ -281,12 +424,73 @@ interface Message {
         border-top: 1px solid #dee2e6;
         padding: 20px;
         margin-top: auto;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+      }
+
+      .dark-mode .chat-input-container {
+        background: #383838;
+        border-top: 1px solid #555;
       }
 
       .chat-input {
         display: flex;
-        gap: 12px;
+        gap: 8px;
         align-items: stretch;
+      }
+
+      .mic-button {
+        padding: 12px 16px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: inherit;
+        min-width: 56px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: 0.5px;
+      }
+
+      .mic-button:hover:not(:disabled) {
+        background: #5a6268;
+        transform: translateY(-1px);
+      }
+
+      .mic-button:disabled {
+        background: #adb5bd;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .mic-button.listening {
+        background: #dc3545;
+        animation: pulse-red 1.5s infinite;
+      }
+
+      .mic-button.listening:hover {
+        background: #c82333;
+      }
+
+      .dark-mode .mic-button {
+        background: #505050;
+      }
+
+      .dark-mode .mic-button:hover:not(:disabled) {
+        background: #606060;
+      }
+
+      .dark-mode .mic-button.listening {
+        background: #dc3545;
+      }
+
+      .mic-recording {
+        animation: blink 1s infinite;
       }
 
       .message-input {
@@ -296,14 +500,30 @@ interface Message {
         border: 1px solid #ced4da;
         border-radius: 6px;
         outline: none;
-        transition: border-color 0.15s ease-in-out;
+        transition: all 0.15s ease-in-out;
         background: #ffffff;
         font-family: inherit;
+        color: #495057;
       }
 
       .message-input:focus {
+        border-color: #495057;  /* Cambiado de azul a gris oscuro */
+        box-shadow: 0 0 0 2px rgba(73, 80, 87, 0.1);
+      }
+
+      .dark-mode .message-input {
+        background: #505050;
+        border: 1px solid #666;
+        color: #e0e0e0;
+      }
+
+      .dark-mode .message-input:focus {
         border-color: #007bff;
         box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+      }
+
+      .dark-mode .message-input::placeholder {
+        color: #a0a0a0;
       }
 
       .message-input:disabled {
@@ -312,9 +532,14 @@ interface Message {
         color: #6c757d;
       }
 
+      .dark-mode .message-input:disabled {
+        background: #404040;
+        color: #808080;
+      }
+
       .send-button {
         padding: 12px 24px;
-        background: #007bff;
+        background: #495057;  /* Cambiado de azul a gris oscuro */
         color: white;
         border: none;
         border-radius: 6px;
@@ -327,6 +552,14 @@ interface Message {
       }
 
       .send-button:hover:not(:disabled) {
+        background: #343a40;  /* Versión más oscura del gris */
+      }
+
+      .dark-mode .send-button {
+        background: #007bff;
+      }
+
+      .dark-mode .send-button:hover:not(:disabled) {
         background: #0056b3;
       }
 
@@ -337,7 +570,16 @@ interface Message {
 
       .loading-text {
         display: inline-block;
-        animation: pulse 1s infinite;
+        animation: pulse-loading 1s infinite;
+      }
+
+      @keyframes pulse-loading {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
       }
 
       .input-footer {
@@ -348,6 +590,26 @@ interface Message {
       .input-footer small {
         color: #6c757d;
         font-size: 13px;
+        transition: color 0.3s ease;
+      }
+
+      .dark-mode .input-footer small {
+        color: #a0a0a0;
+      }
+
+      .listening-text {
+        color: #dc3545 !important;
+        font-weight: 500;
+        animation: pulse-text 1s infinite;
+      }
+
+      @keyframes pulse-text {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
       }
 
       /* Animaciones sutiles */
@@ -373,12 +635,21 @@ interface Message {
         }
       }
 
-      @keyframes pulse {
+      @keyframes pulse-red {
         0%, 100% {
-          opacity: 1;
+          box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
         }
         50% {
-          opacity: 0.5;
+          box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+        }
+      }
+
+      @keyframes blink {
+        0%, 50% {
+          opacity: 1;
+        }
+        51%, 100% {
+          opacity: 0.3;
         }
       }
 
@@ -393,15 +664,15 @@ interface Message {
         }
         
         .header-info h2 {
-          font-size: 18px;
+          font-size: 14px;
         }
         
         .chat-header {
-          padding: 20px;
+          padding: 16px;
         }
 
         .message-input {
-          font-size: 16px; /* Evita zoom en móviles */
+          font-size: 16px;
         }
       }
 
@@ -421,19 +692,31 @@ interface Message {
         .bot-avatar {
           width: 40px;
           height: 40px;
-          font-size: 12px;
+          font-size: 10px;
         }
         
         .header-info h2 {
-          font-size: 16px;
+          font-size: 14px;
         }
         
         .status-text {
-          font-size: 13px;
+          font-size: 12px;
+        }
+
+        .theme-toggle {
+          padding: 6px 12px;
+          font-size: 12px;
+        }
+
+        .mic-button {
+          min-width: 48px;
+          min-height: 40px;
+          font-size: 10px;
+          padding: 8px 12px;
         }
       }
 
-      /* Scrollbar para el chat interno */
+      /* Scrollbar personalizado */
       .chat-messages::-webkit-scrollbar {
         width: 8px;
       }
@@ -444,13 +727,25 @@ interface Message {
         margin: 10px 0;
       }
 
+      .dark-mode .chat-messages::-webkit-scrollbar-track {
+        background: #404040;
+      }
+
       .chat-messages::-webkit-scrollbar-thumb {
         background: #ced4da;
         border-radius: 4px;
       }
 
+      .dark-mode .chat-messages::-webkit-scrollbar-thumb {
+        background: #666;
+      }
+
       .chat-messages::-webkit-scrollbar-thumb:hover {
         background: #adb5bd;
+      }
+
+      .dark-mode .chat-messages::-webkit-scrollbar-thumb:hover {
+        background: #777;
       }
 
       /* Mejoras para accesibilidad táctil */
@@ -462,6 +757,10 @@ interface Message {
         min-height: 44px;
       }
 
+      .mic-button {
+        min-height: 44px;
+      }
+
       /* Contraste mejorado */
       .user-message {
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -469,6 +768,14 @@ interface Message {
 
       .bot-message {
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+
+      .dark-mode .user-message {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+
+      .dark-mode .bot-message {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
       }
     `,
   ],
@@ -480,11 +787,21 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   messages: Message[] = [];
   userMessage: string = '';
   isTyping: boolean = false;
+  isDarkMode: boolean = false;
+  isListening: boolean = false;
   private shouldScrollToBottom = false;
+  private recognition: any = null;
 
   constructor(private chatService: ChatService) {}
 
   ngOnInit() {
+    // Cargar preferencia de tema desde localStorage
+    const savedTheme = localStorage.getItem('chatTheme');
+    this.isDarkMode = savedTheme === 'dark';
+
+    // Inicializar reconocimiento de voz
+    this.initializeSpeechRecognition();
+
     this.addBotMessage('Bienvenido al Parque Industrial Polo 52.\n\nMi nombre es POLO y estoy aquí para ayudarle con consultas sobre las empresas y servicios disponibles en el parque. ¿En qué puedo asistirle?');
   }
 
@@ -493,6 +810,103 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       this.scrollToBottom();
       this.shouldScrollToBottom = false;
     }
+  }
+
+  toggleTheme() {
+    this.isDarkMode = !this.isDarkMode;
+    localStorage.setItem('chatTheme', this.isDarkMode ? 'dark' : 'light');
+  }
+
+  initializeSpeechRecognition() {
+    // Verificar si el navegador soporta reconocimiento de voz
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      this.recognition = new SpeechRecognition();
+      
+      // Configuración del reconocimiento
+      this.recognition.continuous = false;
+      this.recognition.interimResults = false;
+      this.recognition.lang = 'es-ES'; // Español de España
+      this.recognition.maxAlternatives = 1;
+
+      // Eventos del reconocimiento
+      this.recognition.onstart = () => {
+        this.isListening = true;
+        console.log('Reconocimiento de voz iniciado');
+      };
+
+      this.recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        this.userMessage = transcript;
+        console.log('Texto reconocido:', transcript);
+        
+        // Enviar automáticamente después de reconocer
+        setTimeout(() => {
+          if (this.userMessage.trim()) {
+            this.sendMessage();
+          }
+        }, 500);
+      };
+
+      this.recognition.onerror = (event: any) => {
+        console.error('Error en reconocimiento de voz:', event.error);
+        this.isListening = false;
+        
+        let errorMessage = '';
+        switch (event.error) {
+          case 'no-speech':
+            errorMessage = 'No se detectó voz. Intente nuevamente.';
+            break;
+          case 'audio-capture':
+            errorMessage = 'No se pudo acceder al micrófono.';
+            break;
+          case 'not-allowed':
+            errorMessage = 'Permisos de micrófono denegados.';
+            break;
+          default:
+            errorMessage = 'Error de reconocimiento de voz.';
+        }
+        
+        this.showVoiceError(errorMessage);
+      };
+
+      this.recognition.onend = () => {
+        this.isListening = false;
+        console.log('Reconocimiento de voz finalizado');
+      };
+    } else {
+      console.warn('Reconocimiento de voz no soportado en este navegador');
+    }
+  }
+
+  toggleSpeechRecognition() {
+    if (!this.recognition) {
+      this.showVoiceError('Reconocimiento de voz no disponible en este navegador.');
+      return;
+    }
+
+    if (this.isListening) {
+      // Detener reconocimiento
+      this.recognition.stop();
+    } else {
+      // Iniciar reconocimiento
+      try {
+        this.recognition.start();
+      } catch (error) {
+        console.error('Error al iniciar reconocimiento:', error);
+        this.showVoiceError('Error al iniciar el reconocimiento de voz.');
+      }
+    }
+  }
+
+  private showVoiceError(message: string) {
+    // Mostrar error temporalmente en el placeholder
+    const originalPlaceholder = this.messageInput.nativeElement.placeholder;
+    this.messageInput.nativeElement.placeholder = message;
+    
+    setTimeout(() => {
+      this.messageInput.nativeElement.placeholder = originalPlaceholder;
+    }, 3000);
   }
 
   trackByMessageId(index: number, message: Message): string {

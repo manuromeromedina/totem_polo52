@@ -5,8 +5,8 @@
   class="logout-btn" 
   (click)="showLogoutModal()" 
   [disabled]="loading">
-  <span *ngIf="!loading">🚪 Cerrar sesión</span>
-  <span *ngIf="loading" class="loading">⏳ Cerrando...</span>
+  <span *ngIf="!loading">Cerrar sesión</span>
+  <span *ngIf="loading" class="loading">Cerrando...</span>
 </button>
 
 <!-- Modal de confirmación -->
@@ -16,10 +16,10 @@
     <p>¿Estás seguro de que deseas cerrar tu sesión?</p>
     <div class="modal-buttons">
       <button class="btn-cancel" (click)="cancelLogout()">
-        ❌ Cancelar
+        Cancelar
       </button>
       <button class="btn-confirm" (click)="confirmLogout()">
-        ✅ Cerrar sesión
+        Cerrar sesión
       </button>
     </div>
   </div>
