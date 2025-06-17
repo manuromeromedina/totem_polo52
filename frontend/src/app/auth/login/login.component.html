@@ -47,7 +47,7 @@
             [ngClass]="{ 'error': passwordError }"
           />
           <button type="button" class="eye-btn" (click)="togglePassword()">
-            <span [class.open]="showPassword">{{ showPassword ? '🙈' : '👁️' }}</span>
+            <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
           </button>
         </div>
         <span *ngIf="passwordError" class="field-error">{{ passwordErrorMessage }}</span>
@@ -82,7 +82,7 @@
 <!-- Modal de recuperación FUERA del div login-form -->
 <div *ngIf="showResetPassword" class="modal-overlay" (click)="showResetPassword = false">
   <div class="modal-content" (click)="$event.stopPropagation()">
-    <h3>🔐 Recuperar contraseña</h3>
+    <h3>Recuperar contraseña</h3>
     <form (ngSubmit)="requestPasswordReset()" #resetForm="ngForm">
       <input
         type="email"

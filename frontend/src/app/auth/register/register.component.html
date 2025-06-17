@@ -109,10 +109,9 @@
           <button 
             type="button" 
             class="eye-btn" 
-            (click)="togglePassword()"
-            [disabled]="loading"
-            [title]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
-            {{ showPassword ? '🙈' : '👁️' }}
+            (click)="togglePassword()">
+            <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+
           </button>
         </div>
         <span *ngIf="passwordError" class="field-error">{{ passwordErrorMessage }}</span>

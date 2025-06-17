@@ -32,7 +32,7 @@
       <h3>🔍 Filtros y Búsqueda</h3>
       <div class="filtros-actions">
         <button class="btn-clear" (click)="limpiarFiltros()">Limpiar</button>
-        <button class="btn-export" (click)="exportarCSV()">📥 Exportar CSV</button>
+        <button class="btn-export" (click)="exportarCSV()">Exportar CSV</button>
       </div>
     </div>
 
@@ -121,13 +121,13 @@
         [class.active]="vistaActual === 'tabla'"
         (click)="cambiarVista('tabla')"
         class="btn-vista">
-        📋 Tabla
+        Tabla
       </button>
       <button 
         [class.active]="vistaActual === 'tarjetas'"
         (click)="cambiarVista('tarjetas')"
         class="btn-vista">
-        📱 Tarjetas
+       Tarjetas
       </button>
     </div>
 
@@ -138,7 +138,7 @@
     </div>
 
     <button class="btn-reload" (click)="recargar()" [disabled]="loading">
-      🔄 Recargar
+      Recargar
     </button>
   </div>
 
@@ -153,7 +153,7 @@
     <div class="error-icon">⚠️</div>
     <h3>Error al cargar empresas</h3>
     <p>{{ errorMessage }}</p>
-    <button class="btn-retry" (click)="recargar()">🔄 Reintentar</button>
+    <button class="btn-retry" (click)="recargar()">Reintentar</button>
   </div>
 
   <!-- Contenido principal -->
@@ -249,22 +249,22 @@
             </div>
             
             <div class="card-row">
-              <span class="label">👥 Empleados:</span>
+              <span class="label">Empleados:</span>
               <span class="value empleados-badge">{{ empresa.cant_empleados }}</span>
             </div>
             
             <div class="card-row">
-              <span class="label">🕒 Horario:</span>
+              <span class="label">Horario:</span>
               <span class="value">{{ empresa.horario_trabajo }}</span>
             </div>
             
             <div class="card-row">
-              <span class="label">📅 Fecha ingreso:</span>
+              <span class="label">Fecha ingreso:</span>
               <span class="value">{{ formatearFecha(empresa.fecha_ingreso) }}</span>
             </div>
             
             <div *ngIf="empresa.observaciones" class="card-observaciones">
-              <span class="label">📝 Observaciones:</span>
+              <span class="label">Observaciones:</span>
               <p class="observaciones-text">{{ empresa.observaciones }}</p>
             </div>
           </div>
