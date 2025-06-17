@@ -368,6 +368,10 @@ interface Message {
         color: rgba(255, 255, 255, 0.8);
       }
 
+      .dark-mode .user-message .message-time {
+        color: rgba(33, 37, 41, 0.8); /* Texto oscuro para el fondo gris claro */
+      }
+
       .bot-message .message-time {
         color: #6c757d;
         transition: color 0.3s ease;
