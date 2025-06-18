@@ -4,6 +4,7 @@ import { ChatService } from './chat.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
+import { HttpClient } from '@angular/common/http';
 
 interface Message {
   sender: 'user' | 'bot';
@@ -796,18 +797,15 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   isDarkMode: boolean = false;
   isListening: boolean = false;
   private shouldScrollToBottom = false;
-  private recognition: any = null;
+  private audioContext: AudioContext | null = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
 
-  constructor(private chatService: ChatService) {}
+  constructor(private chatService: ChatService, private http: HttpClient) {}
 
   ngOnInit() {
-    // Cargar preferencia de tema desde localStorage
     const savedTheme = localStorage.getItem('chatTheme');
     this.isDarkMode = savedTheme === 'dark';
-
-    // Inicializar reconocimiento de voz
-    this.initializeSpeechRecognition();
-
     this.addBotMessage('Bienvenido al Parque Industrial Polo 52.\n\nMi nombre es POLO y estoy aquí para ayudarle con consultas sobre las empresas y servicios disponibles en el parque. ¿En qué puedo asistirle?');
   }
 
@@ -823,93 +821,69 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     localStorage.setItem('chatTheme', this.isDarkMode ? 'dark' : 'light');
   }
 
-  initializeSpeechRecognition() {
-    // Verificar si el navegador soporta reconocimiento de voz
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      this.recognition = new SpeechRecognition();
-      
-      // Configuración del reconocimiento
-      this.recognition.continuous = false;
-      this.recognition.interimResults = false;
-      this.recognition.lang = 'es-ES'; // Español de España
-      this.recognition.maxAlternatives = 1;
-
-      // Eventos del reconocimiento
-      this.recognition.onstart = () => {
-        this.isListening = true;
-        console.log('Reconocimiento de voz iniciado');
-      };
-
-      this.recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        this.userMessage = transcript;
-        console.log('Texto reconocido:', transcript);
-        
-        // Enviar automáticamente después de reconocer
-        setTimeout(() => {
-          if (this.userMessage.trim()) {
-            this.sendMessage();
-          }
-        }, 500);
-      };
-
-      this.recognition.onerror = (event: any) => {
-        console.error('Error en reconocimiento de voz:', event.error);
-        this.isListening = false;
-        
-        let errorMessage = '';
-        switch (event.error) {
-          case 'no-speech':
-            errorMessage = 'No se detectó voz. Intente nuevamente.';
-            break;
-          case 'audio-capture':
-            errorMessage = 'No se pudo acceder al micrófono.';
-            break;
-          case 'not-allowed':
-            errorMessage = 'Permisos de micrófono denegados.';
-            break;
-          default:
-            errorMessage = 'Error de reconocimiento de voz.';
-        }
-        
-        this.showVoiceError(errorMessage);
-      };
-
-      this.recognition.onend = () => {
-        this.isListening = false;
-        console.log('Reconocimiento de voz finalizado');
-      };
-    } else {
-      console.warn('Reconocimiento de voz no soportado en este navegador');
-    }
-  }
-
-  toggleSpeechRecognition() {
-    if (!this.recognition) {
-      this.showVoiceError('Reconocimiento de voz no disponible en este navegador.');
-      return;
-    }
-
+  async toggleSpeechRecognition() {
     if (this.isListening) {
-      // Detener reconocimiento
-      this.recognition.stop();
+      // Detener grabación
+      if (this.mediaRecorder) {
+        this.mediaRecorder.stop();
+      }
+      if (this.audioContext) {
+        this.audioContext.close();
+      }
+      this.isListening = false;
     } else {
-      // Iniciar reconocimiento
+      // Iniciar grabación
       try {
-        this.recognition.start();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.audioContext = new AudioContext();
+        this.audioChunks = [];
+        this.mediaRecorder = new MediaRecorder(stream);
+
+        this.mediaRecorder.ondataavailable = (event) => {
+          this.audioChunks.push(event.data);
+        };
+
+        this.mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'temp_audio.wav');
+
+          this.chatService.sendAudio(formData).subscribe({
+            next: (response) => {
+              this.userMessage = response.reply;
+              if (this.userMessage.trim()) {
+                this.sendMessage();
+              }
+            },
+            error: (error) => {
+              console.error('Error al enviar audio:', error);
+              this.showVoiceError('Error al procesar el audio. Intente nuevamente.');
+            },
+          });
+
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        this.mediaRecorder.start();
+        this.isListening = true;
+        console.log('Grabación de voz iniciada');
+
+        // Detener después de 5 segundos (igual que el backend)
+        setTimeout(() => {
+          if (this.mediaRecorder && this.isListening) {
+            this.mediaRecorder.stop();
+          }
+        }, 5000);
       } catch (error) {
-        console.error('Error al iniciar reconocimiento:', error);
-        this.showVoiceError('Error al iniciar el reconocimiento de voz.');
+        console.error('Error al iniciar grabación:', error);
+        this.showVoiceError('No se pudo acceder al micrófono. Verifique los permisos.');
       }
     }
   }
 
   private showVoiceError(message: string) {
-    // Mostrar error temporalmente en el placeholder
     const originalPlaceholder = this.messageInput.nativeElement.placeholder;
     this.messageInput.nativeElement.placeholder = message;
-    
     setTimeout(() => {
       this.messageInput.nativeElement.placeholder = originalPlaceholder;
     }, 3000);

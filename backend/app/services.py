@@ -178,9 +178,7 @@ JSON:"""
 
         sql_query = intent_data["sql_query"]
         db_results = execute_sql_query(db, sql_query)
-        if not db_results or "error" in db_results[0]:
-            return db_results[0].get("error", "Error interno"), [], intent_data.get("corrected_entity")
-
+        
         results_text = json.dumps(db_results, ensure_ascii=False, default=custom_json_serializer)
         input_text = f"Resultados de la consulta:\n{results_text}\nPregunta:\n{message}"
 
@@ -194,9 +192,17 @@ Información disponible:
 Historial:
 {chat_history}
 
-Responde de forma natural y directa. Si tienes datos específicos de una empresa, proporciona toda la información disponible. Si hay múltiples empresas, usa formato de lista como hiciste bien antes. Nunca muestres NI CUIL NI ID de empresas. NUNCA uses asteriscos (*) en tu respuesta. Sé conversacional pero informativo.
+INSTRUCCIONES IMPORTANTES:
+- No hagas respuestas muy extensas, se mas directo
+- Si hay más de 8 resultados, di cuántos encontraste y pide más especificidad
+- Si es una lista extensa (mas de 8 items) deci cantidad de resultados pero no expliques cada uno, pedi mas informacion asi filtras resulatdos
+- Si los resultados están vacíos [] o hay error, responde de forma amigable explicando que no encontraste información
+- Si hay 1-8 resultados, muéstralos todos claramente
+- Nunca muestres CUIL ni ID de empresas
+- No uses asteriscos (*) 
+- Responde de forma natural, directa y conversacional.
 
-Respuesta:"""
+Responde naturalmente:"""
 
         final_response = model.generate_content(final_prompt)
         return final_response.text, db_results, intent_data.get("corrected_entity")
