@@ -23,11 +23,11 @@ from app.models import Empresa
 import json
 from datetime import date
 
-# === 🔐 Cargar el archivo .env desde /backend ===
+# === Cargar el archivo .env desde /backend ===
 env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-# === 🔒 Utilidades de autenticación =============================================
+# === Utilidades de autenticación =============================================
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -65,11 +65,11 @@ def verify_password_reset_token(token: str) -> str:
         raise HTTPException(401, "Token de recuperación inválido o expirado")
 # =================================================================================
 
-# === 🔐 Configurar API Key ===
+# === Configurar API Key ===
 api_key = os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=api_key)
 
-# === ⚙️ CONFIGURACIÓN SIMPLE Y ROBUSTA ===
+# === CONFIGURACIÓN SIMPLE Y ROBUSTA ===
 model = genai.GenerativeModel(
     model_name='gemini-1.5-flash',
     generation_config=GenerationConfig(
@@ -136,7 +136,7 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
 
         db_schema = get_database_schema(db)
 
-        # === 🤖 PROMPT 100% IA - AGRESIVO EN INTERPRETACIÓN ===
+        # === PROMPT 100% IA - AGRESIVO EN INTERPRETACIÓN ===
         intent_prompt = f"""
 Eres POLO, asistente del Parque Industrial Polo 52. 
 
@@ -182,7 +182,7 @@ JSON:"""
         results_text = json.dumps(db_results, ensure_ascii=False, default=custom_json_serializer)
         input_text = f"Resultados de la consulta:\n{results_text}\nPregunta:\n{message}"
 
-        # === 🎯 RESPUESTA NATURAL Y DIRECTA ===
+        # === RESPUESTA NATURAL Y DIRECTA ===
         final_prompt = f"""
 Eres POLO, asistente conversacional del Parque Industrial Polo 52.
 
