@@ -1,198 +1,586 @@
-
-<!-- Opción 1: Diseño básico mejorado -->
-<div class="empresa-container">
-  <div class="empresa-header">
-    <h1 class="empresa-title">Panel de Empresa</h1>
-    <app-logout-button></app-logout-button>
-
-  </div>
-
-  <div class="empresa-form">
-    <h2>Mis datos de empresa</h2>
-    
-    <form (ngSubmit)="actualizar()" #empresaForm="ngForm" [class.loading]="loading">
-      <div class="form-group">
-        <label for="empleados">Cantidad de Empleados</label>
-        <input 
-          id="empleados"
-          type="number" 
-          [(ngModel)]="empresa.cant_empleados" 
-          name="empleados"
-          min="1"
-          placeholder="Ej: 25"
-          required>
+<!-- admin-empresa.component.html -->
+<div class="admin-container">
+  <!-- Header -->
+  <header class="admin-header">
+    <div class="header-content">
+      <div class="logo-section">
+        <h1>Mi Empresa - Polo 52</h1>
+        <p *ngIf="empresaData">{{ empresaData.nombre }} - {{ empresaData.rubro }}</p>
+        <p *ngIf="!empresaData">Gestión de datos empresariales</p>
       </div>
-      
-      <div class="form-group">
-        <label for="horario">Horario de Trabajo</label>
-        <input 
-          id="horario"
-          type="text" 
-          [(ngModel)]="empresa.horario_trabajo" 
-          name="horario"
-          placeholder="Ej: Lunes a Viernes 8:00 - 17:00"
-          required>
+      <div class="header-actions">
+        <app-logout-button></app-logout-button>
       </div>
-      
-      <div class="form-group">
-        <label for="observaciones">Observaciones</label>
-        <textarea 
-          id="observaciones"
-          [(ngModel)]="empresa.observaciones" 
-          name="observaciones"
-          placeholder="Ingrese observaciones adicionales sobre su empresa..."></textarea>
-      </div>
-      
-      <button type="submit" class="btn-guardar" [disabled]="!empresaForm.form.valid || loading">
-        {{ loading ? 'Guardando...' : 'Guardar Cambios' }}
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- Opción 2: Diseño con iconos y layout en grid -->
-<div class="empresa-container">
-  <div class="empresa-header">
-    <h1 class="empresa-title">Panel de Empresa</h1>
-    <app-logout-button></app-logout-button>
-  </div>
-
-  <div class="empresa-form">
-    <h2>Mis datos de empresa</h2>
-    
-    <form (ngSubmit)="actualizar()" #empresaForm="ngForm" [class.loading]="loading">
-      <div class="form-row">
-        <div class="form-group form-group-with-icon">
-          <label for="empleados">Cantidad de Empleados</label>
-          <span class="field-icon">👥</span>
-          <input 
-            id="empleados"
-            type="number" 
-            [(ngModel)]="empresa.cant_empleados" 
-            name="empleados"
-            min="1"
-            placeholder="Ej: 25"
-            required>
-          <span class="error-message" *ngIf="empleados.invalid && empleados.touched">
-            La cantidad de empleados es requerida
-          </span>
-        </div>
-        
-        <div class="form-group form-group-with-icon">
-          <label for="horario">Horario de Trabajo</label>
-          <span class="field-icon">🕒</span>
-          <input 
-            id="horario"
-            type="text" 
-            [(ngModel)]="empresa.horario_trabajo" 
-            name="horario"
-            #horario="ngModel"
-            placeholder="Ej: Lunes a Viernes 8:00 - 17:00"
-            required>
-          <span class="error-message" *ngIf="horario.invalid && horario.touched">
-            El horario de trabajo es requerido
-          </span>
-        </div>
-      </div>
-      
-      <div class="form-group form-full-width">
-        <label for="observaciones">Observaciones</label>
-        <textarea 
-          id="observaciones"
-          [(ngModel)]="empresa.observaciones" 
-          name="observaciones"
-          placeholder="Ingrese observaciones adicionales sobre su empresa, políticas internas, beneficios, cultura organizacional, etc..."></textarea>
-      </div>
-      
-      <button type="submit" class="btn-guardar" [disabled]="!empresaForm.form.valid || loading">
-        <span *ngIf="!loading">Guardar Cambios</span>
-        <span *ngIf="loading">Guardando...</span>
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- Opción 3: Diseño con secciones organizadas -->
-<div class="empresa-container">
-  <div class="empresa-header">
-    <h1 class="empresa-title">Gestión de Empresa</h1>
-    <app-logout-button></app-logout-button>
-  </div>
-
-  <div class="empresa-form">
-    <h2>Configuración de la Empresa</h2>
-    
-    <form (ngSubmit)="actualizar()" #empresaForm="ngForm" [class.loading]="loading">
-      
-      <!-- Sección: Información Básica -->
-      <div class="form-section">
-        <h3 class="section-title">Información Básica</h3>
-        
-        <div class="form-group">
-          <label for="empleados">Cantidad de Empleados</label>
-          <input 
-            id="empleados"
-            type="number" 
-            [(ngModel)]="empresa.cant_empleados" 
-            name="empleados"
-            #empleados="ngModel"
-            min="1"
-            max="10000"
-            placeholder="Número de empleados"
-            required>
-          <span class="error-message" *ngIf="empleados.invalid && empleados.touched">
-            Ingrese un número válido de empleados (1-10000)
-          </span>
-        </div>
-      </div>
-
-      <!-- Sección: Horarios -->
-      <div class="form-section">
-        <h3 class="section-title">Horarios de Trabajo</h3>
-        
-        <div class="form-group">
-          <label for="horario">Horario de Trabajo</label>
-          <input 
-            id="horario"
-            type="text" 
-            [(ngModel)]="empresa.horario_trabajo" 
-            name="horario"
-            #horario="ngModel"
-            placeholder="Ej: Lunes a Viernes 8:00 - 17:00"
-            maxlength="100"
-            required>
-          <span class="error-message" *ngIf="horario.invalid && horario.touched">
-            El horario de trabajo es requerido
-          </span>
-        </div>
-      </div>
-
-      <!-- Sección: Información Adicional -->
-      <div class="form-section">
-        <h3 class="section-title">Información Adicional</h3>
-        
-        <div class="form-group">
-          <label for="observaciones">Observaciones y Notas</label>
-          <textarea 
-            id="observaciones"
-            [(ngModel)]="empresa.observaciones" 
-            name="observaciones"
-            maxlength="1000"
-            placeholder="Describa políticas internas, beneficios, cultura organizacional, o cualquier información relevante sobre su empresa..."></textarea>
-        </div>
-      </div>
-      
-      <button type="submit" class="btn-guardar" [disabled]="!empresaForm.form.valid || loading">
-        {{ loading ? 'Guardando cambios...' : 'Guardar Cambios' }}
-      </button>
-    </form>
-
-    <!-- Mensaje de éxito/error -->
-    <div *ngIf="successMessage" class="success-message">
-      ✅ {{ successMessage }}
     </div>
-    <div *ngIf="errorMessage" class="error-message">
-      ❌ {{ errorMessage }}
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="tab-navigation">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'perfil'"
+      (click)="setActiveTab('perfil')">
+      Perfil Empresa
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'vehiculos'"
+      (click)="setActiveTab('vehiculos')">
+      Vehículos
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'servicios'"
+      (click)="setActiveTab('servicios')">
+      Servicios
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'contactos'"
+      (click)="setActiveTab('contactos')">
+      Contactos
+    </button>
+  </nav>
+
+  <!-- Message Display -->
+  <div *ngIf="message" class="message" [class]="messageType">
+    {{ message }}
+  </div>
+
+  <!-- Loading Indicator -->
+  <div *ngIf="loading && !empresaData" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Cargando datos de la empresa...</p>
+  </div>
+
+  <!-- Main Content -->
+  <main class="main-content" *ngIf="empresaData">
+    
+    <!-- PERFIL TAB -->
+    <div *ngIf="activeTab === 'perfil'" class="tab-content">
+      <div class="section-header">
+        <h2>Perfil de la Empresa</h2>
+        <div class="header-actions">
+          <button class="btn btn-secondary" (click)="openPasswordForm()">
+            Cambiar Contraseña
+          </button>
+          <button class="btn btn-primary" (click)="openEmpresaEditForm()">
+            Editar Datos
+          </button>
+        </div>
+      </div>
+
+      <!-- Empresa Info Card -->
+      <div class="info-card">
+        <div class="card-header">
+          <h3>Información General</h3>
+        </div>
+        <div class="card-content">
+          <div class="info-grid">
+            <div class="info-item">
+              <label>CUIL:</label>
+              <span>{{ empresaData.cuil }}</span>
+            </div>
+            <div class="info-item">
+              <label>Nombre:</label>
+              <span>{{ empresaData.nombre }}</span>
+            </div>
+            <div class="info-item">
+              <label>Rubro:</label>
+              <span>{{ empresaData.rubro }}</span>
+            </div>
+            <div class="info-item">
+              <label>Cantidad de Empleados:</label>
+              <span>{{ empresaData.cant_empleados }}</span>
+            </div>
+            <div class="info-item">
+              <label>Fecha de Ingreso:</label>
+              <span>{{ empresaData.fecha_ingreso | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="info-item">
+              <label>Horario de Trabajo:</label>
+              <span>{{ empresaData.horario_trabajo }}</span>
+            </div>
+            <div class="info-item full-width" *ngIf="empresaData.observaciones">
+              <label>Observaciones:</label>
+              <span>{{ empresaData.observaciones }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estadísticas Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🚗</div>
+          <div class="stat-info">
+            <h4>{{ empresaData.vehiculos.length }}</h4>
+            <p>Vehículos</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🛠️</div>
+          <div class="stat-info">
+            <h4>{{ empresaData.servicios.length }}</h4>
+            <p>Servicios</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📞</div>
+          <div class="stat-info">
+            <h4>{{ empresaData.contactos.length }}</h4>
+            <p>Contactos</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏢</div>
+          <div class="stat-info">
+            <h4>{{ empresaData.servicios_polo.length }}</h4>
+            <p>Servicios del Polo</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VEHÍCULOS TAB -->
+    <div *ngIf="activeTab === 'vehiculos'" class="tab-content">
+      <div class="section-header">
+        <h2>Gestión de Vehículos</h2>
+        <button class="btn btn-primary" (click)="openVehiculoForm()">
+          Nuevo Vehículo
+        </button>
+      </div>
+
+      <!-- Vehículos List -->
+      <div class="data-table">
+        <div class="table-header">
+          <h3>Vehículos Registrados</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Horarios</th>
+                <th>Frecuencia</th>
+                <th>Datos</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let vehiculo of empresaData.vehiculos">
+                <td>{{ getTipoVehiculoName(vehiculo.id_tipo_vehiculo) }}</td>
+                <td>{{ vehiculo.horarios }}</td>
+                <td>{{ vehiculo.frecuencia }}</td>
+                <td>
+                  <span class="data-preview">{{ formatDatos(vehiculo.datos) }}</span>
+                </td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-secondary" (click)="openVehiculoForm(vehiculo)">
+                    Editar
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteVehiculo(vehiculo.id_vehiculo)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="empresaData.vehiculos.length === 0">
+                <td colspan="5" class="text-center">No hay vehículos registrados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERVICIOS TAB -->
+    <div *ngIf="activeTab === 'servicios'" class="tab-content">
+      <div class="section-header">
+        <h2>Gestión de Servicios</h2>
+        <button class="btn btn-primary" (click)="openServicioForm()">
+          Nuevo Servicio
+        </button>
+      </div>
+
+      <!-- Servicios List -->
+      <div class="data-table">
+        <div class="table-header">
+          <h3>Servicios Ofrecidos</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Tipo de Servicio</th>
+                <th>Datos</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let servicio of empresaData.servicios">
+                <td>{{ getTipoServicioName(servicio.id_tipo_servicio) }}</td>
+                <td>
+                  <span class="data-preview">{{ formatDatos(servicio.datos) }}</span>
+                </td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-secondary" (click)="openServicioForm(servicio)">
+                    Editar
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteServicio(servicio.id_servicio)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="empresaData.servicios.length === 0">
+                <td colspan="3" class="text-center">No hay servicios registrados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTACTOS TAB -->
+    <div *ngIf="activeTab === 'contactos'" class="tab-content">
+      <div class="section-header">
+        <h2>Gestión de Contactos</h2>
+        <button class="btn btn-primary" (click)="openContactoForm()">
+          Nuevo Contacto
+        </button>
+      </div>
+
+      <!-- Contactos List -->
+      <div class="data-table">
+        <div class="table-header">
+          <h3>Contactos de la Empresa</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Teléfono</th>
+                <th>Dirección</th>
+                <th>Datos</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let contacto of empresaData.contactos">
+                <td>{{ contacto.nombre }}</td>
+                <td>{{ getTipoContactoName(contacto.id_tipo_contacto) }}</td>
+                <td>{{ contacto.telefono || 'No especificado' }}</td>
+                <td>{{ contacto.direccion || 'No especificada' }}</td>
+                <td>
+                  <span class="data-preview">{{ formatDatos(contacto.datos) }}</span>
+                </td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-secondary" (click)="openContactoForm(contacto)">
+                    Editar
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteContacto(contacto.id_contacto)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="empresaData.contactos.length === 0">
+                <td colspan="6" class="text-center">No hay contactos registrados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODALS -->
+  
+  <!-- Password Form Modal -->
+  <div *ngIf="showPasswordForm" class="form-modal">
+    <div class="form-container">
+      <div class="form-header">
+        <h3>Cambiar Contraseña</h3>
+        <button class="close-btn" (click)="resetForms()">&times;</button>
+      </div>
+      
+      <form (ngSubmit)="onSubmitPassword()" #passwordFormRef="ngForm">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="password">Nueva Contraseña *</label>
+            <input 
+              type="password" 
+              id="password" 
+              name="password"
+              [(ngModel)]="passwordForm.password" 
+              required
+              minlength="6"
+              class="form-control">
+          </div>
+          <div class="form-group full-width">
+            <label for="confirmPassword">Confirmar Contraseña *</label>
+            <input 
+              type="password" 
+              id="confirmPassword" 
+              name="confirmPassword"
+              [(ngModel)]="passwordForm.confirmPassword" 
+              required
+              class="form-control">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetForms()">
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            [disabled]="loading || passwordFormRef.invalid">
+            {{ loading ? 'Actualizando...' : 'Cambiar Contraseña' }}
+          </button>
+        </div>
+      </form>
     </div>
   </div>
+
+  <!-- Empresa Edit Form Modal -->
+  <div *ngIf="showEmpresaEditForm" class="form-modal">
+    <div class="form-container">
+      <div class="form-header">
+        <h3>Editar Datos de la Empresa</h3>
+        <button class="close-btn" (click)="resetForms()">&times;</button>
+      </div>
+      
+      <form (ngSubmit)="onSubmitEmpresaEdit()" #empresaEditFormRef="ngForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="cant_empleados">Cantidad de Empleados *</label>
+            <input 
+              type="number" 
+              id="cant_empleados" 
+              name="cant_empleados"
+              [(ngModel)]="empresaEditForm.cant_empleados" 
+              required
+              min="1"
+              class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="horario_trabajo">Horario de Trabajo *</label>
+            <input 
+              type="text" 
+              id="horario_trabajo" 
+              name="horario_trabajo"
+              [(ngModel)]="empresaEditForm.horario_trabajo" 
+              required
+              class="form-control">
+          </div>
+          <div class="form-group full-width">
+            <label for="observaciones">Observaciones</label>
+            <textarea 
+              id="observaciones" 
+              name="observaciones"
+              [(ngModel)]="empresaEditForm.observaciones" 
+              rows="4"
+              class="form-control"></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetForms()">
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            [disabled]="loading || empresaEditFormRef.invalid">
+            {{ loading ? 'Guardando...' : 'Actualizar Datos' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Vehiculo Form Modal -->
+  <div *ngIf="showVehiculoForm" class="form-modal">
+    <div class="form-container">
+      <div class="form-header">
+        <h3>{{ editingVehiculo ? 'Editar Vehículo' : 'Nuevo Vehículo' }}</h3>
+        <button class="close-btn" (click)="resetForms()">&times;</button>
+      </div>
+      
+      <form (ngSubmit)="onSubmitVehiculo()" #vehiculoFormRef="ngForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="tipo_vehiculo">Tipo de Vehículo *</label>
+            <select 
+              id="tipo_vehiculo" 
+              name="tipo_vehiculo"
+              [(ngModel)]="vehiculoForm.id_tipo_vehiculo" 
+              required
+              class="form-control">
+              <option *ngFor="let tipo of tiposVehiculo" [value]="tipo.id">
+                {{ tipo.tipo }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="vehiculo_horarios">Horarios *</label>
+            <input 
+              type="text" 
+              id="vehiculo_horarios" 
+              name="vehiculo_horarios"
+              [(ngModel)]="vehiculoForm.horarios" 
+              required
+              placeholder="Ej: 08:00 - 17:00"
+              class="form-control">
+          </div>
+          <div class="form-group full-width">
+            <label for="vehiculo_frecuencia">Frecuencia *</label>
+            <input 
+              type="text" 
+              id="vehiculo_frecuencia" 
+              name="vehiculo_frecuencia"
+              [(ngModel)]="vehiculoForm.frecuencia" 
+              required
+              placeholder="Ej: Diario, Semanal, etc."
+              class="form-control">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetForms()">
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            [disabled]="loading || vehiculoFormRef.invalid">
+            {{ loading ? 'Guardando...' : (editingVehiculo ? 'Actualizar' : 'Crear') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Servicio Form Modal -->
+  <div *ngIf="showServicioForm" class="form-modal">
+    <div class="form-container">
+      <div class="form-header">
+        <h3>{{ editingServicio ? 'Editar Servicio' : 'Nuevo Servicio' }}</h3>
+        <button class="close-btn" (click)="resetForms()">&times;</button>
+      </div>
+      
+      <form (ngSubmit)="onSubmitServicio()" #servicioFormRef="ngForm">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="tipo_servicio">Tipo de Servicio *</label>
+            <select 
+              id="tipo_servicio" 
+              name="tipo_servicio"
+              [(ngModel)]="servicioForm.id_tipo_servicio" 
+              required
+              class="form-control">
+              <option *ngFor="let tipo of tiposServicio" [value]="tipo.id">
+                {{ tipo.tipo }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetForms()">
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            [disabled]="loading || servicioFormRef.invalid">
+            {{ loading ? 'Guardando...' : (editingServicio ? 'Actualizar' : 'Crear') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Contacto Form Modal -->
+  <div *ngIf="showContactoForm" class="form-modal">
+    <div class="form-container">
+      <div class="form-header">
+        <h3>{{ editingContacto ? 'Editar Contacto' : 'Nuevo Contacto' }}</h3>
+        <button class="close-btn" (click)="resetForms()">&times;</button>
+      </div>
+      
+      <form (ngSubmit)="onSubmitContacto()" #contactoFormRef="ngForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="contacto_nombre">Nombre *</label>
+            <input 
+              type="text" 
+              id="contacto_nombre" 
+              name="contacto_nombre"
+              [(ngModel)]="contactoForm.nombre" 
+              required
+              class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="tipo_contacto">Tipo de Contacto *</label>
+            <select 
+              id="tipo_contacto" 
+              name="tipo_contacto"
+              [(ngModel)]="contactoForm.id_tipo_contacto" 
+              required
+              class="form-control">
+              <option *ngFor="let tipo of tiposContacto" [value]="tipo.id">
+                {{ tipo.tipo }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="contacto_telefono">Teléfono</label>
+            <input 
+              type="tel" 
+              id="contacto_telefono" 
+              name="contacto_telefono"
+              [(ngModel)]="contactoForm.telefono" 
+              class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="contacto_direccion">Dirección</label>
+            <input 
+              type="text" 
+              id="contacto_direccion" 
+              name="contacto_direccion"
+              [(ngModel)]="contactoForm.direccion" 
+              class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="servicio_polo_id">ID Servicio Polo *</label>
+            <input 
+              type="number" 
+              id="servicio_polo_id" 
+              name="servicio_polo_id"
+              [(ngModel)]="contactoForm.id_servicio_polo" 
+              required
+              min="1"
+              class="form-control">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetForms()">
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            [disabled]="loading || contactoFormRef.invalid">
+            {{ loading ? 'Guardando...' : (editingContacto ? 'Actualizar' : 'Crear') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </div>

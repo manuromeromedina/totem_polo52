@@ -75,7 +75,7 @@ model = genai.GenerativeModel(
     generation_config=GenerationConfig(
         temperature=0.3,
         top_p=0.9,
-        max_output_tokens=2048,
+        max_output_tokens=1024,
         stop_sequences=None,
         candidate_count=1
     )
@@ -148,12 +148,13 @@ Historial:
 
 Consulta del usuario: "{user_input}"
 
-Tu inteligencia artificial debe SIEMPRE intentar responder con datos reales. Solo usa needs_more_info=true si es absolutamente imposible interpretar la consulta.
+Para comparaciones de texto, usa siempre ILIKE en lugar de = para hacer búsquedas
+Tu inteligencia artificial debe SIEMPRE intentar responder con datos reales. Debes hacer la consulta SQL. Solo usa needs_more_info=true si es absolutamente imposible interpretar la consulta.
 
 Responde con un JSON:
 - needs_more_info: false (casi siempre, usa tu IA para interpretar)
 - sql_query: consulta SQL para obtener datos (NUNCA incluyas campos como cuil, id en el SELECT)
-- corrected_entity: corrección si detectas errores  
+- corrected_entity: corrección si detectas errores 
 - question: pregunta solo si needs_more_info es true
 
 Tu IA debe entender consultas informales, vagas o con errores de escritura. Interpreta con inteligencia lo que realmente necesita el usuario.
@@ -161,6 +162,7 @@ Tu IA debe entender consultas informales, vagas o con errores de escritura. Inte
 JSON:"""
 
         intent_response = model.generate_content(intent_prompt)
+
         
         try:
             clean_response = intent_response.text.strip()
@@ -184,27 +186,29 @@ JSON:"""
 
         # === RESPUESTA NATURAL Y DIRECTA ===
         final_prompt = f"""
-Eres POLO, asistente conversacional del Parque Industrial Polo 52.
+    Eres POLO, asistente conversacional del Parque Industrial Polo 52.
 
-Información disponible:
-{input_text}
+    Información disponible:
+    {input_text}
 
-Historial:
-{chat_history}
+    Historial:
+    {chat_history}
 
-INSTRUCCIONES IMPORTANTES:
-- No hagas respuestas muy extensas, se mas directo
-- Si hay más de 8 resultados, di cuántos encontraste y pide más especificidad
-- Si es una lista extensa (mas de 8 items) deci cantidad de resultados pero no expliques cada uno, pedi mas informacion asi filtras resulatdos
-- Si los resultados están vacíos [] o hay error, responde de forma amigable explicando que no encontraste información
-- Si hay 1-8 resultados, muéstralos todos claramente
-- Nunca muestres CUIL ni ID de empresas
-- No uses asteriscos (*) 
-- Responde de forma natural, directa y conversacional.
+    INSTRUCCIONES IMPORTANTES:
+    - Responde de forma natural, directa y conversacional.
+    - No hagas respuestas muy extensas, se mas directo
+    - Si hay más de 8 resultados, di cuántos encontraste y pide más especificidad
+    - Si es una lista extensa (mas de 8 items) deci cantidad de resultados pero no expliques cada uno, pedi mas informacion asi filtras resulatdos
+    - Si los resultados están vacíos [] o hay error, responde de forma amigable explicando que no encontraste información
+    - Si hay 1-8 resultados, muéstralos todos claramente
+    - Nunca muestres CUIL ni ID de empresas
+    - Nunca uses asteriscos (*) 
 
-Responde naturalmente:"""
+
+    Responde naturalmente:"""
 
         final_response = model.generate_content(final_prompt)
+
         return final_response.text, db_results, intent_data.get("corrected_entity")
 
     except Exception as e:

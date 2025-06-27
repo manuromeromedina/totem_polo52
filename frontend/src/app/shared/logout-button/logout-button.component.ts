@@ -6,84 +6,144 @@ import { AuthenticationService } from '../../auth/auth.service';
   selector: 'app-logout-button',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './logout-button.component.html',
-  styleUrls: ['./logout-button.component.css']
+  template: `
+    <button 
+      class="logout-btn" 
+      (click)="logout()" 
+      [disabled]="loading"
+      [attr.aria-label]="loading ? 'Cerrando sesión...' : 'Cerrar sesión'">
+      <span *ngIf="!loading" class="logout-icon">⏻</span>
+      <span *ngIf="loading" class="logout-spinner"></span>
+      <span class="logout-text">{{ loading ? 'Saliendo...' : 'Salir' }}</span>
+    </button>
+  `,
+  styles: [`
+    .logout-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 40px;
+      font-family: inherit;
+    }
+
+    .logout-btn:hover:not(:disabled) {
+      background: #c82333;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+    }
+
+    .logout-btn:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .logout-icon {
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logout-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top: 2px solid currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .logout-text {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .logout-btn:focus {
+      outline: 2px solid #dc3545;
+      outline-offset: 2px;
+    }
+
+    .logout-btn:focus:not(:focus-visible) {
+      outline: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .logout-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        min-height: 36px;
+      }
+      
+      .logout-text {
+        font-size: 13px;
+      }
+      
+      .logout-icon {
+        font-size: 14px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .logout-text {
+        display: none;
+      }
+      
+      .logout-btn {
+        padding: 8px 12px;
+        min-width: 40px;
+        justify-content: center;
+      }
+    }
+
+    /* Dark mode */
+    @media (prefers-color-scheme: dark) {
+      .logout-btn:disabled {
+        background: #495057;
+      }
+    }
+
+    /* High contrast */
+    @media (prefers-contrast: high) {
+      .logout-btn {
+        border: 2px solid currentColor;
+      }
+    }
+  `]
 })
 export class LogoutButtonComponent {
   loading = false;
-  showModal = false;
-  successMessage = '';
-  errorMessage = '';
 
   constructor(private authService: AuthenticationService) {}
 
-  // Mostrar modal de confirmación
-  showLogoutModal() {
-    this.showModal = true;
-  }
-
-  // Cancelar logout
-  cancelLogout() {
-    this.showModal = false;
-  }
-
-  // Confirmar y ejecutar logout
-  confirmLogout() {
+  logout(): void {
+    if (this.loading) return;
+    
     this.loading = true;
-    this.showModal = false;
-    this.successMessage = '';
-    this.errorMessage = '';
-
+    
     this.authService.logout().subscribe({
-      next: (success) => {
+      next: () => {
         this.loading = false;
-        if (success) {
-          this.successMessage = '✅ Sesión cerrada correctamente';
-          // Mostrar mensaje por 2 segundos antes de redirigir
-          setTimeout(() => {
-            this.successMessage = '';
-          }, 2000);
-        } else {
-          this.errorMessage = '⚠️ Error al cerrar sesión en el servidor, pero se cerró localmente';
-          setTimeout(() => {
-            this.errorMessage = '';
-          }, 3000);
-        }
       },
       error: (error) => {
+        console.error('Error during logout:', error);
         this.loading = false;
-        console.error('Error en logout:', error);
-        this.errorMessage = '❌ Error al cerrar sesión, pero se cerró localmente';
-        setTimeout(() => {
-          this.errorMessage = '';
-        }, 3000);
-      }
-    });
-  }
-
-  // Logout directo (sin confirmación) - para usar si prefieres
-  logout() {
-    this.loading = true;
-    this.successMessage = '';
-    this.errorMessage = '';
-
-    this.authService.logout().subscribe({
-      next: (success) => {
-        this.loading = false;
-        if (success) {
-          this.successMessage = '✅ Sesión cerrada correctamente';
-          setTimeout(() => {
-            this.successMessage = '';
-          }, 2000);
-        }
-      },
-      error: (error) => {
-        this.loading = false;
-        console.error('Error en logout:', error);
-        this.errorMessage = '⚠️ Sesión cerrada localmente';
-        setTimeout(() => {
-          this.errorMessage = '';
-        }, 3000);
+        // El servicio ya maneja la limpieza y redirección en caso de error
       }
     });
   }
