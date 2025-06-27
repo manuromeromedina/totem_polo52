@@ -1,256 +1,416 @@
 import { Component, OnInit } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { AdminEmpresaService, Vehiculo, VehiculoCreate, Servicio, ServicioCreate, ServicioUpdate, Contacto, ContactoCreate, EmpresaDetail, EmpresaSelfUpdate, UserUpdateCompany } from './admin-empresa.service';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
-
-interface EmpresaSelf {
-  cuil: number;
-  nombre: string;
-  rubro: string;
-  cant_empleados: number;
-  observaciones?: string;
-  fecha_ingreso: string;
-  horario_trabajo: string;
-}
 
 @Component({
   selector: 'app-empresa-me',
   standalone: true,
-  imports: [CommonModule, FormsModule, LogoutButtonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LogoutButtonComponent],
   templateUrl: './admin-empresa.component.html',
   styleUrls: ['./admin-empresa.component.css']
 })
 export class EmpresaMeComponent implements OnInit {
-  empresa!: EmpresaSelf;
-  loading = false;
-  loadingData = false;
-  successMessage = '';
-  errorMessage = '';
+  activeTab = 'perfil';
   
-  // Datos originales para comparar cambios
-  originalEmpresa!: EmpresaSelf;
+  // Datos de la empresa
+  empresaData: EmpresaDetail | null = null;
+  
+  // Formularios
+  showPasswordForm = false;
+  showVehiculoForm = false;
+  showServicioForm = false;
+  showContactoForm = false;
+  showEmpresaEditForm = false;
+  
+  // Estados de edición
+  editingVehiculo: Vehiculo | null = null;
+  editingServicio: Servicio | null = null;
+  editingContacto: Contacto | null = null;
+  
+  // Formularios
+  passwordForm = {
+    password: '',
+    confirmPassword: ''
+  };
+  
+  vehiculoForm: VehiculoCreate = {
+    id_tipo_vehiculo: 1,
+    horarios: '',
+    frecuencia: '',
+    datos: {}
+  };
+  
+  servicioForm: ServicioCreate = {
+    datos: {},
+    id_tipo_servicio: 1
+  };
+  
+  contactoForm: ContactoCreate = {
+    id_tipo_contacto: 1,
+    nombre: '',
+    telefono: '',
+    datos: {},
+    direccion: '',
+    id_servicio_polo: 1
+  };
+  
+  empresaEditForm: EmpresaSelfUpdate = {
+    cant_empleados: 0,
+    observaciones: '',
+    horario_trabajo: ''
+  };
+  
+  // Estados
+  loading = false;
+  message = '';
+  messageType: 'success' | 'error' = 'success';
+  
+  // Tipos disponibles (en un caso real vendrían de la API)
+  tiposVehiculo = [
+    { id: 1, tipo: 'Camión' },
+    { id: 2, tipo: 'Automóvil' },
+    { id: 3, tipo: 'Motocicleta' },
+    { id: 4, tipo: 'Furgoneta' }
+  ];
+  
+  tiposServicio = [
+    { id: 1, tipo: 'Consultoría' },
+    { id: 2, tipo: 'Mantenimiento' },
+    { id: 3, tipo: 'Logística' },
+    { id: 4, tipo: 'Seguridad' }
+  ];
+  
+  tiposContacto = [
+    { id: 1, tipo: 'Gerente' },
+    { id: 2, tipo: 'Recursos Humanos' },
+    { id: 3, tipo: 'Ventas' },
+    { id: 4, tipo: 'Soporte Técnico' }
+  ];
 
-  constructor(private http: HttpClient) {}
+  constructor(private adminEmpresaService: AdminEmpresaService) {}
 
   ngOnInit(): void {
-    this.cargarDatosEmpresa();
+    this.loadEmpresaData();
   }
 
-  cargarDatosEmpresa(): void {
-    this.loadingData = true;
-    this.errorMessage = '';
-    
-    this.http.get<EmpresaSelf>('http://localhost:8000/me').subscribe({
+  setActiveTab(tab: string): void {
+    this.activeTab = tab;
+    this.resetForms();
+  }
+
+  loadEmpresaData(): void {
+    this.loading = true;
+    this.adminEmpresaService.getMyCompanyDetails().subscribe({
       next: (data) => {
-        this.empresa = { ...data };
-        this.originalEmpresa = { ...data }; // Guardar copia original
-        this.loadingData = false;
-        console.log('Datos de empresa cargados:', data);
+        this.empresaData = data;
+        this.empresaEditForm = {
+          cant_empleados: data.cant_empleados,
+          observaciones: data.observaciones || '',
+          horario_trabajo: data.horario_trabajo
+        };
+        this.loading = false;
       },
-      error: (err: HttpErrorResponse) => {
-        this.loadingData = false;
-        this.errorMessage = 'Error al cargar los datos de la empresa';
-        console.error('Error al obtener datos de la empresa:', err);
-        
-        // Manejar diferentes tipos de error
-        if (err.status === 401) {
-          this.errorMessage = 'Sesión expirada. Por favor, inicie sesión nuevamente.';
-        } else if (err.status === 403) {
-          this.errorMessage = 'No tiene permisos para acceder a esta información.';
-        } else if (err.status === 0) {
-          this.errorMessage = 'Error de conexión. Verifique su conexión a internet.';
-        }
-        
-        this.limpiarMensajes();
+      error: (error) => {
+        this.showMessage('Error al cargar datos de la empresa: ' + (error.error?.detail || error.message), 'error');
+        this.loading = false;
       }
     });
   }
 
-  actualizar(): void {
-    if (!this.validarFormulario()) {
+  resetForms(): void {
+    this.showPasswordForm = false;
+    this.showVehiculoForm = false;
+    this.showServicioForm = false;
+    this.showContactoForm = false;
+    this.showEmpresaEditForm = false;
+    this.editingVehiculo = null;
+    this.editingServicio = null;
+    this.editingContacto = null;
+    this.message = '';
+    
+    this.passwordForm = { password: '', confirmPassword: '' };
+    this.vehiculoForm = { id_tipo_vehiculo: 1, horarios: '', frecuencia: '', datos: {} };
+    this.servicioForm = { datos: {}, id_tipo_servicio: 1 };
+    this.contactoForm = { id_tipo_contacto: 1, nombre: '', telefono: '', datos: {}, direccion: '', id_servicio_polo: 1 };
+  }
+
+  showMessage(message: string, type: 'success' | 'error'): void {
+    this.message = message;
+    this.messageType = type;
+    setTimeout(() => {
+      this.message = '';
+    }, 5000);
+  }
+
+  // PASSWORD
+  openPasswordForm(): void {
+    this.showPasswordForm = true;
+  }
+
+  onSubmitPassword(): void {
+    if (this.passwordForm.password !== this.passwordForm.confirmPassword) {
+      this.showMessage('Las contraseñas no coinciden', 'error');
       return;
     }
 
     this.loading = true;
-    this.successMessage = '';
-    this.errorMessage = '';
-
-    // Preparar datos para enviar (solo campos editables)
-    const datosActualizar = {
-      cant_empleados: this.empresa.cant_empleados,
-      observaciones: this.empresa.observaciones || '',
-      horario_trabajo: this.empresa.horario_trabajo.trim()
-    };
-
-    console.log('Actualizando empresa con datos:', datosActualizar);
-
-    this.http.put('http://localhost:8000/me', datosActualizar).subscribe({
-      next: (response) => {
+    this.adminEmpresaService.updatePassword(this.passwordForm.password).subscribe({
+      next: () => {
+        this.showMessage('Contraseña actualizada exitosamente', 'success');
+        this.resetForms();
         this.loading = false;
-        this.successMessage = 'Datos de empresa actualizados correctamente';
-        
-        // Actualizar datos originales para futuras comparaciones
-        this.originalEmpresa = { ...this.empresa };
-        
-        console.log('Empresa actualizada exitosamente:', response);
-        this.limpiarMensajes();
       },
-      error: (err: HttpErrorResponse) => {
+      error: (error) => {
+        this.showMessage('Error al actualizar contraseña: ' + (error.error?.detail || error.message), 'error');
         this.loading = false;
-        console.error('Error al actualizar la empresa:', err);
-        
-        // Manejar diferentes tipos de error
-        if (err.status === 400) {
-          this.errorMessage = 'Datos inválidos. Verifique la información ingresada.';
-        } else if (err.status === 401) {
-          this.errorMessage = 'Sesión expirada. Por favor, inicie sesión nuevamente.';
-        } else if (err.status === 403) {
-          this.errorMessage = 'No tiene permisos para realizar esta acción.';
-        } else if (err.status === 422) {
-          this.errorMessage = 'Error de validación en los datos enviados.';
-        } else if (err.status === 0) {
-          this.errorMessage = 'Error de conexión. Verifique su conexión a internet.';
-        } else {
-          this.errorMessage = 'Error al actualizar los datos. Intente nuevamente.';
-        }
-        
-        this.limpiarMensajes();
       }
     });
   }
 
-  validarFormulario(): boolean {
-    // Limpiar mensajes previos
-    this.errorMessage = '';
-
-    // Validar cantidad de empleados
-    if (!this.empresa.cant_empleados || this.empresa.cant_empleados < 1) {
-      this.errorMessage = 'La cantidad de empleados debe ser mayor a 0';
-      this.limpiarMensajes();
-      return false;
-    }
-
-    if (this.empresa.cant_empleados > 50000) {
-      this.errorMessage = 'La cantidad de empleados no puede exceder 50,000';
-      this.limpiarMensajes();
-      return false;
-    }
-
-    // Validar horario de trabajo
-    if (!this.empresa.horario_trabajo || this.empresa.horario_trabajo.trim().length === 0) {
-      this.errorMessage = 'El horario de trabajo es requerido';
-      this.limpiarMensajes();
-      return false;
-    }
-
-    if (this.empresa.horario_trabajo.length > 200) {
-      this.errorMessage = 'El horario de trabajo no puede exceder 200 caracteres';
-      this.limpiarMensajes();
-      return false;
-    }
-
-    // Validar observaciones (opcional)
-    if (this.empresa.observaciones && this.empresa.observaciones.length > 1000) {
-      this.errorMessage = 'Las observaciones no pueden exceder 1000 caracteres';
-      this.limpiarMensajes();
-      return false;
-    }
-
-    return true;
+  // EMPRESA EDIT
+  openEmpresaEditForm(): void {
+    this.showEmpresaEditForm = true;
   }
 
-  private limpiarMensajes(): void {
-    setTimeout(() => {
-      this.successMessage = '';
-      this.errorMessage = '';
-    }, 5000);
-  }
-
-  // Métodos auxiliares para mejorar UX
-  onEmpleadosChange(): void {
-    if (this.empresa.cant_empleados) {
-      // Asegurar que esté en rango válido
-      if (this.empresa.cant_empleados < 1) {
-        this.empresa.cant_empleados = 1;
+  onSubmitEmpresaEdit(): void {
+    this.loading = true;
+    this.adminEmpresaService.updateMyCompany(this.empresaEditForm).subscribe({
+      next: () => {
+        this.showMessage('Datos de empresa actualizados exitosamente', 'success');
+        this.loadEmpresaData();
+        this.resetForms();
+        this.loading = false;
+      },
+      error: (error) => {
+        this.showMessage('Error al actualizar empresa: ' + (error.error?.detail || error.message), 'error');
+        this.loading = false;
       }
-      if (this.empresa.cant_empleados > 50000) {
-        this.empresa.cant_empleados = 50000;
-      }
-    }
-    this.limpiarMensajesError();
+    });
   }
 
-  onHorarioChange(): void {
-    if (this.empresa.horario_trabajo) {
-      // Limpiar espacios extra al inicio y final
-      this.empresa.horario_trabajo = this.empresa.horario_trabajo.trim();
-    }
-    this.limpiarMensajesError();
-  }
-
-  onObservacionesChange(): void {
-    this.limpiarMensajesError();
-  }
-
-  private limpiarMensajesError(): void {
-    if (this.errorMessage) {
-      this.errorMessage = '';
-    }
-  }
-
-  // Utilidades para la UI
-  contarCaracteresObservaciones(): string {
-    const longitud = this.empresa?.observaciones ? this.empresa.observaciones.length : 0;
-    return `${longitud}/1000`;
-  }
-
-  contarCaracteresHorario(): string {
-    const longitud = this.empresa?.horario_trabajo ? this.empresa.horario_trabajo.length : 0;
-    return `${longitud}/200`;
-  }
-
-  hayCaracteresExcesivos(campo: 'observaciones' | 'horario'): boolean {
-    if (campo === 'observaciones') {
-      return this.empresa?.observaciones ? this.empresa.observaciones.length > 1000 : false;
+  // VEHÍCULOS
+  openVehiculoForm(vehiculo?: Vehiculo): void {
+    if (vehiculo) {
+      this.editingVehiculo = vehiculo;
+      this.vehiculoForm = {
+        id_tipo_vehiculo: vehiculo.id_tipo_vehiculo,
+        horarios: vehiculo.horarios,
+        frecuencia: vehiculo.frecuencia,
+        datos: vehiculo.datos
+      };
     } else {
-      return this.empresa?.horario_trabajo ? this.empresa.horario_trabajo.length > 200 : false;
+      this.editingVehiculo = null;
+      this.vehiculoForm = { id_tipo_vehiculo: 1, horarios: '', frecuencia: '', datos: {} };
     }
+    this.showVehiculoForm = true;
   }
 
-  // Verificar si hay cambios pendientes
-  haycambiosPendientes(): boolean {
-    if (!this.empresa || !this.originalEmpresa) return false;
+  onSubmitVehiculo(): void {
+    this.loading = true;
     
-    return this.empresa.cant_empleados !== this.originalEmpresa.cant_empleados ||
-           this.empresa.horario_trabajo !== this.originalEmpresa.horario_trabajo ||
-           this.empresa.observaciones !== this.originalEmpresa.observaciones;
-  }
-
-  // Descartar cambios
-  descartarCambios(): void {
-    if (this.originalEmpresa) {
-      this.empresa = { ...this.originalEmpresa };
-      this.successMessage = '';
-      this.errorMessage = '';
-    }
-  }
-
-  // Recargar datos
-  recargarDatos(): void {
-    this.cargarDatosEmpresa();
-  }
-
-  // Formatear fecha para mostrar
-  formatearFecha(fecha: string): string {
-    try {
-      return new Date(fecha).toLocaleDateString('es-AR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+    if (this.editingVehiculo) {
+      // Actualizar
+      this.adminEmpresaService.updateVehiculo(this.editingVehiculo.id_vehiculo, this.vehiculoForm).subscribe({
+        next: () => {
+          this.showMessage('Vehículo actualizado exitosamente', 'success');
+          this.loadEmpresaData();
+          this.resetForms();
+          this.loading = false;
+        },
+        error: (error) => {
+          this.showMessage('Error al actualizar vehículo: ' + (error.error?.detail || error.message), 'error');
+          this.loading = false;
+        }
       });
-    } catch (error) {
-      return fecha;
+    } else {
+      // Crear
+      this.adminEmpresaService.createVehiculo(this.vehiculoForm).subscribe({
+        next: () => {
+          this.showMessage('Vehículo creado exitosamente', 'success');
+          this.loadEmpresaData();
+          this.resetForms();
+          this.loading = false;
+        },
+        error: (error) => {
+          this.showMessage('Error al crear vehículo: ' + (error.error?.detail || error.message), 'error');
+          this.loading = false;
+        }
+      });
     }
+  }
+
+  deleteVehiculo(id: number): void {
+    if (confirm('¿Está seguro de que desea eliminar este vehículo?')) {
+      this.adminEmpresaService.deleteVehiculo(id).subscribe({
+        next: () => {
+          this.showMessage('Vehículo eliminado exitosamente', 'success');
+          this.loadEmpresaData();
+        },
+        error: (error) => {
+          this.showMessage('Error al eliminar vehículo: ' + (error.error?.detail || error.message), 'error');
+        }
+      });
+    }
+  }
+
+  // SERVICIOS
+  openServicioForm(servicio?: Servicio): void {
+    if (servicio) {
+      this.editingServicio = servicio;
+      this.servicioForm = {
+        datos: servicio.datos,
+        id_tipo_servicio: servicio.id_tipo_servicio
+      };
+    } else {
+      this.editingServicio = null;
+      this.servicioForm = { datos: {}, id_tipo_servicio: 1 };
+    }
+    this.showServicioForm = true;
+  }
+
+  onSubmitServicio(): void {
+    this.loading = true;
+    
+    if (this.editingServicio) {
+      // Actualizar
+      const updateData: ServicioUpdate = {
+        datos: this.servicioForm.datos,
+        id_tipo_servicio: this.servicioForm.id_tipo_servicio
+      };
+      
+      this.adminEmpresaService.updateServicio(this.editingServicio.id_servicio, updateData).subscribe({
+        next: () => {
+          this.showMessage('Servicio actualizado exitosamente', 'success');
+          this.loadEmpresaData();
+          this.resetForms();
+          this.loading = false;
+        },
+        error: (error) => {
+          this.showMessage('Error al actualizar servicio: ' + (error.error?.detail || error.message), 'error');
+          this.loading = false;
+        }
+      });
+    } else {
+      // Crear
+      this.adminEmpresaService.createServicio(this.servicioForm).subscribe({
+        next: () => {
+          this.showMessage('Servicio creado exitosamente', 'success');
+          this.loadEmpresaData();
+          this.resetForms();
+          this.loading = false;
+        },
+        error: (error) => {
+          this.showMessage('Error al crear servicio: ' + (error.error?.detail || error.message), 'error');
+          this.loading = false;
+        }
+      });
+    }
+  }
+
+  deleteServicio(id: number): void {
+    if (confirm('¿Está seguro de que desea eliminar este servicio?')) {
+      this.adminEmpresaService.deleteServicio(id).subscribe({
+        next: () => {
+          this.showMessage('Servicio eliminado exitosamente', 'success');
+          this.loadEmpresaData();
+        },
+        error: (error) => {
+          this.showMessage('Error al eliminar servicio: ' + (error.error?.detail || error.message), 'error');
+        }
+      });
+    }
+  }
+
+  // CONTACTOS
+  openContactoForm(contacto?: Contacto): void {
+    if (contacto) {
+      this.editingContacto = contacto;
+      this.contactoForm = {
+        id_tipo_contacto: contacto.id_tipo_contacto,
+        nombre: contacto.nombre,
+        telefono: contacto.telefono || '',
+        datos: contacto.datos || {},
+        direccion: contacto.direccion || '',
+        id_servicio_polo: contacto.id_servicio_polo
+      };
+    } else {
+      this.editingContacto = null;
+      this.contactoForm = { id_tipo_contacto: 1, nombre: '', telefono: '', datos: {}, direccion: '', id_servicio_polo: 1 };
+    }
+    this.showContactoForm = true;
+  }
+
+  onSubmitContacto(): void {
+    this.loading = true;
+    
+    if (this.editingContacto) {
+      // Actualizar
+      this.adminEmpresaService.updateContacto(this.editingContacto.id_contacto, this.contactoForm).subscribe({
+        next: () => {
+          this.showMessage('Contacto actualizado exitosamente', 'success');
+          this.loadEmpresaData();
+          this.resetForms();
+          this.loading = false;
+        },
+        error: (error) => {
+          this.showMessage('Error al actualizar contacto: ' + (error.error?.detail || error.message), 'error');
+          this.loading = false;
+        }
+      });
+    } else {
+      // Crear
+      this.adminEmpresaService.createContacto(this.contactoForm).subscribe({
+        next: () => {
+          this.showMessage('Contacto creado exitosamente', 'success');
+          this.loadEmpresaData();
+          this.resetForms();
+          this.loading = false;
+        },
+        error: (error) => {
+          this.showMessage('Error al crear contacto: ' + (error.error?.detail || error.message), 'error');
+          this.loading = false;
+        }
+      });
+    }
+  }
+
+  deleteContacto(id: number): void {
+    if (confirm('¿Está seguro de que desea eliminar este contacto?')) {
+      this.adminEmpresaService.deleteContacto(id).subscribe({
+        next: () => {
+          this.showMessage('Contacto eliminado exitosamente', 'success');
+          this.loadEmpresaData();
+        },
+        error: (error) => {
+          this.showMessage('Error al eliminar contacto: ' + (error.error?.detail || error.message), 'error');
+        }
+      });
+    }
+  }
+
+  // Helpers
+  getTipoVehiculoName(id: number): string {
+    const tipo = this.tiposVehiculo.find(t => t.id === id);
+    return tipo ? tipo.tipo : 'Desconocido';
+  }
+
+  getTipoServicioName(id: number): string {
+    const tipo = this.tiposServicio.find(t => t.id === id);
+    return tipo ? tipo.tipo : 'Desconocido';
+  }
+
+  getTipoContactoName(id: number): string {
+    const tipo = this.tiposContacto.find(t => t.id === id);
+    return tipo ? tipo.tipo : 'Desconocido';
+  }
+
+  formatDatos(datos: any): string {
+    if (!datos || Object.keys(datos).length === 0) {
+      return 'Sin datos adicionales';
+    }
+    return JSON.stringify(datos, null, 2);
   }
 }

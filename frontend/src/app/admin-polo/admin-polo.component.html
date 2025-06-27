@@ -1,1 +1,609 @@
-<p>admin-polo works!</p>
+<!-- admin-polo.component.html -->
+<div class="admin-container">
+  <!-- Header -->
+  <header class="admin-header">
+    <div class="header-content">
+      <div class="logo-section">
+        <h1>Panel Administrativo - Polo 52</h1>
+        <p>Gestión integral del parque industrial</p>
+      </div>
+      <div class="header-actions">
+        <app-logout-button></app-logout-button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="tab-navigation">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'empresas'"
+      (click)="setActiveTab('empresas')">
+      Empresas
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'usuarios'"
+      (click)="setActiveTab('usuarios')">
+      Usuarios
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'servicios'"
+      (click)="setActiveTab('servicios')">
+      Servicios del Polo
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'lotes'"
+      (click)="setActiveTab('lotes')">
+      Lotes
+    </button>
+  </nav>
+
+  <!-- Message Display -->
+  <div *ngIf="message" class="message" [class]="messageType">
+    {{ message }}
+  </div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- EMPRESAS TAB -->
+    <div *ngIf="activeTab === 'empresas'" class="tab-content">
+      <div class="section-header">
+        <h2>Gestión de Empresas</h2>
+        <button class="btn btn-primary" (click)="openEmpresaForm()">
+          Nueva Empresa
+        </button>
+      </div>
+
+      <!-- Empresa Form -->
+      <div *ngIf="showEmpresaForm" class="form-modal">
+        <div class="form-container">
+          <div class="form-header">
+            <h3>{{ editingEmpresa ? 'Editar Empresa' : 'Nueva Empresa' }}</h3>
+            <button class="close-btn" (click)="resetForms()">&times;</button>
+          </div>
+          
+          <form (ngSubmit)="onSubmitEmpresa()" #empresaFormRef="ngForm">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="cuil">CUIL *</label>
+                <input 
+                  type="number" 
+                  id="cuil" 
+                  name="cuil"
+                  [(ngModel)]="empresaForm.cuil" 
+                  required
+                  [disabled]="!!editingEmpresa"
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="nombre">Nombre *</label>
+                <input 
+                  type="text" 
+                  id="nombre" 
+                  name="nombre"
+                  [(ngModel)]="empresaForm.nombre" 
+                  required
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="rubro">Rubro *</label>
+                <input 
+                  type="text" 
+                  id="rubro" 
+                  name="rubro"
+                  [(ngModel)]="empresaForm.rubro" 
+                  required
+                  class="form-control">
+              </div>
+
+              <div class="form-group" *ngIf="!editingEmpresa">
+                <label for="cant_empleados">Cantidad de Empleados *</label>
+                <input 
+                  type="number" 
+                  id="cant_empleados" 
+                  name="cant_empleados"
+                  [(ngModel)]="empresaForm.cant_empleados" 
+                  required
+                  min="1"
+                  class="form-control">
+              </div>
+
+              <div class="form-group full-width" *ngIf="!editingEmpresa">
+                <label for="horario_trabajo">Horario de Trabajo *</label>
+                <input 
+                  type="text" 
+                  id="horario_trabajo" 
+                  name="horario_trabajo"
+                  [(ngModel)]="empresaForm.horario_trabajo" 
+                  required
+                  placeholder="Ej: Lunes a Viernes 8:00 - 17:00"
+                  class="form-control">
+              </div>
+
+              <div class="form-group full-width" *ngIf="!editingEmpresa">
+                <label for="observaciones">Observaciones</label>
+                <textarea 
+                  id="observaciones" 
+                  name="observaciones"
+                  [(ngModel)]="empresaForm.observaciones" 
+                  rows="3"
+                  class="form-control"></textarea>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" (click)="resetForms()">
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                class="btn btn-primary" 
+                [disabled]="loading || empresaFormRef.invalid">
+                {{ loading ? 'Guardando...' : (!!editingEmpresa ? 'Actualizar' : 'Crear') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Empresas List -->
+      <div class="data-table">
+        <div class="table-header">
+          <h3>Empresas Registradas</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>CUIL</th>
+                <th>Nombre</th>
+                <th>Rubro</th>
+                <th>Empleados</th>
+                <th>Fecha Ingreso</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let empresa of empresas">
+                <td>{{ empresa.cuil }}</td>
+                <td>{{ empresa.nombre }}</td>
+                <td>{{ empresa.rubro }}</td>
+                <td>{{ empresa.cant_empleados }}</td>
+                <td>{{ empresa.fecha_ingreso | date:'dd/MM/yyyy' }}</td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-secondary" (click)="openEmpresaForm(empresa)">
+                    Editar
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteEmpresa(empresa.cuil)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="empresas.length === 0">
+                <td colspan="6" class="text-center">No hay empresas registradas</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- USUARIOS TAB -->
+    <div *ngIf="activeTab === 'usuarios'" class="tab-content">
+      <div class="section-header">
+        <h2>Gestión de Usuarios</h2>
+        <button class="btn btn-primary" (click)="openUsuarioForm()">
+          Nuevo Usuario
+        </button>
+      </div>
+
+      <!-- Usuario Form -->
+      <div *ngIf="showUsuarioForm" class="form-modal">
+        <div class="form-container">
+          <div class="form-header">
+            <h3>{{ editingUsuario ? 'Editar Usuario' : 'Nuevo Usuario' }}</h3>
+            <button class="close-btn" (click)="resetForms()">&times;</button>
+          </div>
+          
+          <form (ngSubmit)="onSubmitUsuario()" #usuarioFormRef="ngForm">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="user_email">Email *</label>
+                <input 
+                  type="email" 
+                  id="user_email" 
+                  name="user_email"
+                  [(ngModel)]="usuarioForm.email" 
+                  required
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="user_nombre">Nombre de Usuario *</label>
+                <input 
+                  type="text" 
+                  id="user_nombre" 
+                  name="user_nombre"
+                  [(ngModel)]="usuarioForm.nombre" 
+                  required
+                  [disabled]="!!editingUsuario"
+                  class="form-control">
+              </div>
+
+              <div class="form-group" *ngIf="!editingUsuario">
+                <label for="user_password">Contraseña *</label>
+                <input 
+                  type="password" 
+                  id="user_password" 
+                  name="user_password"
+                  [(ngModel)]="usuarioForm.password" 
+                  [required]="!editingUsuario"
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="user_cuil">CUIL de Empresa *</label>
+                <input 
+                  type="number" 
+                  id="user_cuil" 
+                  name="user_cuil"
+                  [(ngModel)]="usuarioForm.cuil" 
+                  required
+                  [disabled]="!!editingUsuario"
+                  class="form-control">
+              </div>
+
+              <div class="form-group" *ngIf="editingUsuario">
+                <label for="user_password_edit">Nueva Contraseña</label>
+                <input 
+                  type="password" 
+                  id="user_password_edit" 
+                  name="user_password_edit"
+                  [(ngModel)]="usuarioForm.password" 
+                  class="form-control">
+              </div>
+
+              <div class="form-group" *ngIf="!editingUsuario">
+                <label for="user_rol">Rol *</label>
+                <select 
+                  id="user_rol" 
+                  name="user_rol"
+                  [(ngModel)]="usuarioForm.id_rol" 
+                  required
+                  class="form-control">
+                  <option value="">Seleccionar rol</option>
+                  <option *ngFor="let rol of roles" [value]="rol.id_rol">
+                    {{ rol.tipo_rol }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input 
+                    type="checkbox" 
+                    name="user_estado"
+                    [(ngModel)]="usuarioForm.estado">
+                  Usuario Activo
+                </label>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" (click)="resetForms()">
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                class="btn btn-primary" 
+                [disabled]="loading || usuarioFormRef.invalid">
+                {{ loading ? 'Guardando...' : (!!editingUsuario ? 'Actualizar' : 'Crear') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Usuarios List -->
+      <div class="data-table">
+        <div class="table-header">
+          <h3>Usuarios Registrados</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>CUIL Empresa</th>
+                <th>Estado</th>
+                <th>Fecha Registro</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let usuario of usuarios">
+                <td>{{ usuario.nombre }}</td>
+                <td>{{ usuario.email }}</td>
+                <td>{{ usuario.cuil }}</td>
+                <td>
+                  <span class="badge" [class]="usuario.estado ? 'badge-success' : 'badge-danger'">
+                    {{ usuario.estado ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td>{{ usuario.fecha_registro | date:'dd/MM/yyyy' }}</td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-secondary" (click)="openUsuarioForm(usuario)">
+                    Editar
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteUsuario(usuario.id_usuario)">
+                    Inhabilitar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="usuarios.length === 0">
+                <td colspan="6" class="text-center">No hay usuarios registrados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERVICIOS DEL POLO TAB -->
+    <div *ngIf="activeTab === 'servicios'" class="tab-content">
+      <div class="section-header">
+        <h2>Servicios del Polo</h2>
+        <button class="btn btn-primary" (click)="openServicioPoloForm()">
+          Nuevo Servicio
+        </button>
+      </div>
+
+      <!-- Servicio Polo Form -->
+      <div *ngIf="showServicioPoloForm" class="form-modal">
+        <div class="form-container">
+          <div class="form-header">
+            <h3>Nuevo Servicio del Polo</h3>
+            <button class="close-btn" (click)="resetForms()">&times;</button>
+          </div>
+          
+          <form (ngSubmit)="onSubmitServicioPolo()" #servicioFormRef="ngForm">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="servicio_nombre">Nombre *</label>
+                <input 
+                  type="text" 
+                  id="servicio_nombre" 
+                  name="servicio_nombre"
+                  [(ngModel)]="servicioPoloForm.nombre" 
+                  required
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="servicio_cuil">CUIL Empresa *</label>
+                <input 
+                  type="number" 
+                  id="servicio_cuil" 
+                  name="servicio_cuil"
+                  [(ngModel)]="servicioPoloForm.cuil" 
+                  required
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="servicio_horario">Horario</label>
+                <input 
+                  type="text" 
+                  id="servicio_horario" 
+                  name="servicio_horario"
+                  [(ngModel)]="servicioPoloForm.horario" 
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="servicio_propietario">Propietario</label>
+                <input 
+                  type="text" 
+                  id="servicio_propietario" 
+                  name="servicio_propietario"
+                  [(ngModel)]="servicioPoloForm.propietario" 
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="tipo_servicio_polo">Tipo de Servicio *</label>
+                <select 
+                  id="tipo_servicio_polo" 
+                  name="tipo_servicio_polo"
+                  [(ngModel)]="servicioPoloForm.id_tipo_servicio_polo" 
+                  required
+                  class="form-control">
+                  <option value="1">Servicios Generales</option>
+                  <option value="2">Logística</option>
+                  <option value="3">Seguridad</option>
+                  <option value="4">Mantenimiento</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" (click)="resetForms()">
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                class="btn btn-primary" 
+                [disabled]="loading || servicioFormRef.invalid">
+                {{ loading ? 'Guardando...' : 'Crear Servicio' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Servicios Polo List -->
+      <div class="data-table">
+        <div class="table-header">
+          <h3>Servicios del Polo</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>CUIL Empresa</th>
+                <th>Horario</th>
+                <th>Propietario</th>
+                <th>Tipo</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let servicio of serviciosPolo">
+                <td>{{ servicio.nombre }}</td>
+                <td>{{ servicio.cuil }}</td>
+                <td>{{ servicio.horario || 'No especificado' }}</td>
+                <td>{{ servicio.propietario || 'No especificado' }}</td>
+                <td>{{ servicio.tipo_servicio_polo || 'Tipo ' + servicio.id_tipo_servicio_polo }}</td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-danger" (click)="deleteServicioPolo(servicio.id_servicio_polo)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="serviciosPolo.length === 0">
+                <td colspan="6" class="text-center">No hay servicios del polo registrados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOTES TAB -->
+    <div *ngIf="activeTab === 'lotes'" class="tab-content">
+      <div class="section-header">
+        <h2>Gestión de Lotes</h2>
+        <button class="btn btn-primary" (click)="openLoteForm()">
+          Nuevo Lote
+        </button>
+      </div>
+
+      <!-- Lote Form -->
+      <div *ngIf="showLoteForm" class="form-modal">
+        <div class="form-container">
+          <div class="form-header">
+            <h3>Nuevo Lote</h3>
+            <button class="close-btn" (click)="resetForms()">&times;</button>
+          </div>
+          
+          <form (ngSubmit)="onSubmitLote()" #loteFormRef="ngForm">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="lote_dueno">Dueño *</label>
+                <input 
+                  type="text" 
+                  id="lote_dueno" 
+                  name="lote_dueno"
+                  [(ngModel)]="loteForm.dueno" 
+                  required
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="lote_numero">Número de Lote *</label>
+                <input 
+                  type="number" 
+                  id="lote_numero" 
+                  name="lote_numero"
+                  [(ngModel)]="loteForm.lote" 
+                  required
+                  min="1"
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="lote_manzana">Manzana *</label>
+                <input 
+                  type="number" 
+                  id="lote_manzana" 
+                  name="lote_manzana"
+                  [(ngModel)]="loteForm.manzana" 
+                  required
+                  min="1"
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="lote_servicio_polo">ID Servicio Polo *</label>
+                <input 
+                  type="number" 
+                  id="lote_servicio_polo" 
+                  name="lote_servicio_polo"
+                  [(ngModel)]="loteForm.id_servicio_polo" 
+                  required
+                  class="form-control">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" (click)="resetForms()">
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                class="btn btn-primary" 
+                [disabled]="loading || loteFormRef.invalid">
+                {{ loading ? 'Guardando...' : 'Crear Lote' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Lotes List -->
+      <div class="data-table">
+        <div class="table-header">
+          <h3>Lotes Registrados</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Dueño</th>
+                <th>Lote</th>
+                <th>Manzana</th>
+                <th>ID Servicio Polo</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let lote of lotes">
+                <td>{{ lote.dueno }}</td>
+                <td>{{ lote.lote }}</td>
+                <td>{{ lote.manzana }}</td>
+                <td>{{ lote.id_servicio_polo }}</td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-danger" (click)="deleteLote(lote.id_lotes)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="lotes.length === 0">
+                <td colspan="5" class="text-center">No hay lotes registrados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
