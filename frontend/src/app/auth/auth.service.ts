@@ -33,6 +33,11 @@ export class AuthenticationService {
     return this.http.post(`${environment.apiUrl}/password-reset/request`, { email });
   }
 
+  // Cambiar contraseña del usuario logueado (envía email)
+changePasswordRequest(): Observable<any> {
+  return this.http.post(`${environment.apiUrl}/password-reset/request-logged-user`, {});
+}
+
   resetPassword(token: string, newPassword: string): Observable<boolean> {
     const body = { token, new_password: newPassword };
     return this.http.post(`${environment.apiUrl}/password-reset/confirm`, body)

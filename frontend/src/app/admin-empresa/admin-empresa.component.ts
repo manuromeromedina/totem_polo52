@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { AdminEmpresaService, Vehiculo, VehiculoCreate, Servicio, ServicioCreate, ServicioUpdate, Contacto, ContactoCreate, EmpresaDetail, EmpresaSelfUpdate, UserUpdateCompany } from './admin-empresa.service';
+import { AdminEmpresaService, Vehiculo, VehiculoCreate, Servicio, ServicioCreate, ServicioUpdate, Contacto, ContactoCreate, EmpresaDetail, EmpresaSelfUpdate, UserUpdateCompany, TipoVehiculo, TipoServicio, TipoContacto, TipoServicioPolo } from './admin-empresa.service';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
 
 @Component({
@@ -64,37 +64,45 @@ export class EmpresaMeComponent implements OnInit {
   };
   
   // Estados
-  loading = false;
-  message = '';
-  messageType: 'success' | 'error' = 'success';
-  
-  // Tipos disponibles (en un caso real vendrían de la API)
-  tiposVehiculo = [
-    { id: 1, tipo: 'Camión' },
-    { id: 2, tipo: 'Automóvil' },
-    { id: 3, tipo: 'Motocicleta' },
-    { id: 4, tipo: 'Furgoneta' }
-  ];
-  
-  tiposServicio = [
-    { id: 1, tipo: 'Consultoría' },
-    { id: 2, tipo: 'Mantenimiento' },
-    { id: 3, tipo: 'Logística' },
-    { id: 4, tipo: 'Seguridad' }
-  ];
-  
-  tiposContacto = [
-    { id: 1, tipo: 'Gerente' },
-    { id: 2, tipo: 'Recursos Humanos' },
-    { id: 3, tipo: 'Ventas' },
-    { id: 4, tipo: 'Soporte Técnico' }
-  ];
+loading = false;
+loadingTipos = false;
+message = '';
+messageType: 'success' | 'error' = 'success';
+
+// Tipos desde la BD
+tiposVehiculo: TipoVehiculo[] = [];
+tiposServicio: TipoServicio[] = [];
+tiposContacto: TipoContacto[] = [];
+tiposServicioPolo: TipoServicioPolo[] = [];
 
   constructor(private adminEmpresaService: AdminEmpresaService) {}
 
   ngOnInit(): void {
-    this.loadEmpresaData();
-  }
+  this.loadTipos();
+  this.loadEmpresaData();
+}
+
+loadTipos(): void {
+  this.loadingTipos = true;
+  
+  Promise.all([
+    this.adminEmpresaService.getTiposVehiculo().toPromise(),
+    this.adminEmpresaService.getTiposServicio().toPromise(),
+    this.adminEmpresaService.getTiposContacto().toPromise(),
+    this.adminEmpresaService.getTiposServicioPolo().toPromise()
+  ]).then(([vehiculos, servicios, contactos, serviciosPolo]) => {
+    this.tiposVehiculo = vehiculos || [];
+    this.tiposServicio = servicios || [];
+    this.tiposContacto = contactos || [];
+    this.tiposServicioPolo = serviciosPolo || [];
+    
+    this.loadingTipos = false;
+  }).catch((error) => {
+    console.error('Error loading tipos:', error);
+    this.showMessage('Error al cargar tipos de datos', 'error');
+    this.loadingTipos = false;
+  });
+}
 
   setActiveTab(tab: string): void {
     this.activeTab = tab;
@@ -149,26 +157,21 @@ export class EmpresaMeComponent implements OnInit {
   openPasswordForm(): void {
     this.showPasswordForm = true;
   }
-
-  onSubmitPassword(): void {
-    if (this.passwordForm.password !== this.passwordForm.confirmPassword) {
-      this.showMessage('Las contraseñas no coinciden', 'error');
-      return;
+onSubmitPassword(): void {
+  // En lugar de cambiar directamente, solicitar reset por email
+  this.loading = true;
+  this.adminEmpresaService.changePasswordRequest().subscribe({
+    next: (response) => {
+      this.showMessage('Se ha enviado un enlace para cambiar tu contraseña a tu email registrado. Revisa tu bandeja de entrada.', 'success');
+      this.resetForms();
+      this.loading = false;
+    },
+    error: (error) => {
+      this.showMessage('Error al solicitar cambio de contraseña: ' + (error.error?.detail || error.message), 'error');
+      this.loading = false;
     }
-
-    this.loading = true;
-    this.adminEmpresaService.updatePassword(this.passwordForm.password).subscribe({
-      next: () => {
-        this.showMessage('Contraseña actualizada exitosamente', 'success');
-        this.resetForms();
-        this.loading = false;
-      },
-      error: (error) => {
-        this.showMessage('Error al actualizar contraseña: ' + (error.error?.detail || error.message), 'error');
-        this.loading = false;
-      }
-    });
-  }
+  });
+}
 
   // EMPRESA EDIT
   openEmpresaEditForm(): void {
@@ -391,21 +394,20 @@ export class EmpresaMeComponent implements OnInit {
     }
   }
 
-  // Helpers
-  getTipoVehiculoName(id: number): string {
-    const tipo = this.tiposVehiculo.find(t => t.id === id);
-    return tipo ? tipo.tipo : 'Desconocido';
-  }
+ getTipoVehiculoName(id: number): string {
+  const tipo = this.tiposVehiculo.find(t => t.id_tipo_vehiculo === id);
+  return tipo ? tipo.tipo : 'Desconocido';
+}
 
-  getTipoServicioName(id: number): string {
-    const tipo = this.tiposServicio.find(t => t.id === id);
-    return tipo ? tipo.tipo : 'Desconocido';
-  }
+getTipoServicioName(id: number): string {
+  const tipo = this.tiposServicio.find(t => t.id_tipo_servicio === id);
+  return tipo ? tipo.tipo : 'Desconocido';
+}
 
-  getTipoContactoName(id: number): string {
-    const tipo = this.tiposContacto.find(t => t.id === id);
-    return tipo ? tipo.tipo : 'Desconocido';
-  }
+getTipoContactoName(id: number): string {
+  const tipo = this.tiposContacto.find(t => t.id_tipo_contacto === id);
+  return tipo ? tipo.tipo : 'Desconocido';
+}
 
   formatDatos(datos: any): string {
     if (!datos || Object.keys(datos).length === 0) {

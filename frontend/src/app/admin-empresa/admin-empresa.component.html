@@ -298,52 +298,34 @@
   <!-- MODALS -->
   
   <!-- Password Form Modal -->
-  <div *ngIf="showPasswordForm" class="form-modal">
-    <div class="form-container">
-      <div class="form-header">
-        <h3>Cambiar Contraseña</h3>
-        <button class="close-btn" (click)="resetForms()">&times;</button>
-      </div>
+  <!-- Password Form Modal -->
+<div *ngIf="showPasswordForm" class="form-modal">
+  <div class="form-container">
+    <div class="form-header">
+      <h3>Cambiar Contraseña</h3>
+      <button class="close-btn" (click)="resetForms()">&times;</button>
+    </div>
+    
+    <div class="form-content">
+      <p class="info-text">
+        Se enviará un enlace de cambio de contraseña a tu email registrado.
+      </p>
       
-      <form (ngSubmit)="onSubmitPassword()" #passwordFormRef="ngForm">
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label for="password">Nueva Contraseña *</label>
-            <input 
-              type="password" 
-              id="password" 
-              name="password"
-              [(ngModel)]="passwordForm.password" 
-              required
-              minlength="6"
-              class="form-control">
-          </div>
-          <div class="form-group full-width">
-            <label for="confirmPassword">Confirmar Contraseña *</label>
-            <input 
-              type="password" 
-              id="confirmPassword" 
-              name="confirmPassword"
-              [(ngModel)]="passwordForm.confirmPassword" 
-              required
-              class="form-control">
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" (click)="resetForms()">
-            Cancelar
-          </button>
-          <button 
-            type="submit" 
-            class="btn btn-primary" 
-            [disabled]="loading || passwordFormRef.invalid">
-            {{ loading ? 'Actualizando...' : 'Cambiar Contraseña' }}
-          </button>
-        </div>
-      </form>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="resetForms()">
+          Cancelar
+        </button>
+        <button 
+          type="button"
+          class="btn btn-primary" 
+          (click)="onSubmitPassword()"
+          [disabled]="loading">
+          {{ loading ? 'Enviando...' : 'Enviar Email' }}
+        </button>
+      </div>
     </div>
   </div>
+</div>
 
   <!-- Empresa Edit Form Modal -->
   <div *ngIf="showEmpresaEditForm" class="form-modal">
@@ -420,9 +402,9 @@
               [(ngModel)]="vehiculoForm.id_tipo_vehiculo" 
               required
               class="form-control">
-              <option *ngFor="let tipo of tiposVehiculo" [value]="tipo.id">
-                {{ tipo.tipo }}
-              </option>
+              <option *ngFor="let tipo of tiposVehiculo" [value]="tipo.id_tipo_vehiculo">
+  {{ tipo.tipo }}
+</option>
             </select>
           </div>
           <div class="form-group">
@@ -482,9 +464,9 @@
               [(ngModel)]="servicioForm.id_tipo_servicio" 
               required
               class="form-control">
-              <option *ngFor="let tipo of tiposServicio" [value]="tipo.id">
-                {{ tipo.tipo }}
-              </option>
+              <option *ngFor="let tipo of tiposServicio" [value]="tipo.id_tipo_servicio">
+  {{ tipo.tipo }}
+</option>
             </select>
           </div>
         </div>
@@ -532,9 +514,9 @@
               [(ngModel)]="contactoForm.id_tipo_contacto" 
               required
               class="form-control">
-              <option *ngFor="let tipo of tiposContacto" [value]="tipo.id">
-                {{ tipo.tipo }}
-              </option>
+              <option *ngFor="let tipo of tiposContacto" [value]="tipo.id_tipo_contacto">
+  {{ tipo.tipo }}
+</option>
             </select>
           </div>
           <div class="form-group">

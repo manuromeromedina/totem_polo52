@@ -272,16 +272,16 @@
               <div class="form-group" *ngIf="!editingUsuario">
                 <label for="user_rol">Rol *</label>
                 <select 
-                  id="user_rol" 
-                  name="user_rol"
-                  [(ngModel)]="usuarioForm.id_rol" 
-                  required
-                  class="form-control">
-                  <option value="">Seleccionar rol</option>
-                  <option *ngFor="let rol of roles" [value]="rol.id_rol">
-                    {{ rol.tipo_rol }}
-                  </option>
-                </select>
+                        id="user_rol" 
+                        name="user_rol"
+                        [(ngModel)]="usuarioForm.id_rol" 
+                        required
+                        class="form-control">
+                        <option value="0">Seleccionar rol</option>  <!-- CAMBIAR value="" por value="0" -->
+                        <option *ngFor="let rol of roles" [value]="rol.id_rol">
+                          {{ rol.tipo_rol }}
+                        </option>
+                      </select>
               </div>
 
               <div class="form-group">

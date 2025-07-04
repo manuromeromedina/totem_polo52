@@ -497,3 +497,89 @@ class EmpresaDetailOutPublic(BaseModel):
         from_attributes = True
 
     
+
+
+
+    # En schemas.py, asegúrate de tener estos schemas:
+
+class EmpresaOut(BaseModel):
+    cuil: int
+    nombre: str
+    rubro: str
+    cant_empleados: int
+    observaciones: Optional[str] = None
+    fecha_ingreso: date
+    horario_trabajo: str
+
+    class Config:
+        from_attributes = True
+
+class ServicioPoloOut(BaseModel):
+    id_servicio_polo: int
+    nombre: str
+    horario: Optional[str] = None
+    datos: Optional[dict] = None
+    propietario: Optional[str] = None
+    id_tipo_servicio_polo: int
+    cuil: int
+    tipo_servicio_polo: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class LoteOut(BaseModel):
+    id_lotes: int
+    dueno: str
+    lote: int
+    manzana: int
+    id_servicio_polo: int
+
+    class Config:
+        from_attributes = True
+
+# UserOut probablemente ya lo tienes, pero si no:
+class UserOut(BaseModel):
+    id_usuario: UUID
+    email: str
+    nombre: str
+    estado: bool
+    fecha_registro: date
+    cuil: int
+
+    class Config:
+        from_attributes = True
+
+
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS PARA TIPOS - Agregar al final de tu archivo schemas.py
+# ═══════════════════════════════════════════════════════════════════
+
+class TipoVehiculoOut(BaseModel):
+    id_tipo_vehiculo: int
+    tipo: str
+
+    class Config:
+        from_attributes = True
+
+class TipoServicioOut(BaseModel):
+    id_tipo_servicio: int
+    tipo: str
+
+    class Config:
+        from_attributes = True
+
+class TipoContactoOut(BaseModel):
+    id_tipo_contacto: int
+    tipo: str
+
+    class Config:
+        from_attributes = True
+
+class TipoServicioPoloOut(BaseModel):
+    id_tipo_servicio_polo: int
+    tipo: str
+
+    class Config:
+        from_attributes = True

@@ -80,6 +80,27 @@ export interface UserUpdateCompany {
   password: string;
 }
 
+// Interfaces para los tipos
+export interface TipoVehiculo {
+  id_tipo_vehiculo: number;
+  tipo: string;
+}
+
+export interface TipoServicio {
+  id_tipo_servicio: number;
+  tipo: string;
+}
+
+export interface TipoContacto {
+  id_tipo_contacto: number;
+  tipo: string;
+}
+
+export interface TipoServicioPolo {
+  id_tipo_servicio_polo: number;
+  tipo: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -87,6 +108,23 @@ export class AdminEmpresaService {
   private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
+
+  // Obtener tipos desde la BD
+  getTiposVehiculo(): Observable<TipoVehiculo[]> {
+    return this.http.get<TipoVehiculo[]>(`${this.apiUrl}/tipos/vehiculo`);
+  }
+
+  getTiposServicio(): Observable<TipoServicio[]> {
+    return this.http.get<TipoServicio[]>(`${this.apiUrl}/tipos/servicio`);
+  }
+
+  getTiposContacto(): Observable<TipoContacto[]> {
+    return this.http.get<TipoContacto[]>(`${this.apiUrl}/tipos/contacto`);
+  }
+
+  getTiposServicioPolo(): Observable<TipoServicioPolo[]> {
+    return this.http.get<TipoServicioPolo[]>(`${this.apiUrl}/tipos/servicio-polo`);
+  }
 
   // Actualizar contraseña
   updatePassword(password: string): Observable<any> {
@@ -140,4 +178,10 @@ export class AdminEmpresaService {
   getMyCompanyDetails(): Observable<EmpresaDetail> {
     return this.http.get<EmpresaDetail>(`${this.apiUrl}/me`);
   }
-}
+  
+  // Solicitar cambio de contraseña por email
+changePasswordRequest(): Observable<any> {
+  return this.http.post(`${this.apiUrl}/password-reset/request-logged-user`, {});
+}}
+
+// Solicitar cambio de contraseña por email

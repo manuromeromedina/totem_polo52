@@ -105,6 +105,10 @@ export class AdminPoloService {
   }
 
   // Usuarios
+  getUsers(): Observable<Usuario[]> {
+    return this.http.get<Usuario[]>(`${this.apiUrl}/usuarios`);
+  }
+
   getUser(userId: string): Observable<Usuario> {
     return this.http.get<Usuario>(`${this.apiUrl}/${userId}`);
   }
@@ -122,6 +126,10 @@ export class AdminPoloService {
   }
 
   // Empresas
+  getEmpresas(): Observable<Empresa[]> {
+    return this.http.get<Empresa[]>(`${this.apiUrl}/empresas`);
+  }
+
   createEmpresa(empresa: EmpresaCreate): Observable<Empresa> {
     return this.http.post<Empresa>(`${this.apiUrl}/empresas`, empresa);
   }
@@ -135,6 +143,10 @@ export class AdminPoloService {
   }
 
   // Servicios del Polo
+  getServiciosPolo(): Observable<ServicioPolo[]> {
+    return this.http.get<ServicioPolo[]>(`${this.apiUrl}/serviciopolo`);
+  }
+
   createServicioPolo(servicio: ServicioPoloCreate): Observable<ServicioPolo> {
     return this.http.post<ServicioPolo>(`${this.apiUrl}/serviciopolo`, servicio);
   }
@@ -144,6 +156,10 @@ export class AdminPoloService {
   }
 
   // Lotes
+  getLotes(): Observable<Lote[]> {
+    return this.http.get<Lote[]>(`${this.apiUrl}/lotes`);
+  }
+
   createLote(lote: LoteCreate): Observable<Lote> {
     return this.http.post<Lote>(`${this.apiUrl}/lotes`, lote);
   }
