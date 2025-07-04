@@ -25,6 +25,39 @@ def get_db():
         db.close()
 
 
+
+
+# Agregar estos endpoints en admin_users.py
+
+@router.get("/empresas", response_model=List[EmpresaOut], summary="Listar todas las empresas")
+def list_empresas(db: Session = Depends(get_db)):
+    """
+    Devuelve todas las empresas registradas en el sistema.
+    """
+    return db.query(models.Empresa).all()
+
+@router.get("/usuarios", response_model=List[schemas.UserOut], summary="Listar todos los usuarios")
+def list_usuarios(db: Session = Depends(get_db)):
+    """
+    Devuelve todos los usuarios registrados en el sistema.
+    """
+    return db.query(models.Usuario).all()
+
+@router.get("/serviciopolo", response_model=List[schemas.ServicioPoloOut], summary="Listar servicios del polo")
+def list_servicios_polo(db: Session = Depends(get_db)):
+    """
+    Devuelve todos los servicios del polo registrados.
+    """
+    return db.query(models.ServicioPolo).all()
+
+@router.get("/lotes", response_model=List[schemas.LoteOut], summary="Listar todos los lotes")
+def list_lotes(db: Session = Depends(get_db)):
+    """
+    Devuelve todos los lotes registrados.
+    """
+    return db.query(models.Lote).all()
+
+
 # ─── Usuarios ─────────────────────────────────────────────────────────────────
 
 @router.get(
@@ -271,3 +304,4 @@ def delete_lote(
     db.commit()
     
     return {"msg": "Lote eliminado exitosamente"}
+

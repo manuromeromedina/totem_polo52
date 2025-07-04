@@ -12,7 +12,7 @@ import { LogoutButtonComponent } from '../shared/logout-button/logout-button.com
   templateUrl: './admin-polo.component.html',
   styleUrls: ['./admin-polo.component.css']
 })
-export class EmpresasComponent implements OnInit {
+export class AdminPoloComponent implements OnInit {
   activeTab = 'empresas';
   
   // Empresas
@@ -73,6 +73,7 @@ export class EmpresasComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRoles();
+    // Cargar datos de la pestaña activa por defecto
     this.loadData();
   }
 
@@ -94,12 +95,80 @@ export class EmpresasComponent implements OnInit {
   }
 
   loadData(): void {
-    // En un caso real, tendrías endpoints para listar
-    // Por ahora solo limpiamos las listas
-    this.empresas = [];
-    this.usuarios = [];
-    this.serviciosPolo = [];
-    this.lotes = [];
+    this.loading = true;
+    
+    switch (this.activeTab) {
+      case 'empresas':
+        this.loadEmpresas();
+        break;
+      case 'usuarios':
+        this.loadUsuarios();
+        break;
+      case 'servicios':
+        this.loadServiciosPolo();
+        break;
+      case 'lotes':
+        this.loadLotes();
+        break;
+      default:
+        this.loading = false;
+    }
+  }
+
+  loadEmpresas(): void {
+    this.adminPoloService.getEmpresas().subscribe({
+      next: (empresas) => {
+        this.empresas = empresas;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading empresas:', error);
+        this.showMessage('Error al cargar empresas: ' + (error.error?.detail || error.message), 'error');
+        this.loading = false;
+      }
+    });
+  }
+
+  loadUsuarios(): void {
+    this.adminPoloService.getUsers().subscribe({
+      next: (usuarios) => {
+        this.usuarios = usuarios;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading usuarios:', error);
+        this.showMessage('Error al cargar usuarios: ' + (error.error?.detail || error.message), 'error');
+        this.loading = false;
+      }
+    });
+  }
+
+  loadServiciosPolo(): void {
+    this.adminPoloService.getServiciosPolo().subscribe({
+      next: (servicios) => {
+        this.serviciosPolo = servicios;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading servicios polo:', error);
+        this.showMessage('Error al cargar servicios del polo: ' + (error.error?.detail || error.message), 'error');
+        this.loading = false;
+      }
+    });
+  }
+
+  loadLotes(): void {
+    this.adminPoloService.getLotes().subscribe({
+      next: (lotes) => {
+        this.lotes = lotes;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading lotes:', error);
+        this.showMessage('Error al cargar lotes: ' + (error.error?.detail || error.message), 'error');
+        this.loading = false;
+      }
+    });
   }
 
   resetForms(): void {
@@ -180,7 +249,7 @@ export class EmpresasComponent implements OnInit {
         next: (empresa) => {
           this.showMessage('Empresa actualizada exitosamente', 'success');
           this.resetForms();
-          this.loadData();
+          this.loadEmpresas(); // Recargar la lista específica
           this.loading = false;
         },
         error: (error) => {
@@ -210,7 +279,7 @@ export class EmpresasComponent implements OnInit {
       this.adminPoloService.deleteEmpresa(cuil).subscribe({
         next: () => {
           this.showMessage('Empresa eliminada exitosamente', 'success');
-          this.empresas = this.empresas.filter(e => e.cuil !== cuil);
+          this.loadEmpresas(); // Recargar la lista
         },
         error: (error) => {
           this.showMessage('Error al eliminar empresa: ' + (error.error?.detail || error.message), 'error');
@@ -246,56 +315,81 @@ export class EmpresasComponent implements OnInit {
   }
 
   onSubmitUsuario(): void {
-    this.loading = true;
+  this.loading = true;
+  
+  if (this.editingUsuario) {
+    // Actualizar
+    const updateData: UsuarioUpdate = {
+      password: this.usuarioForm.password || undefined,
+      estado: this.usuarioForm.estado
+    };
     
-    if (this.editingUsuario) {
-      // Actualizar
-      const updateData: UsuarioUpdate = {
-        password: this.usuarioForm.password || undefined,
-        estado: this.usuarioForm.estado
-      };
-      
-      this.adminPoloService.updateUser(this.editingUsuario.id_usuario, updateData).subscribe({
-        next: (usuario) => {
-          this.showMessage('Usuario actualizado exitosamente', 'success');
-          this.resetForms();
-          this.loadData();
-          this.loading = false;
-        },
-        error: (error) => {
-          this.showMessage('Error al actualizar usuario: ' + (error.error?.detail || error.message), 'error');
-          this.loading = false;
-        }
-      });
-    } else {
-      // Crear - validar que todos los campos requeridos estén presentes
-      if (!this.usuarioForm.password) {
-        this.showMessage('La contraseña es requerida para crear un nuevo usuario', 'error');
+    this.adminPoloService.updateUser(this.editingUsuario.id_usuario, updateData).subscribe({
+      next: (usuario) => {
+        this.showMessage('Usuario actualizado exitosamente', 'success');
+        this.resetForms();
+        this.loadUsuarios();
         this.loading = false;
-        return;
+      },
+      error: (error) => {
+        this.showMessage('Error al actualizar usuario: ' + (error.error?.detail || error.message), 'error');
+        this.loading = false;
       }
-      
-      this.adminPoloService.createUser(this.usuarioForm).subscribe({
-        next: (usuario) => {
-          this.showMessage('Usuario creado exitosamente', 'success');
-          this.usuarios.push(usuario);
-          this.resetForms();
-          this.loading = false;
-        },
-        error: (error) => {
-          this.showMessage('Error al crear usuario: ' + (error.error?.detail || error.message), 'error');
-          this.loading = false;
-        }
-      });
+    });
+  } else {
+    // Crear - validar que todos los campos requeridos estén presentes
+    if (!this.usuarioForm.password) {
+      this.showMessage('La contraseña es requerida para crear un nuevo usuario', 'error');
+      this.loading = false;
+      return;
     }
+    
+    // AGREGAR ESTAS VALIDACIONES:
+    if (!this.usuarioForm.email) {
+      this.showMessage('El email es requerido', 'error');
+      this.loading = false;
+      return;
+    }
+    
+    if (!this.usuarioForm.nombre) {
+      this.showMessage('El nombre de usuario es requerido', 'error');
+      this.loading = false;
+      return;
+    }
+    
+    if (!this.usuarioForm.cuil || this.usuarioForm.cuil === 0) {
+      this.showMessage('El CUIL de empresa es requerido', 'error');
+      this.loading = false;
+      return;
+    }
+    
+    if (!this.usuarioForm.id_rol || this.usuarioForm.id_rol === 0) {
+      this.showMessage('Debe seleccionar un rol', 'error');
+      this.loading = false;
+      return;
+    }
+    
+    this.adminPoloService.createUser(this.usuarioForm).subscribe({
+      next: (usuario) => {
+        this.showMessage('Usuario creado exitosamente', 'success');
+        this.usuarios.push(usuario);
+        this.resetForms();
+        this.loading = false;
+      },
+      error: (error) => {
+        console.log('Error completo:', error); // AGREGAR ESTA LÍNEA PARA DEBUG
+        this.showMessage('Error al crear usuario: ' + (error.error?.detail || error.message), 'error');
+        this.loading = false;
+      }
+    });
   }
-
+}
   deleteUsuario(userId: string): void {
     if (confirm('¿Está seguro de que desea inhabilitar este usuario?')) {
       this.adminPoloService.deleteUser(userId).subscribe({
         next: () => {
           this.showMessage('Usuario inhabilitado exitosamente', 'success');
-          this.usuarios = this.usuarios.filter(u => u.id_usuario !== userId);
+          this.loadUsuarios(); // Recargar la lista
         },
         error: (error) => {
           this.showMessage('Error al inhabilitar usuario: ' + (error.error?.detail || error.message), 'error');

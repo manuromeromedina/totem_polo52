@@ -180,3 +180,30 @@ def password_reset_confirm(dto: PasswordResetConfirm, db: Session = Depends(get_
     user.contrasena = services.hash_password(dto.new_password)
     db.commit()
     return {"message": "Contraseña actualizada correctamente"}
+
+
+@router.post("/password-reset/request-logged-user", tags=["auth"])
+def password_reset_request_logged_user(
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Solicitar reset de contraseña para el usuario logueado"""
+    token = services.create_password_reset_token(current_user.email)
+    reset_link = f"http://localhost:4200/password-reset?token={token}"
+    
+    # Email setup
+    msg = MIMEText(f"Hola {current_user.nombre},\n\nHas solicitado cambiar tu contraseña. Click en el siguiente enlace para continuar:\n\n{reset_link}\n\nSi no solicitaste este cambio, ignora este email.")
+    msg["Subject"] = "Cambio de Contraseña - Polo 52"
+    msg["From"] = settings.EMAIL_USER
+    msg["To"] = current_user.email
+    
+    # Send email
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
+            server.send_message(msg)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error enviando email: {str(e)}")
+    
+    return {"message": "Email de cambio de contraseña enviado exitosamente"}
