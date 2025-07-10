@@ -28,19 +28,22 @@ export class AdminPoloComponent implements OnInit {
     horario_trabajo: ''
   };
 
+  selectedEmpresa: Empresa | null = null;
+creatingForEmpresa = false;
+
   // Usuarios
   usuarios: Usuario[] = [];
   roles: Rol[] = [];
   showUsuarioForm = false;
   editingUsuario: Usuario | null = null;
   usuarioForm: UsuarioCreate = {
-    email: '',
-    nombre: '',
-    password: '',
-    estado: true,
-    cuil: 0,
-    id_rol: 0
-  };
+  email: '',
+  nombre: '',
+  password: '',
+  estado: true,
+  cuil: null as any, // Cambia de 0 a null
+  id_rol: null as any // Cambia de 0 a null
+};
 
   // Servicios del Polo
   serviciosPolo: ServicioPolo[] = [];
@@ -172,13 +175,15 @@ export class AdminPoloComponent implements OnInit {
   }
 
   resetForms(): void {
-    this.showEmpresaForm = false;
-    this.showUsuarioForm = false;
-    this.showServicioPoloForm = false;
-    this.showLoteForm = false;
-    this.editingEmpresa = null;
-    this.editingUsuario = null;
-    this.message = '';
+      this.showEmpresaForm = false;
+      this.showUsuarioForm = false;
+      this.showServicioPoloForm = false;
+      this.showLoteForm = false;
+      this.editingEmpresa = null;
+      this.editingUsuario = null;
+      this.selectedEmpresa = null; // AGREGAR ESTA LÍNEA
+      this.creatingForEmpresa = false; // AGREGAR ESTA LÍNEA
+      this.message = '';
     
     this.empresaForm = {
       cuil: 0,
@@ -194,8 +199,8 @@ export class AdminPoloComponent implements OnInit {
       nombre: '',
       password: '',
       estado: true,
-      cuil: 0,
-      id_rol: 0
+      cuil: null as any, // Cambia de 0 a null
+      id_rol: null as any 
     };
     
     this.servicioPoloForm = {
@@ -307,8 +312,8 @@ export class AdminPoloComponent implements OnInit {
         nombre: '',
         password: '',
         estado: true,
-        cuil: 0,
-        id_rol: 0
+        cuil: null as any, // Cambia de 0 a null
+        id_rol: null as any 
       };
     }
     this.showUsuarioForm = true;
@@ -332,19 +337,24 @@ export class AdminPoloComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        this.showMessage('Error al actualizar usuario: ' + (error.error?.detail || error.message), 'error');
+        // REEMPLAZA ESTA LÍNEA:
+        let errorMessage = 'Error al actualizar usuario';
+        
+        if (error.error?.detail && Array.isArray(error.error.detail)) {
+          const validationErrors = error.error.detail.map((err: any) => err.msg).join(', ');
+          errorMessage = validationErrors;
+        } else if (error.error?.detail) {
+          errorMessage = error.error.detail;
+        } else {
+          errorMessage = error.message;
+        }
+        
+        this.showMessage(errorMessage, 'error');
         this.loading = false;
       }
     });
   } else {
     // Crear - validar que todos los campos requeridos estén presentes
-    if (!this.usuarioForm.password) {
-      this.showMessage('La contraseña es requerida para crear un nuevo usuario', 'error');
-      this.loading = false;
-      return;
-    }
-    
-    // AGREGAR ESTAS VALIDACIONES:
     if (!this.usuarioForm.email) {
       this.showMessage('El email es requerido', 'error');
       this.loading = false;
@@ -369,6 +379,14 @@ export class AdminPoloComponent implements OnInit {
       return;
     }
     
+    // AGREGA ESTA VALIDACIÓN DE CONTRASEÑA AQUÍ:
+    const passwordError = this.validatePassword(this.usuarioForm.password);
+    if (passwordError) {
+      this.showMessage(passwordError, 'error');
+      this.loading = false;
+      return;
+    }
+    
     this.adminPoloService.createUser(this.usuarioForm).subscribe({
       next: (usuario) => {
         this.showMessage('Usuario creado exitosamente', 'success');
@@ -377,26 +395,52 @@ export class AdminPoloComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.log('Error completo:', error); // AGREGAR ESTA LÍNEA PARA DEBUG
-        this.showMessage('Error al crear usuario: ' + (error.error?.detail || error.message), 'error');
+        console.log('Error completo:', error);
+        console.log('Error detail:', error.error?.detail);
+        
+        // REEMPLAZA ESTA PARTE:
+        let errorMessage = 'Error al crear usuario';
+        
+        if (error.error?.detail && Array.isArray(error.error.detail)) {
+          const validationErrors = error.error.detail.map((err: any) => err.msg).join(', ');
+          errorMessage = validationErrors;
+        } else if (error.error?.detail) {
+          errorMessage = error.error.detail;
+        } else {
+          errorMessage = error.message;
+        }
+        
+        this.showMessage(errorMessage, 'error');
         this.loading = false;
       }
     });
   }
 }
-  deleteUsuario(userId: string): void {
-    if (confirm('¿Está seguro de que desea inhabilitar este usuario?')) {
-      this.adminPoloService.deleteUser(userId).subscribe({
-        next: () => {
-          this.showMessage('Usuario inhabilitado exitosamente', 'success');
-          this.loadUsuarios(); // Recargar la lista
-        },
-        error: (error) => {
-          this.showMessage('Error al inhabilitar usuario: ' + (error.error?.detail || error.message), 'error');
+ toggleUsuarioEstado(usuario: Usuario): void {
+  const accion = usuario.estado ? 'inhabilitar' : 'habilitar';
+  const nuevoEstado = !usuario.estado;
+  
+  if (confirm(`¿Está seguro de que desea ${accion} este usuario?`)) {
+    const updateData: UsuarioUpdate = {
+      estado: nuevoEstado
+    };
+    
+    this.adminPoloService.updateUser(usuario.id_usuario, updateData).subscribe({
+      next: (usuarioActualizado) => {
+        // Actualizar el usuario en la lista local
+        const index = this.usuarios.findIndex(u => u.id_usuario === usuario.id_usuario);
+        if (index !== -1) {
+          this.usuarios[index] = usuarioActualizado;
         }
-      });
-    }
+        
+        this.showMessage(`Usuario ${accion}do exitosamente`, 'success');
+      },
+      error: (error) => {
+        this.showMessage(`Error al ${accion} usuario: ` + (error.error?.detail || error.message), 'error');
+      }
+    });
   }
+}
 
   // SERVICIOS DEL POLO
   openServicioPoloForm(): void {
@@ -474,4 +518,92 @@ export class AdminPoloComponent implements OnInit {
     const rol = this.roles.find(r => r.id_rol === id);
     return rol ? rol.tipo_rol : 'Desconocido';
   }
+
+private validatePassword(password: string): string | null {
+  if (!password) {
+    return 'La contraseña es requerida';
+  }
+  
+  if (password.length < 6) {
+    return 'La contraseña debe tener al menos 6 caracteres';
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    return 'La contraseña debe contener al menos una mayúscula';
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    return 'La contraseña debe contener al menos una minúscula';
+  }
+  
+  if (!/[0-9]/.test(password)) {
+    return 'La contraseña debe contener al menos un número';
+  }
+  
+  return null;
 }
+
+
+createUsuarioForEmpresa(empresa: Empresa): void {
+  console.log('🚀 createUsuarioForEmpresa ejecutado con:', empresa);
+  this.selectedEmpresa = empresa;
+  this.creatingForEmpresa = true;
+  this.usuarioForm = {
+    email: '',
+    nombre: '',
+    password: '',
+    estado: true,
+    cuil: empresa.cuil,
+    id_rol: 0
+  };
+  console.log('📝 Formulario configurado:', this.usuarioForm);
+  console.log('🔧 Abriendo formulario...');
+  this.showUsuarioForm = true;
+  console.log('✅ showUsuarioForm =', this.showUsuarioForm);
+}
+
+createServicioPoloForEmpresa(empresa: Empresa): void {
+  console.log('🚀 createServicioPoloForEmpresa ejecutado con:', empresa);
+  this.selectedEmpresa = empresa;
+  this.creatingForEmpresa = true;
+  this.servicioPoloForm = {
+    nombre: '',
+    horario: '',
+    datos: {},
+    propietario: '',
+    id_tipo_servicio_polo: 1,
+    cuil: empresa.cuil
+  };
+  this.showServicioPoloForm = true;
+  console.log('✅ showServicioPoloForm =', this.showServicioPoloForm);
+}
+
+createLoteForEmpresa(empresa: Empresa): void {
+  console.log('🚀 createLoteForEmpresa ejecutado con:', empresa);
+  this.selectedEmpresa = empresa;
+  this.creatingForEmpresa = true;
+  this.loteForm = {
+    dueno: '',
+    lote: 0,
+    manzana: 0,
+    id_servicio_polo: 0
+  };
+  this.showLoteForm = true;
+  console.log('✅ showLoteForm =', this.showLoteForm);
+}
+
+openLoteFormForEmpresa(empresa: Empresa): void {
+  // Aquí podrías cargar los servicios del polo de esta empresa específica
+  this.loteForm = {
+    dueno: '',
+    lote: 0,
+    manzana: 0,
+    id_servicio_polo: 0 // El usuario tendrá que seleccionar de los servicios de esta empresa
+  };
+  this.showLoteForm = true;
+}
+
+
+
+}
+

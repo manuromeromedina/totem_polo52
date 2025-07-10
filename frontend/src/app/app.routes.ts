@@ -31,7 +31,7 @@ export const routes: Routes = [
   },
   {
     path: 'empresas',
-    loadComponent: () => import('./admin-polo/admin-polo.component').then(m => m.EmpresasComponent),
+    loadComponent: () => import('./admin-polo/admin-polo.component').then(m => m.AdminPoloComponent),
     canActivate: [AuthGuard],
     data: { role: 'admin_polo' }
   },

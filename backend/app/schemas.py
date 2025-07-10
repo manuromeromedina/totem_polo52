@@ -316,20 +316,21 @@ class LoteOut(BaseModel):
 ## Vehículos
 class VehiculoOut(BaseModel):
     id_vehiculo: int
-    id_tipo_vehiculo: Optional[int]  # id del tipo de vehículo
-    horarios: Optional[str]
-    frecuencia: Optional[str]
-    datos: Optional[dict]
+    id_tipo_vehiculo: int           # QUITA Optional
+    horarios: str                   # QUITA Optional
+    frecuencia: str                 # QUITA Optional
+    datos: dict                     # QUITA Optional
+    tipo_vehiculo: Optional[str] = None  # AGREGA ESTE CAMPO
 
     class Config:
         from_attributes = True
 
 
 class VehiculoCreate(BaseModel):
-    id_tipo_vehiculo: Optional[int]
-    horarios: Optional[str]
-    frecuencia: Optional[str]
-    datos: Optional[Dict]
+    id_tipo_vehiculo: int  # QUITA Optional
+    horarios: str          # QUITA Optional
+    frecuencia: str        # QUITA Optional
+    datos: dict = {}       # QUITA Optional, agrega valor por defecto
 
     class Config:
         from_attributes = True
@@ -527,12 +528,12 @@ class ServicioPoloOut(BaseModel):
     class Config:
         from_attributes = True
 
-class LoteOut(BaseModel):
-    id_lotes: int
-    dueno: str
-    lote: int
-    manzana: int
-    id_servicio_polo: int
+# En schemas.py
+    class LoteCreate(BaseModel):
+        dueno: str
+        lote: int
+        manzana: int
+        id_servicio_polo: Optional[int] = None  # HACER OPCIONAL
 
     class Config:
         from_attributes = True
@@ -576,7 +577,6 @@ class TipoContactoOut(BaseModel):
 
     class Config:
         from_attributes = True
-
 class TipoServicioPoloOut(BaseModel):
     id_tipo_servicio_polo: int
     tipo: str

@@ -36,12 +36,12 @@ export class EmpresaMeComponent implements OnInit {
     confirmPassword: ''
   };
   
-  vehiculoForm: VehiculoCreate = {
-    id_tipo_vehiculo: 1,
-    horarios: '',
-    frecuencia: '',
-    datos: {}
-  };
+ vehiculoForm: VehiculoCreate = {
+  id_tipo_vehiculo: 1,
+  horarios: '',
+  frecuencia: '',
+  datos: {} // Asegúrate de que sea un objeto vacío válido
+};
   
   servicioForm: ServicioCreate = {
     datos: {},
@@ -80,29 +80,10 @@ tiposServicioPolo: TipoServicioPolo[] = [];
   ngOnInit(): void {
   this.loadTipos();
   this.loadEmpresaData();
+
 }
 
-loadTipos(): void {
-  this.loadingTipos = true;
-  
-  Promise.all([
-    this.adminEmpresaService.getTiposVehiculo().toPromise(),
-    this.adminEmpresaService.getTiposServicio().toPromise(),
-    this.adminEmpresaService.getTiposContacto().toPromise(),
-    this.adminEmpresaService.getTiposServicioPolo().toPromise()
-  ]).then(([vehiculos, servicios, contactos, serviciosPolo]) => {
-    this.tiposVehiculo = vehiculos || [];
-    this.tiposServicio = servicios || [];
-    this.tiposContacto = contactos || [];
-    this.tiposServicioPolo = serviciosPolo || [];
-    
-    this.loadingTipos = false;
-  }).catch((error) => {
-    console.error('Error loading tipos:', error);
-    this.showMessage('Error al cargar tipos de datos', 'error');
-    this.loadingTipos = false;
-  });
-}
+
 
   setActiveTab(tab: string): void {
     this.activeTab = tab;
@@ -158,11 +139,10 @@ loadTipos(): void {
     this.showPasswordForm = true;
   }
 onSubmitPassword(): void {
-  // En lugar de cambiar directamente, solicitar reset por email
   this.loading = true;
   this.adminEmpresaService.changePasswordRequest().subscribe({
-    next: (response) => {
-      this.showMessage('Se ha enviado un enlace para cambiar tu contraseña a tu email registrado. Revisa tu bandeja de entrada.', 'success');
+    next: () => {
+      this.showMessage('Se ha enviado un enlace de cambio de contraseña a tu email', 'success');
       this.resetForms();
       this.loading = false;
     },
@@ -415,4 +395,52 @@ getTipoContactoName(id: number): string {
     }
     return JSON.stringify(datos, null, 2);
   }
+
+
+
+
+
+// Agregar este método
+loadTipos(): void {
+  // Cargar tipos de servicio del polo
+this.adminEmpresaService.getTiposServicioPolo().subscribe({
+  next: (tipos) => {
+    this.tiposServicioPolo = tipos;
+  },
+  error: (error) => {
+    console.error('Error loading tipos servicio polo:', error);
+  }
+});
+
+  // Cargar tipos de vehículo
+  this.adminEmpresaService.getTiposVehiculo().subscribe({
+    next: (tipos) => {
+      this.tiposVehiculo = tipos;
+    },
+    error: (error) => {
+      console.error('Error loading tipos vehículo:', error);
+    }
+  });
+
+  // Cargar tipos de servicio
+  this.adminEmpresaService.getTiposServicio().subscribe({
+    next: (tipos) => {
+      this.tiposServicio = tipos;
+    },
+    error: (error) => {
+      console.error('Error loading tipos servicio:', error);
+    }
+  });
+
+  // Cargar tipos de contacto
+  this.adminEmpresaService.getTiposContacto().subscribe({
+    next: (tipos) => {
+      this.tiposContacto = tipos;
+    },
+    error: (error) => {
+      console.error('Error loading tipos contacto:', error);
+    }
+  });
+}
+
 }
