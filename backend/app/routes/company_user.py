@@ -8,7 +8,6 @@ from app import models, schemas, services
 router = APIRouter(
     prefix="",
     tags=["Admin_empresa"],
-    dependencies=[Depends(require_empresa_role)],
 )
 
 def get_db():
@@ -44,30 +43,69 @@ def update_password(
 
 
 # ─── Vehiculos ────────────────────────────────────────────────────────
+
 @router.post("/vehiculos", response_model=schemas.VehiculoOut, summary="Crear un vehículo")
 def create_vehiculo(
     dto: schemas.VehiculoCreate,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    v = models.Vehiculo(
-        id_tipo_vehiculo=dto.id_tipo_vehiculo,
-        horarios=dto.horarios,
-        frecuencia=dto.frecuencia,
-        datos=dto.datos,
-    )
-    db.add(v)
-    db.flush()  # para obtener v.id_vehiculo
+    try:
+        print(f"🚗 Datos recibidos: {dto.model_dump()}")
+        print(f"👤 Usuario: {current_user.nombre}, CUIL: {current_user.cuil}")
+        
+        # Verificar que el tipo de vehículo existe
+        tipo_vehiculo = db.query(models.TipoVehiculo).filter(
+            models.TipoVehiculo.id_tipo_vehiculo == dto.id_tipo_vehiculo
+        ).first()
+        
+        if not tipo_vehiculo:
+            print(f"❌ Tipo de vehículo {dto.id_tipo_vehiculo} no existe")
+            raise HTTPException(status_code=400, detail=f"Tipo de vehículo {dto.id_tipo_vehiculo} no existe")
+        validar_datos_vehiculo(dto, tipo_vehiculo)
 
-    link = models.VehiculosEmpresa(
-        id_vehiculo=v.id_vehiculo,
-        cuil=current_user.cuil,
-    )
-    db.add(link)
-    db.commit()
-    db.refresh(v)
-    return v
+        
+        print(f"✅ Tipo de vehículo encontrado: {tipo_vehiculo.tipo}")
+        
+        v = models.Vehiculo(
+            id_tipo_vehiculo=dto.id_tipo_vehiculo,
+            horarios=dto.horarios,
+            frecuencia=dto.frecuencia,
+            datos=dto.datos,
+        )
+        db.add(v)
+        db.flush()  # para obtener v.id_vehiculo
+        
+        print(f"✅ Vehículo creado con ID: {v.id_vehiculo}")
 
+        # Verificar que la empresa existe
+        empresa = db.query(models.Empresa).filter(models.Empresa.cuil == current_user.cuil).first()
+        if not empresa:
+            print(f"❌ Empresa con CUIL {current_user.cuil} no existe")
+            raise HTTPException(status_code=400, detail=f"Empresa con CUIL {current_user.cuil} no existe")
+        
+        print(f"✅ Empresa encontrada: {empresa.nombre}")
+
+        link = models.VehiculosEmpresa(
+            id_vehiculo=v.id_vehiculo,
+            cuil=current_user.cuil,
+        )
+        db.add(link)
+        db.commit()
+        db.refresh(v)
+        
+        print(f"✅ Link creado exitosamente")
+        return v
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error en create_vehiculo: {str(e)}")
+        print(f"❌ Tipo de error: {type(e)}")
+        import traceback
+        print(f"❌ Traceback: {traceback.format_exc()}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 
 @router.put("/vehiculos/{veh_id}", response_model=schemas.VehiculoOut, summary="Actualizar un vehículo")
@@ -77,7 +115,6 @@ def update_vehiculo(
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Consulta con join para filtrar vehículos relacionados con el cuil del usuario
     v = (
         db.query(models.Vehiculo)
         .join(models.VehiculosEmpresa)
@@ -89,14 +126,16 @@ def update_vehiculo(
     )
     if not v:
         raise HTTPException(status_code=404, detail="Vehículo no existe")
-    for f in ("horarios", "frecuencia", "datos", "id_tipo_vehiculos"):
+    
+    # Corregir este loop
+    for f in ("horarios", "frecuencia", "datos", "id_tipo_vehiculo"):  # Cambia "id_tipo_vehiculos" por "id_tipo_vehiculo"
         val = getattr(dto, f, None)
         if val is not None:
             setattr(v, f, val)
+    
     db.commit()
     db.refresh(v)
     return v
-
 
 @router.delete("/vehiculos/{veh_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un vehículo")
 def delete_vehiculo(
@@ -371,3 +410,38 @@ def read_me(
         raise HTTPException(404, "Empresa no encontrada")
     return build_empresa_detail(emp)
 
+
+
+
+# Agregar al final de company_user.py
+@router.get("/tipos/vehiculo", response_model=list[schemas.TipoVehiculoOut], summary="Obtener tipos de vehículo")
+def get_tipos_vehiculo(db: Session = Depends(get_db)):
+    return db.query(models.TipoVehiculo).all()
+
+@router.get("/tipos/servicio", response_model=list[schemas.TipoServicioOut], summary="Obtener tipos de servicio")
+def get_tipos_servicio(db: Session = Depends(get_db)):  # CAMBIA EL NOMBRE AQUÍ
+    return db.query(models.TipoServicio).all()
+
+@router.get("/tipos/contacto", response_model=list[schemas.TipoContactoOut], summary="Obtener tipos de contacto")
+def get_tipos_contacto(db: Session = Depends(get_db)):  # CAMBIA EL NOMBRE AQUÍ
+    return db.query(models.TipoContacto).all()
+
+
+def validar_datos_vehiculo(dto: schemas.VehiculoCreate, tipo_vehiculo: models.TipoVehiculo):
+    datos = dto.datos
+
+    if tipo_vehiculo.id_tipo_vehiculo == 1:  # Corporativo
+        if not all(k in datos for k in ("cantidad", "patente", "carga")):
+            raise HTTPException(status_code=400, detail="Para vehículos corporativos, los datos deben incluir cantidad, patente y carga")
+        if datos.get("carga") not in ("baja", "mediana", "alta"):
+            raise HTTPException(status_code=400, detail="El valor de 'carga' debe ser 'baja', 'mediana' o 'alta'")
+
+    elif tipo_vehiculo.id_tipo_vehiculo == 2:  # Personal
+        if not all(k in datos for k in ("cantidad", "patente")):
+            raise HTTPException(status_code=400, detail="Para vehículos personales, los datos deben incluir cantidad y patente")
+
+    elif tipo_vehiculo.id_tipo_vehiculo == 3:  # Terceros
+        if not all(k in datos for k in ("cantidad", "carga")):
+            raise HTTPException(status_code=400, detail="Para vehículos de terceros, los datos deben incluir cantidad y carga")
+        if datos.get("carga") not in ("baja", "mediana", "alta"):
+            raise HTTPException(status_code=400, detail="El valor de 'carga' debe ser 'baja', 'mediana' o 'alta'")

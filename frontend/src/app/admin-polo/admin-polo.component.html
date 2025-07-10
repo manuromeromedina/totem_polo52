@@ -153,40 +153,120 @@
       </div>
 
       <!-- Empresas List -->
+<div class="data-table">
+  <div class="table-header">
+    <h3>Empresas Registradas</h3>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>CUIL</th>
+          <th>Nombre</th>
+          <th>Rubro</th>
+          <th>Empleados</th>
+          <th>Fecha Ingreso</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let empresa of empresas">
+          <td>{{ empresa.cuil }}</td>
+          <td>{{ empresa.nombre }}</td>
+          <td>{{ empresa.rubro }}</td>
+          <td>{{ empresa.cant_empleados }}</td>
+          <td>{{ empresa.fecha_ingreso | date:'dd/MM/yyyy' }}</td>
+          <td class="actions">
+            <!-- Acciones principales -->
+            <div class="action-row">
+              <button class="btn btn-sm btn-secondary" (click)="openEmpresaForm(empresa)">
+                Editar
+              </button>
+              <button class="btn btn-sm btn-danger" (click)="deleteEmpresa(empresa.cuil)">
+                Eliminar
+              </button>
+            </div>
+            
+            <!-- Botones de asociación -->
+            <div class="association-buttons">
+                <button class="btn btn-xs btn-primary" 
+                        (click)="createUsuarioForEmpresa(empresa)" 
+                        title="Crear usuario para esta empresa">
+                  + Usuario
+                </button>
+                <button class="btn btn-xs btn-primary" 
+                        (click)="createServicioPoloForEmpresa(empresa)" 
+                        title="Crear servicio del polo para esta empresa">
+                  + Servicio
+                </button>
+                <button class="btn btn-xs btn-primary" 
+                        (click)="createLoteForEmpresa(empresa)" 
+                        title="Crear lote para esta empresa">
+                  + Lote
+                </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="empresas.length === 0">
+          <td colspan="6" class="text-center">No hay empresas registradas</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+    </div>
+
+    <!-- USUARIOS TAB -->
+    <div *ngIf="activeTab === 'usuarios'" class="tab-content">
+      <div class="section-header">
+        <h2>Gestión de Usuarios</h2>
+        
+      </div>
+
+      
+
+      <!-- Usuarios List -->
       <div class="data-table">
         <div class="table-header">
-          <h3>Empresas Registradas</h3>
+          <h3>Usuarios Registrados</h3>
         </div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>CUIL</th>
                 <th>Nombre</th>
-                <th>Rubro</th>
-                <th>Empleados</th>
-                <th>Fecha Ingreso</th>
+                <th>Email</th>
+                <th>CUIL Empresa</th>
+                <th>Estado</th>
+                <th>Fecha Registro</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let empresa of empresas">
-                <td>{{ empresa.cuil }}</td>
-                <td>{{ empresa.nombre }}</td>
-                <td>{{ empresa.rubro }}</td>
-                <td>{{ empresa.cant_empleados }}</td>
-                <td>{{ empresa.fecha_ingreso | date:'dd/MM/yyyy' }}</td>
+              <tr *ngFor="let usuario of usuarios">
+                <td>{{ usuario.nombre }}</td>
+                <td>{{ usuario.email }}</td>
+                <td>{{ usuario.cuil }}</td>
+                <td>
+                  <span class="badge" [class]="usuario.estado ? 'badge-success' : 'badge-danger'">
+                    {{ usuario.estado ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td>{{ usuario.fecha_registro | date:'dd/MM/yyyy' }}</td>
                 <td class="actions">
-                  <button class="btn btn-sm btn-secondary" (click)="openEmpresaForm(empresa)">
+                  <button class="btn btn-sm btn-secondary" (click)="openUsuarioForm(usuario)">
                     Editar
                   </button>
-                  <button class="btn btn-sm btn-danger" (click)="deleteEmpresa(empresa.cuil)">
-                    Eliminar
-                  </button>
+                  <button 
+                      class="btn btn-sm" 
+                      [class]="usuario.estado ? 'btn-danger' : 'btn-success'"
+                      (click)="toggleUsuarioEstado(usuario)">
+                      {{ usuario.estado ? 'Inhabilitar' : 'Habilitar' }}
+                    </button>
                 </td>
               </tr>
-              <tr *ngIf="empresas.length === 0">
-                <td colspan="6" class="text-center">No hay empresas registradas</td>
+              <tr *ngIf="usuarios.length === 0">
+                <td colspan="6" class="text-center">No hay usuarios registrados</td>
               </tr>
             </tbody>
           </table>
@@ -194,16 +274,102 @@
       </div>
     </div>
 
-    <!-- USUARIOS TAB -->
-    <div *ngIf="activeTab === 'usuarios'" class="tab-content">
+    <!-- SERVICIOS DEL POLO TAB -->
+    <div *ngIf="activeTab === 'servicios'" class="tab-content">
       <div class="section-header">
-        <h2>Gestión de Usuarios</h2>
-        <button class="btn btn-primary" (click)="openUsuarioForm()">
-          Nuevo Usuario
-        </button>
+        <h2>Servicios del Polo</h2>
+        
       </div>
 
-      <!-- Usuario Form -->
+      
+
+      <!-- Servicios Polo List -->
+      <div class="data-table">
+        <div class="table-header">
+          <h3>Servicios del Polo</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>CUIL Empresa</th>
+                <th>Horario</th>
+                <th>Propietario</th>
+                <th>Tipo</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let servicio of serviciosPolo">
+                <td>{{ servicio.nombre }}</td>
+                <td>{{ servicio.cuil }}</td>
+                <td>{{ servicio.horario || 'No especificado' }}</td>
+                <td>{{ servicio.propietario || 'No especificado' }}</td>
+                <td>{{ servicio.tipo_servicio_polo || 'Tipo ' + servicio.id_tipo_servicio_polo }}</td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-danger" (click)="deleteServicioPolo(servicio.id_servicio_polo)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="serviciosPolo.length === 0">
+                <td colspan="6" class="text-center">No hay servicios del polo registrados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOTES TAB -->
+    <div *ngIf="activeTab === 'lotes'" class="tab-content">
+      <div class="section-header">
+        <h2>Gestión de Lotes</h2>
+       
+      </div>
+
+      
+
+      <!-- Lotes List -->
+      <div class="data-table">
+        <div class="table-header">
+          <h3>Lotes Registrados</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Dueño</th>
+                <th>Lote</th>
+                <th>Manzana</th>
+                <th>ID Servicio Polo</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let lote of lotes">
+                <td>{{ lote.dueno }}</td>
+                <td>{{ lote.lote }}</td>
+                <td>{{ lote.manzana }}</td>
+                <td>{{ lote.id_servicio_polo }}</td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-danger" (click)="deleteLote(lote.id_lotes)">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="lotes.length === 0">
+                <td colspan="5" class="text-center">No hay lotes registrados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+<!-- Usuario Form -->
       <div *ngIf="showUsuarioForm" class="form-modal">
         <div class="form-container">
           <div class="form-header">
@@ -248,16 +414,19 @@
               </div>
 
               <div class="form-group">
-                <label for="user_cuil">CUIL de Empresa *</label>
-                <input 
-                  type="number" 
-                  id="user_cuil" 
-                  name="user_cuil"
-                  [(ngModel)]="usuarioForm.cuil" 
-                  required
-                  [disabled]="!!editingUsuario"
-                  class="form-control">
-              </div>
+                  <label for="user_cuil">CUIL de Empresa *</label>
+                  <input 
+                    type="number" 
+                    id="user_cuil" 
+                    name="user_cuil"
+                    [(ngModel)]="usuarioForm.cuil" 
+                    required
+                    [disabled]="!!editingUsuario || creatingForEmpresa"
+                    class="form-control">
+                  <small *ngIf="selectedEmpresa" class="text-muted">
+                    Asociado a: {{ selectedEmpresa.nombre }}
+                  </small>
+                </div>
 
               <div class="form-group" *ngIf="editingUsuario">
                 <label for="user_password_edit">Nueva Contraseña</label>
@@ -310,62 +479,83 @@
         </div>
       </div>
 
-      <!-- Usuarios List -->
-      <div class="data-table">
-        <div class="table-header">
-          <h3>Usuarios Registrados</h3>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>CUIL Empresa</th>
-                <th>Estado</th>
-                <th>Fecha Registro</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let usuario of usuarios">
-                <td>{{ usuario.nombre }}</td>
-                <td>{{ usuario.email }}</td>
-                <td>{{ usuario.cuil }}</td>
-                <td>
-                  <span class="badge" [class]="usuario.estado ? 'badge-success' : 'badge-danger'">
-                    {{ usuario.estado ? 'Activo' : 'Inactivo' }}
-                  </span>
-                </td>
-                <td>{{ usuario.fecha_registro | date:'dd/MM/yyyy' }}</td>
-                <td class="actions">
-                  <button class="btn btn-sm btn-secondary" (click)="openUsuarioForm(usuario)">
-                    Editar
-                  </button>
-                  <button class="btn btn-sm btn-danger" (click)="deleteUsuario(usuario.id_usuario)">
-                    Inhabilitar
-                  </button>
-                </td>
-              </tr>
-              <tr *ngIf="usuarios.length === 0">
-                <td colspan="6" class="text-center">No hay usuarios registrados</td>
-              </tr>
-            </tbody>
-          </table>
+
+
+
+<!-- Lote Form -->
+      <div *ngIf="showLoteForm" class="form-modal">
+        <div class="form-container">
+          <div class="form-header">
+            <h3>Nuevo Lote</h3>
+            <button class="close-btn" (click)="resetForms()">&times;</button>
+          </div>
+          
+          <form (ngSubmit)="onSubmitLote()" #loteFormRef="ngForm">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="lote_dueno">Dueño *</label>
+                <input 
+                  type="text" 
+                  id="lote_dueno" 
+                  name="lote_dueno"
+                  [(ngModel)]="loteForm.dueno" 
+                  required
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="lote_numero">Número de Lote *</label>
+                <input 
+                  type="number" 
+                  id="lote_numero" 
+                  name="lote_numero"
+                  [(ngModel)]="loteForm.lote" 
+                  required
+                  min="1"
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="lote_manzana">Manzana *</label>
+                <input 
+                  type="number" 
+                  id="lote_manzana" 
+                  name="lote_manzana"
+                  [(ngModel)]="loteForm.manzana" 
+                  required
+                  min="1"
+                  class="form-control">
+              </div>
+
+              <div class="form-group">
+                <label for="lote_servicio_polo">ID Servicio Polo (Opcional)</label>
+                <input 
+                  type="number" 
+                  id="lote_servicio_polo" 
+                  name="lote_servicio_polo"
+                  [(ngModel)]="loteForm.id_servicio_polo" 
+                  class="form-control">
+                <small class="text-muted">Dejar en blanco si no se asocia a un servicio específico</small>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" (click)="resetForms()">
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                class="btn btn-primary" 
+                [disabled]="loading || loteFormRef.invalid">
+                {{ loading ? 'Guardando...' : 'Crear Lote' }}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-    </div>
 
-    <!-- SERVICIOS DEL POLO TAB -->
-    <div *ngIf="activeTab === 'servicios'" class="tab-content">
-      <div class="section-header">
-        <h2>Servicios del Polo</h2>
-        <button class="btn btn-primary" (click)="openServicioPoloForm()">
-          Nuevo Servicio
-        </button>
-      </div>
 
-      <!-- Servicio Polo Form -->
+<!-- Servicio Polo Form -->
       <div *ngIf="showServicioPoloForm" class="form-modal">
         <div class="form-container">
           <div class="form-header">
@@ -394,7 +584,11 @@
                   name="servicio_cuil"
                   [(ngModel)]="servicioPoloForm.cuil" 
                   required
+                  [disabled]="creatingForEmpresa"
                   class="form-control">
+                <small *ngIf="selectedEmpresa" class="text-muted">
+                  Asociado a: {{ selectedEmpresa.nombre }}
+                </small>
               </div>
 
               <div class="form-group">
@@ -447,163 +641,6 @@
           </form>
         </div>
       </div>
-
-      <!-- Servicios Polo List -->
-      <div class="data-table">
-        <div class="table-header">
-          <h3>Servicios del Polo</h3>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>CUIL Empresa</th>
-                <th>Horario</th>
-                <th>Propietario</th>
-                <th>Tipo</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let servicio of serviciosPolo">
-                <td>{{ servicio.nombre }}</td>
-                <td>{{ servicio.cuil }}</td>
-                <td>{{ servicio.horario || 'No especificado' }}</td>
-                <td>{{ servicio.propietario || 'No especificado' }}</td>
-                <td>{{ servicio.tipo_servicio_polo || 'Tipo ' + servicio.id_tipo_servicio_polo }}</td>
-                <td class="actions">
-                  <button class="btn btn-sm btn-danger" (click)="deleteServicioPolo(servicio.id_servicio_polo)">
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-              <tr *ngIf="serviciosPolo.length === 0">
-                <td colspan="6" class="text-center">No hay servicios del polo registrados</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- LOTES TAB -->
-    <div *ngIf="activeTab === 'lotes'" class="tab-content">
-      <div class="section-header">
-        <h2>Gestión de Lotes</h2>
-        <button class="btn btn-primary" (click)="openLoteForm()">
-          Nuevo Lote
-        </button>
-      </div>
-
-      <!-- Lote Form -->
-      <div *ngIf="showLoteForm" class="form-modal">
-        <div class="form-container">
-          <div class="form-header">
-            <h3>Nuevo Lote</h3>
-            <button class="close-btn" (click)="resetForms()">&times;</button>
-          </div>
-          
-          <form (ngSubmit)="onSubmitLote()" #loteFormRef="ngForm">
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="lote_dueno">Dueño *</label>
-                <input 
-                  type="text" 
-                  id="lote_dueno" 
-                  name="lote_dueno"
-                  [(ngModel)]="loteForm.dueno" 
-                  required
-                  class="form-control">
-              </div>
-
-              <div class="form-group">
-                <label for="lote_numero">Número de Lote *</label>
-                <input 
-                  type="number" 
-                  id="lote_numero" 
-                  name="lote_numero"
-                  [(ngModel)]="loteForm.lote" 
-                  required
-                  min="1"
-                  class="form-control">
-              </div>
-
-              <div class="form-group">
-                <label for="lote_manzana">Manzana *</label>
-                <input 
-                  type="number" 
-                  id="lote_manzana" 
-                  name="lote_manzana"
-                  [(ngModel)]="loteForm.manzana" 
-                  required
-                  min="1"
-                  class="form-control">
-              </div>
-
-              <div class="form-group">
-                <label for="lote_servicio_polo">ID Servicio Polo *</label>
-                <input 
-                  type="number" 
-                  id="lote_servicio_polo" 
-                  name="lote_servicio_polo"
-                  [(ngModel)]="loteForm.id_servicio_polo" 
-                  required
-                  class="form-control">
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="button" class="btn btn-secondary" (click)="resetForms()">
-                Cancelar
-              </button>
-              <button 
-                type="submit" 
-                class="btn btn-primary" 
-                [disabled]="loading || loteFormRef.invalid">
-                {{ loading ? 'Guardando...' : 'Crear Lote' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Lotes List -->
-      <div class="data-table">
-        <div class="table-header">
-          <h3>Lotes Registrados</h3>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Dueño</th>
-                <th>Lote</th>
-                <th>Manzana</th>
-                <th>ID Servicio Polo</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let lote of lotes">
-                <td>{{ lote.dueno }}</td>
-                <td>{{ lote.lote }}</td>
-                <td>{{ lote.manzana }}</td>
-                <td>{{ lote.id_servicio_polo }}</td>
-                <td class="actions">
-                  <button class="btn btn-sm btn-danger" (click)="deleteLote(lote.id_lotes)">
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-              <tr *ngIf="lotes.length === 0">
-                <td colspan="5" class="text-center">No hay lotes registrados</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
 
   </main>
 </div>

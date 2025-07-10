@@ -939,3 +939,62 @@ table tr:last-child td {
     max-width: none !important;
   }
 }
+
+
+/* Info Box Styles */
+.info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.info-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9ecef;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.info-content h4 {
+  margin: 0 0 8px 0;
+  color: #495057;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.info-content p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Dark mode support for info box */
+@media (prefers-color-scheme: dark) {
+  .info-box {
+    background: #383838;
+    border-color: #555;
+  }
+  
+  .info-icon {
+    background: #505050;
+  }
+  
+  .info-content h4 {
+    color: #e0e0e0;
+  }
+  
+  .info-content p {
+    color: #a0a0a0;
+  }
+}

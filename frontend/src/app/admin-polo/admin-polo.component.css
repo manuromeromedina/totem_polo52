@@ -124,6 +124,16 @@
   border-radius: 8px;
   font-weight: 500;
   animation: slideDown 0.3s ease-out;
+  /* AGREGAR ESTAS LÍNEAS: */
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  width: 90%;
+  max-width: 600px;
+  margin: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .message.success {
@@ -139,8 +149,14 @@
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateX(-50%) translateY(-100%);
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* Buttons */
@@ -203,6 +219,17 @@
   transform: none !important;
 }
 
+
+.btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
 /* Form Modal */
 .form-modal {
   position: fixed;
@@ -214,7 +241,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1000; /* MANTENER ESTE VALOR */
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -725,5 +752,57 @@ table tr:last-child td {
   
   .text-center {
     color: #a0a0a0;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 200px;
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+}
+
+.association-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.btn-xs {
+  padding: 4px 8px;
+  font-size: 11px;
+  min-height: 28px;
+  border-radius: 4px;
+}
+
+.association-buttons .btn-xs {
+  flex: 1;
+  min-width: 60px;
+}
+
+@media (max-width: 768px) {
+  .actions {
+    min-width: 150px;
+  }
+  
+  .action-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .association-buttons {
+    gap: 2px;
+  }
+  
+  .btn-xs {
+    font-size: 10px;
+    padding: 3px 6px;
+    min-height: 24px;
   }
 }
