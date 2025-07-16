@@ -7,6 +7,10 @@ import re
 
 PASSWORD_REGEX = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$'
 
+
+
+
+
 # ──────────────────────────────────────────────────────────
 # DTOs de autenticación
 # ──────────────────────────────────────────────────────────
@@ -103,6 +107,38 @@ class PasswordResetConfirm(BaseModel):
     class Config:
         from_attributes = True
 
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS PARA TIPOS - Agregar al final de tu archivo schemas.py
+# ═══════════════════════════════════════════════════════════════════
+
+class TipoVehiculoOut(BaseModel):
+    id_tipo_vehiculo: int
+    tipo: str
+
+    class Config:
+        from_attributes = True
+
+class TipoServicioOut(BaseModel):
+    id_tipo_servicio: int
+    tipo: str
+
+    class Config:
+        from_attributes = True
+
+class TipoContactoOut(BaseModel):
+    id_tipo_contacto: int
+    tipo: str
+
+    class Config:
+        from_attributes = True
+class TipoServicioPoloOut(BaseModel):
+    id_tipo_servicio_polo: int
+    tipo: str
+
+    class Config:
+        from_attributes = True
 
 # ──────────────────────────────────────────────────────────
 # admin_polo DTOs
@@ -320,7 +356,7 @@ class VehiculoOut(BaseModel):
     horarios: str                   # QUITA Optional
     frecuencia: str                 # QUITA Optional
     datos: dict                     # QUITA Optional
-    tipo_vehiculo: Optional[str] = None  # AGREGA ESTE CAMPO
+    tipo_vehiculo: Optional[TipoVehiculoOut] = None  # <- pero esto espera una relación, no un string
 
     class Config:
         from_attributes = True
@@ -552,34 +588,3 @@ class UserOut(BaseModel):
 
 
 
-
-# ═══════════════════════════════════════════════════════════════════
-# SCHEMAS PARA TIPOS - Agregar al final de tu archivo schemas.py
-# ═══════════════════════════════════════════════════════════════════
-
-class TipoVehiculoOut(BaseModel):
-    id_tipo_vehiculo: int
-    tipo: str
-
-    class Config:
-        from_attributes = True
-
-class TipoServicioOut(BaseModel):
-    id_tipo_servicio: int
-    tipo: str
-
-    class Config:
-        from_attributes = True
-
-class TipoContactoOut(BaseModel):
-    id_tipo_contacto: int
-    tipo: str
-
-    class Config:
-        from_attributes = True
-class TipoServicioPoloOut(BaseModel):
-    id_tipo_servicio_polo: int
-    tipo: str
-
-    class Config:
-        from_attributes = True

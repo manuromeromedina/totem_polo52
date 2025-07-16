@@ -22,7 +22,7 @@ app = FastAPI(
 # Configurar CORS para permitir solicitudes desde el frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Temporal para debugging
+    allow_origins=["http://localhost:4200"],  # Origen explícito
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
