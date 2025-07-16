@@ -240,19 +240,31 @@ onSubmitPassword(): void {
   }
 
   // SERVICIOS
-  openServicioForm(servicio?: Servicio): void {
-    if (servicio) {
-      this.editingServicio = servicio;
-      this.servicioForm = {
-        datos: servicio.datos,
-        id_tipo_servicio: servicio.id_tipo_servicio
-      };
-    } else {
-      this.editingServicio = null;
-      this.servicioForm = { datos: {}, id_tipo_servicio: 1 };
-    }
-    this.showServicioForm = true;
+ openServicioForm(servicio?: Servicio): void {
+  if (servicio) {
+    this.editingServicio = servicio;
+    this.servicioForm = {
+      id_tipo_servicio: servicio.id_tipo_servicio,
+      datos: { ...servicio.datos } // Clonamos para no mutar directamente
+    };
+  } else {
+    this.editingServicio = null;
+    this.servicioForm = {
+      id_tipo_servicio: 1,
+      datos: {}
+    };
   }
+
+  // Llamamos para inicializar datos según tipo
+  this.onTipoServicioChange();
+
+  // Si estamos editando, sobreescribimos con los datos reales para no perderlos
+  if (this.editingServicio) {
+    this.servicioForm.datos = { ...servicio?.datos };
+  }
+
+  this.showServicioForm = true;
+}
 
   onSubmitServicio(): void {
     this.loading = true;
@@ -306,6 +318,46 @@ onSubmitPassword(): void {
       });
     }
   }
+
+
+
+  // Método que se llama al cambiar el tipo de servicio en el select
+onTipoServicioChange(): void {
+  // Reseteamos los datos para evitar datos residuales al cambiar tipo
+  this.servicioForm.datos = {};
+
+  // Inicializar con valores vacíos o por defecto según el tipo seleccionado
+  switch (this.servicioForm.id_tipo_servicio) {
+    case 1: // Agua
+      this.servicioForm.datos = {
+        biofiltro: '',
+        tratamiento_aguas_grises: ''
+      };
+      break;
+    case 2: // Espacios verdes
+      this.servicioForm.datos = {
+        abierto: '',
+        m2: null
+      };
+      break;
+    case 3: // Internet
+      this.servicioForm.datos = {
+        tipo: '',
+        proveedor: ''
+      };
+      break;
+    case 4: // Residuos
+      this.servicioForm.datos = {
+        tipo: '',
+        cantidad: null
+      };
+      break;
+    default:
+      this.servicioForm.datos = {};
+  }
+}
+
+
 
   // CONTACTOS
   openContactoForm(contacto?: Contacto): void {

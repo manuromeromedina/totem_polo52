@@ -43,7 +43,6 @@ def update_password(
 
 
 # ─── Vehiculos ────────────────────────────────────────────────────────
-
 @router.post("/vehiculos", response_model=schemas.VehiculoOut, summary="Crear un vehículo")
 def create_vehiculo(
     dto: schemas.VehiculoCreate,
@@ -51,22 +50,15 @@ def create_vehiculo(
     db: Session = Depends(get_db),
 ):
     try:
-        print(f"🚗 Datos recibidos: {dto.model_dump()}")
-        print(f"👤 Usuario: {current_user.nombre}, CUIL: {current_user.cuil}")
-        
-        # Verificar que el tipo de vehículo existe
         tipo_vehiculo = db.query(models.TipoVehiculo).filter(
             models.TipoVehiculo.id_tipo_vehiculo == dto.id_tipo_vehiculo
         ).first()
         
         if not tipo_vehiculo:
-            print(f"❌ Tipo de vehículo {dto.id_tipo_vehiculo} no existe")
             raise HTTPException(status_code=400, detail=f"Tipo de vehículo {dto.id_tipo_vehiculo} no existe")
+        
         validar_datos_vehiculo(dto, tipo_vehiculo)
 
-        
-        print(f"✅ Tipo de vehículo encontrado: {tipo_vehiculo.tipo}")
-        
         v = models.Vehiculo(
             id_tipo_vehiculo=dto.id_tipo_vehiculo,
             horarios=dto.horarios,
@@ -75,16 +67,10 @@ def create_vehiculo(
         )
         db.add(v)
         db.flush()  # para obtener v.id_vehiculo
-        
-        print(f"✅ Vehículo creado con ID: {v.id_vehiculo}")
 
-        # Verificar que la empresa existe
         empresa = db.query(models.Empresa).filter(models.Empresa.cuil == current_user.cuil).first()
         if not empresa:
-            print(f"❌ Empresa con CUIL {current_user.cuil} no existe")
             raise HTTPException(status_code=400, detail=f"Empresa con CUIL {current_user.cuil} no existe")
-        
-        print(f"✅ Empresa encontrada: {empresa.nombre}")
 
         link = models.VehiculosEmpresa(
             id_vehiculo=v.id_vehiculo,
@@ -93,20 +79,26 @@ def create_vehiculo(
         db.add(link)
         db.commit()
         db.refresh(v)
-        
-        print(f"✅ Link creado exitosamente")
-        return v
+
+        # Construir objeto de respuesta conforme schemas.VehiculoOut
+        tipo_vehiculo_out = schemas.TipoVehiculoOut(
+            id_tipo_vehiculo=tipo_vehiculo.id_tipo_vehiculo,
+            tipo=tipo_vehiculo.tipo,
+        )
+        return schemas.VehiculoOut(
+            id_vehiculo=v.id_vehiculo,
+            id_tipo_vehiculo=v.id_tipo_vehiculo,
+            horarios=v.horarios,
+            frecuencia=v.frecuencia,
+            datos=v.datos,
+            tipo_vehiculo=tipo_vehiculo_out,
+        )
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error en create_vehiculo: {str(e)}")
-        print(f"❌ Tipo de error: {type(e)}")
-        import traceback
-        print(f"❌ Traceback: {traceback.format_exc()}")
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
-
 
 @router.put("/vehiculos/{veh_id}", response_model=schemas.VehiculoOut, summary="Actualizar un vehículo")
 def update_vehiculo(
@@ -127,15 +119,32 @@ def update_vehiculo(
     if not v:
         raise HTTPException(status_code=404, detail="Vehículo no existe")
     
-    # Corregir este loop
-    for f in ("horarios", "frecuencia", "datos", "id_tipo_vehiculo"):  # Cambia "id_tipo_vehiculos" por "id_tipo_vehiculo"
+    for f in ("horarios", "frecuencia", "datos", "id_tipo_vehiculo"):
         val = getattr(dto, f, None)
         if val is not None:
             setattr(v, f, val)
-    
     db.commit()
     db.refresh(v)
-    return v
+
+    tipo_vehiculo = db.query(models.TipoVehiculo).filter(
+        models.TipoVehiculo.id_tipo_vehiculo == v.id_tipo_vehiculo
+    ).first()
+    tipo_vehiculo_out = None
+    if tipo_vehiculo:
+        tipo_vehiculo_out = schemas.TipoVehiculoOut(
+            id_tipo_vehiculo=tipo_vehiculo.id_tipo_vehiculo,
+            tipo=tipo_vehiculo.tipo,
+        )
+
+    return schemas.VehiculoOut(
+        id_vehiculo=v.id_vehiculo,
+        id_tipo_vehiculo=v.id_tipo_vehiculo,
+        horarios=v.horarios,
+        frecuencia=v.frecuencia,
+        datos=v.datos,
+        tipo_vehiculo=tipo_vehiculo_out,
+    )
+
 
 @router.delete("/vehiculos/{veh_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un vehículo")
 def delete_vehiculo(
@@ -313,14 +322,18 @@ def update_my_company(
     # Como response_model=EmpresaSelfOut, FastAPI sólo serializa
     # cant_empleados, observaciones y horario_trabajo
     return emp
-
-
 def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
-    # Creamos las listas para cada relación de la empresa
     vehs = []
     for v in emp.vehiculos_emp:
         veh = v.vehiculo
-        tipo_vehiculo = veh.tipo_vehiculo.tipo if veh.tipo_vehiculo else None  # Obtener el tipo de vehículo
+        if veh.tipo_vehiculo:
+            tipo_vehiculo = schemas.TipoVehiculoOut(
+                id_tipo_vehiculo=veh.tipo_vehiculo.id_tipo_vehiculo,
+                tipo=veh.tipo_vehiculo.tipo,
+            )
+        else:
+            tipo_vehiculo = None
+
         vehs.append(
             schemas.VehiculoOut(
                 id_vehiculo=veh.id_vehiculo,
@@ -328,13 +341,21 @@ def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
                 horarios=veh.horarios,
                 frecuencia=veh.frecuencia,
                 datos=veh.datos,
-                tipo_vehiculo=tipo_vehiculo  # Incluir el tipo de vehículo
+                tipo_vehiculo=tipo_vehiculo  # Ahora es un objeto TipoVehiculoOut o None
             )
         )
 
+    # Lo mismo podés hacer con contactos, si necesitas que el campo tipo_contacto sea un objeto:
     conts = []
     for c in emp.contactos:
-        tipo_contacto = c.tipo_contacto.tipo if c.tipo_contacto else None  # Obtener el tipo de contacto
+        if c.tipo_contacto:
+            tipo_contacto = schemas.TipoContactoOut(
+                id_tipo_contacto=c.tipo_contacto.id_tipo_contacto,
+                tipo=c.tipo_contacto.tipo,
+            )
+        else:
+            tipo_contacto = None
+
         conts.append(
             schemas.ContactoOut(
                 id_contacto=c.id_contacto,
@@ -344,9 +365,14 @@ def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
                 datos=c.datos,
                 direccion=c.direccion,
                 id_servicio_polo=c.id_servicio_polo,
-                tipo_contacto=tipo_contacto  # Incluir el tipo de contacto
+                tipo_contacto=tipo_contacto  # Pasa objeto o None
             )
         )
+
+    # Completar demás relaciones (servicios_polo, servicios) similarmente
+
+
+
 
     # Servicios propios de la empresa (servicios que no están asociados a servicios del polo)
     servicios = []

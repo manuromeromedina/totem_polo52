@@ -15,28 +15,32 @@
 
   <!-- Navigation Tabs -->
   <nav class="tab-navigation">
-    <button 
-      class="tab-button" 
+    <button
+      class="tab-button"
       [class.active]="activeTab === 'empresas'"
-      (click)="setActiveTab('empresas')">
+      (click)="setActiveTab('empresas')"
+    >
       Empresas
     </button>
-    <button 
-      class="tab-button" 
+    <button
+      class="tab-button"
       [class.active]="activeTab === 'usuarios'"
-      (click)="setActiveTab('usuarios')">
+      (click)="setActiveTab('usuarios')"
+    >
       Usuarios
     </button>
-    <button 
-      class="tab-button" 
+    <button
+      class="tab-button"
       [class.active]="activeTab === 'servicios'"
-      (click)="setActiveTab('servicios')">
+      (click)="setActiveTab('servicios')"
+    >
       Servicios del Polo
     </button>
-    <button 
-      class="tab-button" 
+    <button
+      class="tab-button"
       [class.active]="activeTab === 'lotes'"
-      (click)="setActiveTab('lotes')">
+      (click)="setActiveTab('lotes')"
+    >
       Lotes
     </button>
   </nav>
@@ -48,7 +52,6 @@
 
   <!-- Main Content -->
   <main class="main-content">
-    
     <!-- EMPRESAS TAB -->
     <div *ngIf="activeTab === 'empresas'" class="tab-content">
       <div class="section-header">
@@ -62,90 +65,107 @@
       <div *ngIf="showEmpresaForm" class="form-modal">
         <div class="form-container">
           <div class="form-header">
-            <h3>{{ editingEmpresa ? 'Editar Empresa' : 'Nueva Empresa' }}</h3>
+            <h3>{{ editingEmpresa ? "Editar Empresa" : "Nueva Empresa" }}</h3>
             <button class="close-btn" (click)="resetForms()">&times;</button>
           </div>
-          
+
           <form (ngSubmit)="onSubmitEmpresa()" #empresaFormRef="ngForm">
             <div class="form-grid">
               <div class="form-group">
                 <label for="cuil">CUIL *</label>
-                <input 
-                  type="number" 
-                  id="cuil" 
+                <input
+                  type="number"
+                  id="cuil"
                   name="cuil"
-                  [(ngModel)]="empresaForm.cuil" 
+                  [(ngModel)]="empresaForm.cuil"
                   required
                   [disabled]="!!editingEmpresa"
-                  class="form-control">
+                  class="form-control"
+                />
               </div>
 
               <div class="form-group">
                 <label for="nombre">Nombre *</label>
-                <input 
-                  type="text" 
-                  id="nombre" 
+                <input
+                  type="text"
+                  id="nombre"
                   name="nombre"
-                  [(ngModel)]="empresaForm.nombre" 
+                  [(ngModel)]="empresaForm.nombre"
                   required
-                  class="form-control">
+                  class="form-control"
+                />
               </div>
 
               <div class="form-group">
                 <label for="rubro">Rubro *</label>
-                <input 
-                  type="text" 
-                  id="rubro" 
+                <input
+                  type="text"
+                  id="rubro"
                   name="rubro"
-                  [(ngModel)]="empresaForm.rubro" 
+                  [(ngModel)]="empresaForm.rubro"
                   required
-                  class="form-control">
+                  class="form-control"
+                />
               </div>
 
               <div class="form-group" *ngIf="!editingEmpresa">
                 <label for="cant_empleados">Cantidad de Empleados *</label>
-                <input 
-                  type="number" 
-                  id="cant_empleados" 
+                <input
+                  type="number"
+                  id="cant_empleados"
                   name="cant_empleados"
-                  [(ngModel)]="empresaForm.cant_empleados" 
+                  [(ngModel)]="empresaForm.cant_empleados"
                   required
                   min="1"
-                  class="form-control">
+                  class="form-control"
+                />
               </div>
 
               <div class="form-group full-width" *ngIf="!editingEmpresa">
                 <label for="horario_trabajo">Horario de Trabajo *</label>
-                <input 
-                  type="text" 
-                  id="horario_trabajo" 
+                <input
+                  type="text"
+                  id="horario_trabajo"
                   name="horario_trabajo"
-                  [(ngModel)]="empresaForm.horario_trabajo" 
+                  [(ngModel)]="empresaForm.horario_trabajo"
                   required
                   placeholder="Ej: Lunes a Viernes 8:00 - 17:00"
-                  class="form-control">
+                  class="form-control"
+                />
               </div>
 
               <div class="form-group full-width" *ngIf="!editingEmpresa">
                 <label for="observaciones">Observaciones</label>
-                <textarea 
-                  id="observaciones" 
+                <textarea
+                  id="observaciones"
                   name="observaciones"
-                  [(ngModel)]="empresaForm.observaciones" 
+                  [(ngModel)]="empresaForm.observaciones"
                   rows="3"
-                  class="form-control"></textarea>
+                  class="form-control"
+                ></textarea>
               </div>
             </div>
 
             <div class="form-actions">
-              <button type="button" class="btn btn-secondary" (click)="resetForms()">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="resetForms()"
+              >
                 Cancelar
               </button>
-              <button 
-                type="submit" 
-                class="btn btn-primary" 
-                [disabled]="loading || empresaFormRef.invalid">
-                {{ loading ? 'Guardando...' : (!!editingEmpresa ? 'Actualizar' : 'Crear') }}
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="loading || empresaFormRef.invalid"
+              >
+                {{
+                  loading
+                    ? "Guardando..."
+                    : !!editingEmpresa
+                    ? "Actualizar"
+                    : "Crear"
+                }}
               </button>
             </div>
           </form>
@@ -153,77 +173,88 @@
       </div>
 
       <!-- Empresas List -->
-<div class="data-table">
-  <div class="table-header">
-    <h3>Empresas Registradas</h3>
-  </div>
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>CUIL</th>
-          <th>Nombre</th>
-          <th>Rubro</th>
-          <th>Empleados</th>
-          <th>Fecha Ingreso</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let empresa of empresas">
-          <td>{{ empresa.cuil }}</td>
-          <td>{{ empresa.nombre }}</td>
-          <td>{{ empresa.rubro }}</td>
-          <td>{{ empresa.cant_empleados }}</td>
-          <td>{{ empresa.fecha_ingreso | date:'dd/MM/yyyy' }}</td>
-          <td class="actions">
-            <!-- Acciones principales -->
-            <div class="action-row">
-              <button class="btn btn-sm btn-secondary" (click)="openEmpresaForm(empresa)">
-                Editar
-              </button>
-              <button class="btn btn-sm btn-danger" (click)="deleteEmpresa(empresa.cuil)">
-                Eliminar
-              </button>
-            </div>
-            
-            <!-- Botones de asociación -->
-            <div class="association-buttons">
-                <button class="btn btn-xs btn-primary" 
-                        (click)="createUsuarioForEmpresa(empresa)" 
-                        title="Crear usuario para esta empresa">
-                  + Usuario
-                </button>
-                <button class="btn btn-xs btn-primary" 
-                        (click)="createServicioPoloForEmpresa(empresa)" 
-                        title="Crear servicio del polo para esta empresa">
-                  + Servicio
-                </button>
-                <button class="btn btn-xs btn-primary" 
-                        (click)="createLoteForEmpresa(empresa)" 
-                        title="Crear lote para esta empresa">
-                  + Lote
-                </button>
-            </div>
-          </td>
-        </tr>
-        <tr *ngIf="empresas.length === 0">
-          <td colspan="6" class="text-center">No hay empresas registradas</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
+      <div class="data-table">
+        <div class="table-header">
+          <h3>Empresas Registradas</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>CUIL</th>
+                <th>Nombre</th>
+                <th>Rubro</th>
+                <th>Empleados</th>
+                <th>Fecha Ingreso</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let empresa of empresas">
+                <td>{{ empresa.cuil }}</td>
+                <td>{{ empresa.nombre }}</td>
+                <td>{{ empresa.rubro }}</td>
+                <td>{{ empresa.cant_empleados }}</td>
+                <td>{{ empresa.fecha_ingreso | date : "dd/MM/yyyy" }}</td>
+                <td class="actions">
+                  <!-- Acciones principales -->
+                  <div class="action-row">
+                    <button
+                      class="btn btn-sm btn-secondary"
+                      (click)="openEmpresaForm(empresa)"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      class="btn btn-sm btn-danger"
+                      (click)="deleteEmpresa(empresa.cuil)"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+
+                  <!-- Botones de asociación -->
+                  <div class="association-buttons">
+                    <button
+                      class="btn btn-xs btn-primary"
+                      (click)="createUsuarioForEmpresa(empresa)"
+                      title="Crear usuario para esta empresa"
+                    >
+                      + Usuario
+                    </button>
+                    <button
+                      class="btn btn-xs btn-primary"
+                      (click)="createServicioPoloForEmpresa(empresa)"
+                      title="Crear servicio del polo para esta empresa"
+                    >
+                      + Servicio
+                    </button>
+                    <button
+                      class="btn btn-xs btn-primary"
+                      (click)="createLoteForEmpresa(empresa)"
+                      title="Crear lote para esta empresa"
+                    >
+                      + Lote
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="empresas.length === 0">
+                <td colspan="6" class="text-center">
+                  No hay empresas registradas
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- USUARIOS TAB -->
     <div *ngIf="activeTab === 'usuarios'" class="tab-content">
       <div class="section-header">
         <h2>Gestión de Usuarios</h2>
-        
       </div>
-
-      
 
       <!-- Usuarios List -->
       <div class="data-table">
@@ -248,25 +279,34 @@
                 <td>{{ usuario.email }}</td>
                 <td>{{ usuario.cuil }}</td>
                 <td>
-                  <span class="badge" [class]="usuario.estado ? 'badge-success' : 'badge-danger'">
-                    {{ usuario.estado ? 'Activo' : 'Inactivo' }}
+                  <span
+                    class="badge"
+                    [class]="usuario.estado ? 'badge-success' : 'badge-danger'"
+                  >
+                    {{ usuario.estado ? "Activo" : "Inactivo" }}
                   </span>
                 </td>
-                <td>{{ usuario.fecha_registro | date:'dd/MM/yyyy' }}</td>
+                <td>{{ usuario.fecha_registro | date : "dd/MM/yyyy" }}</td>
                 <td class="actions">
-                  <button class="btn btn-sm btn-secondary" (click)="openUsuarioForm(usuario)">
+                  <button
+                    class="btn btn-sm btn-secondary"
+                    (click)="openUsuarioForm(usuario)"
+                  >
                     Editar
                   </button>
-                  <button 
-                      class="btn btn-sm" 
-                      [class]="usuario.estado ? 'btn-danger' : 'btn-success'"
-                      (click)="toggleUsuarioEstado(usuario)">
-                      {{ usuario.estado ? 'Inhabilitar' : 'Habilitar' }}
-                    </button>
+                  <button
+                    class="btn btn-sm"
+                    [class]="usuario.estado ? 'btn-danger' : 'btn-success'"
+                    (click)="toggleUsuarioEstado(usuario)"
+                  >
+                    {{ usuario.estado ? "Inhabilitar" : "Habilitar" }}
+                  </button>
                 </td>
               </tr>
               <tr *ngIf="usuarios.length === 0">
-                <td colspan="6" class="text-center">No hay usuarios registrados</td>
+                <td colspan="6" class="text-center">
+                  No hay usuarios registrados
+                </td>
               </tr>
             </tbody>
           </table>
@@ -278,10 +318,7 @@
     <div *ngIf="activeTab === 'servicios'" class="tab-content">
       <div class="section-header">
         <h2>Servicios del Polo</h2>
-        
       </div>
-
-      
 
       <!-- Servicios Polo List -->
       <div class="data-table">
@@ -304,17 +341,27 @@
               <tr *ngFor="let servicio of serviciosPolo">
                 <td>{{ servicio.nombre }}</td>
                 <td>{{ servicio.cuil }}</td>
-                <td>{{ servicio.horario || 'No especificado' }}</td>
-                <td>{{ servicio.propietario || 'No especificado' }}</td>
-                <td>{{ servicio.tipo_servicio_polo || 'Tipo ' + servicio.id_tipo_servicio_polo }}</td>
+                <td>{{ servicio.horario || "No especificado" }}</td>
+                <td>{{ servicio.propietario || "No especificado" }}</td>
+                <td>
+                  {{
+                    servicio.tipo_servicio_polo ||
+                      "Tipo " + servicio.id_tipo_servicio_polo
+                  }}
+                </td>
                 <td class="actions">
-                  <button class="btn btn-sm btn-danger" (click)="deleteServicioPolo(servicio.id_servicio_polo)">
+                  <button
+                    class="btn btn-sm btn-danger"
+                    (click)="deleteServicioPolo(servicio.id_servicio_polo)"
+                  >
                     Eliminar
                   </button>
                 </td>
               </tr>
               <tr *ngIf="serviciosPolo.length === 0">
-                <td colspan="6" class="text-center">No hay servicios del polo registrados</td>
+                <td colspan="6" class="text-center">
+                  No hay servicios del polo registrados
+                </td>
               </tr>
             </tbody>
           </table>
@@ -326,10 +373,7 @@
     <div *ngIf="activeTab === 'lotes'" class="tab-content">
       <div class="section-header">
         <h2>Gestión de Lotes</h2>
-       
       </div>
-
-      
 
       <!-- Lotes List -->
       <div class="data-table">
@@ -354,13 +398,18 @@
                 <td>{{ lote.manzana }}</td>
                 <td>{{ lote.id_servicio_polo }}</td>
                 <td class="actions">
-                  <button class="btn btn-sm btn-danger" (click)="deleteLote(lote.id_lotes)">
+                  <button
+                    class="btn btn-sm btn-danger"
+                    (click)="deleteLote(lote.id_lotes)"
+                  >
                     Eliminar
                   </button>
                 </td>
               </tr>
               <tr *ngIf="lotes.length === 0">
-                <td colspan="5" class="text-center">No hay lotes registrados</td>
+                <td colspan="5" class="text-center">
+                  No hay lotes registrados
+                </td>
               </tr>
             </tbody>
           </table>
@@ -368,279 +417,409 @@
       </div>
     </div>
 
-
-<!-- Usuario Form -->
-      <div *ngIf="showUsuarioForm" class="form-modal">
-        <div class="form-container">
-          <div class="form-header">
-            <h3>{{ editingUsuario ? 'Editar Usuario' : 'Nuevo Usuario' }}</h3>
-            <button class="close-btn" (click)="resetForms()">&times;</button>
-          </div>
-          
-          <form (ngSubmit)="onSubmitUsuario()" #usuarioFormRef="ngForm">
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="user_email">Email *</label>
-                <input 
-                  type="email" 
-                  id="user_email" 
-                  name="user_email"
-                  [(ngModel)]="usuarioForm.email" 
-                  required
-                  class="form-control">
-              </div>
-
-              <div class="form-group">
-                <label for="user_nombre">Nombre de Usuario *</label>
-                <input 
-                  type="text" 
-                  id="user_nombre" 
-                  name="user_nombre"
-                  [(ngModel)]="usuarioForm.nombre" 
-                  required
-                  [disabled]="!!editingUsuario"
-                  class="form-control">
-              </div>
-
-              <div class="form-group" *ngIf="!editingUsuario">
-                <label for="user_password">Contraseña *</label>
-                <input 
-                  type="password" 
-                  id="user_password" 
-                  name="user_password"
-                  [(ngModel)]="usuarioForm.password" 
-                  [required]="!editingUsuario"
-                  class="form-control">
-              </div>
-
-              <div class="form-group">
-                  <label for="user_cuil">CUIL de Empresa *</label>
-                  <input 
-                    type="number" 
-                    id="user_cuil" 
-                    name="user_cuil"
-                    [(ngModel)]="usuarioForm.cuil" 
-                    required
-                    [disabled]="!!editingUsuario || creatingForEmpresa"
-                    class="form-control">
-                  <small *ngIf="selectedEmpresa" class="text-muted">
-                    Asociado a: {{ selectedEmpresa.nombre }}
-                  </small>
-                </div>
-
-              <div class="form-group" *ngIf="editingUsuario">
-                <label for="user_password_edit">Nueva Contraseña</label>
-                <input 
-                  type="password" 
-                  id="user_password_edit" 
-                  name="user_password_edit"
-                  [(ngModel)]="usuarioForm.password" 
-                  class="form-control">
-              </div>
-
-              <div class="form-group" *ngIf="!editingUsuario">
-                <label for="user_rol">Rol *</label>
-                <select 
-                        id="user_rol" 
-                        name="user_rol"
-                        [(ngModel)]="usuarioForm.id_rol" 
-                        required
-                        class="form-control">
-                        <option value="0">Seleccionar rol</option>  <!-- CAMBIAR value="" por value="0" -->
-                        <option *ngFor="let rol of roles" [value]="rol.id_rol">
-                          {{ rol.tipo_rol }}
-                        </option>
-                      </select>
-              </div>
-
-              <div class="form-group">
-                <label class="checkbox-label">
-                  <input 
-                    type="checkbox" 
-                    name="user_estado"
-                    [(ngModel)]="usuarioForm.estado">
-                  Usuario Activo
-                </label>
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="button" class="btn btn-secondary" (click)="resetForms()">
-                Cancelar
-              </button>
-              <button 
-                type="submit" 
-                class="btn btn-primary" 
-                [disabled]="loading || usuarioFormRef.invalid">
-                {{ loading ? 'Guardando...' : (!!editingUsuario ? 'Actualizar' : 'Crear') }}
-              </button>
-            </div>
-          </form>
+    <!-- Usuario Form -->
+    <div *ngIf="showUsuarioForm" class="form-modal">
+      <div class="form-container">
+        <div class="form-header">
+          <h3>{{ editingUsuario ? "Editar Usuario" : "Nuevo Usuario" }}</h3>
+          <button class="close-btn" (click)="resetForms()">&times;</button>
         </div>
-      </div>
 
+        <form (ngSubmit)="onSubmitUsuario()" #usuarioFormRef="ngForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="user_email">Email *</label>
+              <input
+                type="email"
+                id="user_email"
+                name="user_email"
+                [(ngModel)]="usuarioForm.email"
+                required
+                class="form-control"
+              />
+            </div>
 
+            <div class="form-group">
+              <label for="user_nombre">Nombre de Usuario *</label>
+              <input
+                type="text"
+                id="user_nombre"
+                name="user_nombre"
+                [(ngModel)]="usuarioForm.nombre"
+                required
+                [disabled]="!!editingUsuario"
+                class="form-control"
+              />
+            </div>
 
+            <div class="form-group" *ngIf="!editingUsuario">
+              <label for="user_password">Contraseña *</label>
+              <input
+                type="password"
+                id="user_password"
+                name="user_password"
+                [(ngModel)]="usuarioForm.password"
+                [required]="!editingUsuario"
+                class="form-control"
+              />
+            </div>
 
-<!-- Lote Form -->
-      <div *ngIf="showLoteForm" class="form-modal">
-        <div class="form-container">
-          <div class="form-header">
-            <h3>Nuevo Lote</h3>
-            <button class="close-btn" (click)="resetForms()">&times;</button>
+            <div class="form-group">
+              <label for="user_cuil">CUIL de Empresa *</label>
+              <input
+                type="number"
+                id="user_cuil"
+                name="user_cuil"
+                [(ngModel)]="usuarioForm.cuil"
+                required
+                [disabled]="!!editingUsuario || creatingForEmpresa"
+                class="form-control"
+              />
+              <small *ngIf="selectedEmpresa" class="text-muted">
+                Asociado a: {{ selectedEmpresa.nombre }}
+              </small>
+            </div>
+
+            <div class="form-group" *ngIf="editingUsuario">
+              <label for="user_password_edit">Nueva Contraseña</label>
+              <input
+                type="password"
+                id="user_password_edit"
+                name="user_password_edit"
+                [(ngModel)]="usuarioForm.password"
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group" *ngIf="!editingUsuario">
+              <label for="user_rol">Rol *</label>
+              <select
+                id="user_rol"
+                name="user_rol"
+                [(ngModel)]="usuarioForm.id_rol"
+                required
+                class="form-control"
+              >
+                <option value="0">Seleccionar rol</option>
+                <!-- CAMBIAR value="" por value="0" -->
+                <option *ngFor="let rol of roles" [value]="rol.id_rol">
+                  {{ rol.tipo_rol }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="user_estado"
+                  [(ngModel)]="usuarioForm.estado"
+                />
+                Usuario Activo
+              </label>
+            </div>
           </div>
-          
-          <form (ngSubmit)="onSubmitLote()" #loteFormRef="ngForm">
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="lote_dueno">Dueño *</label>
-                <input 
-                  type="text" 
-                  id="lote_dueno" 
-                  name="lote_dueno"
-                  [(ngModel)]="loteForm.dueno" 
-                  required
-                  class="form-control">
-              </div>
 
-              <div class="form-group">
-                <label for="lote_numero">Número de Lote *</label>
-                <input 
-                  type="number" 
-                  id="lote_numero" 
-                  name="lote_numero"
-                  [(ngModel)]="loteForm.lote" 
-                  required
-                  min="1"
-                  class="form-control">
-              </div>
-
-              <div class="form-group">
-                <label for="lote_manzana">Manzana *</label>
-                <input 
-                  type="number" 
-                  id="lote_manzana" 
-                  name="lote_manzana"
-                  [(ngModel)]="loteForm.manzana" 
-                  required
-                  min="1"
-                  class="form-control">
-              </div>
-
-              <div class="form-group">
-                <label for="lote_servicio_polo">ID Servicio Polo (Opcional)</label>
-                <input 
-                  type="number" 
-                  id="lote_servicio_polo" 
-                  name="lote_servicio_polo"
-                  [(ngModel)]="loteForm.id_servicio_polo" 
-                  class="form-control">
-                <small class="text-muted">Dejar en blanco si no se asocia a un servicio específico</small>
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="button" class="btn btn-secondary" (click)="resetForms()">
-                Cancelar
-              </button>
-              <button 
-                type="submit" 
-                class="btn btn-primary" 
-                [disabled]="loading || loteFormRef.invalid">
-                {{ loading ? 'Guardando...' : 'Crear Lote' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-
-<!-- Servicio Polo Form -->
-      <div *ngIf="showServicioPoloForm" class="form-modal">
-        <div class="form-container">
-          <div class="form-header">
-            <h3>Nuevo Servicio del Polo</h3>
-            <button class="close-btn" (click)="resetForms()">&times;</button>
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="resetForms()"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="loading || usuarioFormRef.invalid"
+            >
+              {{
+                loading
+                  ? "Guardando..."
+                  : !!editingUsuario
+                  ? "Actualizar"
+                  : "Crear"
+              }}
+            </button>
           </div>
-          
-          <form (ngSubmit)="onSubmitServicioPolo()" #servicioFormRef="ngForm">
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="servicio_nombre">Nombre *</label>
-                <input 
-                  type="text" 
-                  id="servicio_nombre" 
-                  name="servicio_nombre"
-                  [(ngModel)]="servicioPoloForm.nombre" 
-                  required
-                  class="form-control">
-              </div>
-
-              <div class="form-group">
-                <label for="servicio_cuil">CUIL Empresa *</label>
-                <input 
-                  type="number" 
-                  id="servicio_cuil" 
-                  name="servicio_cuil"
-                  [(ngModel)]="servicioPoloForm.cuil" 
-                  required
-                  [disabled]="creatingForEmpresa"
-                  class="form-control">
-                <small *ngIf="selectedEmpresa" class="text-muted">
-                  Asociado a: {{ selectedEmpresa.nombre }}
-                </small>
-              </div>
-
-              <div class="form-group">
-                <label for="servicio_horario">Horario</label>
-                <input 
-                  type="text" 
-                  id="servicio_horario" 
-                  name="servicio_horario"
-                  [(ngModel)]="servicioPoloForm.horario" 
-                  class="form-control">
-              </div>
-
-              <div class="form-group">
-                <label for="servicio_propietario">Propietario</label>
-                <input 
-                  type="text" 
-                  id="servicio_propietario" 
-                  name="servicio_propietario"
-                  [(ngModel)]="servicioPoloForm.propietario" 
-                  class="form-control">
-              </div>
-
-              <div class="form-group">
-                <label for="tipo_servicio_polo">Tipo de Servicio *</label>
-                <select 
-                  id="tipo_servicio_polo" 
-                  name="tipo_servicio_polo"
-                  [(ngModel)]="servicioPoloForm.id_tipo_servicio_polo" 
-                  required
-                  class="form-control">
-                  <option value="1">Servicios Generales</option>
-                  <option value="2">Logística</option>
-                  <option value="3">Seguridad</option>
-                  <option value="4">Mantenimiento</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="button" class="btn btn-secondary" (click)="resetForms()">
-                Cancelar
-              </button>
-              <button 
-                type="submit" 
-                class="btn btn-primary" 
-                [disabled]="loading || servicioFormRef.invalid">
-                {{ loading ? 'Guardando...' : 'Crear Servicio' }}
-              </button>
-            </div>
-          </form>
-        </div>
+        </form>
       </div>
+    </div>
 
+    <!-- Lote Form -->
+    <div *ngIf="showLoteForm" class="form-modal">
+      <div class="form-container">
+        <div class="form-header">
+          <h3>Nuevo Lote</h3>
+          <button class="close-btn" (click)="resetForms()">&times;</button>
+        </div>
+
+        <form (ngSubmit)="onSubmitLote()" #loteFormRef="ngForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="lote_dueno">Dueño *</label>
+              <input
+                type="text"
+                id="lote_dueno"
+                name="lote_dueno"
+                [(ngModel)]="loteForm.dueno"
+                required
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="lote_numero">Número de Lote *</label>
+              <input
+                type="number"
+                id="lote_numero"
+                name="lote_numero"
+                [(ngModel)]="loteForm.lote"
+                required
+                min="1"
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="lote_manzana">Manzana *</label>
+              <input
+                type="number"
+                id="lote_manzana"
+                name="lote_manzana"
+                [(ngModel)]="loteForm.manzana"
+                required
+                min="1"
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="lote_servicio_polo"
+                >ID Servicio Polo (Opcional)</label
+              >
+              <input
+                type="number"
+                id="lote_servicio_polo"
+                name="lote_servicio_polo"
+                [(ngModel)]="loteForm.id_servicio_polo"
+                class="form-control"
+              />
+              <small class="text-muted"
+                >Dejar en blanco si no se asocia a un servicio específico</small
+              >
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="resetForms()"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="loading || loteFormRef.invalid"
+            >
+              {{ loading ? "Guardando..." : "Crear Lote" }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Servicio Polo Form -->
+    <div *ngIf="showServicioPoloForm" class="form-modal">
+      <div class="form-container">
+        <div class="form-header">
+          <h3>Nuevo Servicio del Polo</h3>
+          <button class="close-btn" (click)="resetForms()">&times;</button>
+        </div>
+
+        <form (ngSubmit)="onSubmitServicioPolo()" #servicioFormRef="ngForm">
+          <div class="form-grid">
+            <!-- Nombre -->
+            <div class="form-group">
+              <label for="servicio_nombre">Nombre *</label>
+              <input
+                type="text"
+                id="servicio_nombre"
+                name="servicio_nombre"
+                [(ngModel)]="servicioPoloForm.nombre"
+                required
+                class="form-control"
+              />
+            </div>
+
+            <!-- CUIL -->
+            <div class="form-group">
+              <label for="servicio_cuil">CUIL Empresa *</label>
+              <input
+                type="number"
+                id="servicio_cuil"
+                name="servicio_cuil"
+                [(ngModel)]="servicioPoloForm.cuil"
+                required
+                [disabled]="creatingForEmpresa"
+                class="form-control"
+              />
+              <small *ngIf="selectedEmpresa" class="text-muted">
+                Asociado a: {{ selectedEmpresa.nombre }}
+              </small>
+            </div>
+
+            <!-- Horario -->
+            <div class="form-group">
+              <label for="servicio_horario">Horario</label>
+              <input
+                type="text"
+                id="servicio_horario"
+                name="servicio_horario"
+                [(ngModel)]="servicioPoloForm.horario"
+                class="form-control"
+              />
+            </div>
+
+            <!-- Propietario -->
+            <div class="form-group">
+              <label for="servicio_propietario">Propietario *</label>
+              <select
+                id="servicio_propietario"
+                name="servicio_propietario"
+                [(ngModel)]="servicioPoloForm.propietario"
+                (change)="onPropietarioChange()"
+                required
+                class="form-control"
+              >
+                <option value="">Seleccione</option>
+                <option value="propietario">Propietario</option>
+                <option value="inquilino">Inquilino</option>
+              </select>
+            </div>
+
+            <!-- Tipo de Servicio -->
+            <div class="form-group">
+              <label for="tipo_servicio_polo">Tipo de Servicio *</label>
+              <select
+                id="tipo_servicio_polo"
+                name="tipo_servicio_polo"
+                [(ngModel)]="servicioPoloForm.id_tipo_servicio_polo"
+                (change)="onTipoServicioChange()"
+                required
+                class="form-control"
+              >
+                <option value="1">Coworking</option>
+                <option value="2">Nave</option>
+                <option value="3">Oficina</option>
+                <option value="4">Local Comercial</option>
+                <option value="5">Container</option>
+                <option value="6">Lavadero</option>
+              </select>
+            </div>
+
+            <!-- Cantidad de puestos (obligatorio solo en coworking) -->
+            <div class="form-group">
+              <label for="cant_puestos">
+                Cantidad de puestos
+                <span *ngIf="servicioPoloForm.id_tipo_servicio_polo === 1"
+                  >*</span
+                >
+              </label>
+              <input
+                type="number"
+                id="cant_puestos"
+                name="cant_puestos"
+                [(ngModel)]="servicioPoloForm.datos.cant_puestos"
+                [required]="servicioPoloForm.id_tipo_servicio_polo === 1"
+                class="form-control"
+              />
+            </div>
+
+            <!-- Metros cuadrados (obligatorio solo para tipos 2 a 6) -->
+            <div class="form-group">
+              <label for="m2">
+                Metros cuadrados (m2)
+                <span *ngIf="servicioPoloForm.id_tipo_servicio_polo !== 1"
+                  >*</span
+                >
+              </label>
+              <input
+                type="number"
+                id="m2"
+                name="m2"
+                [(ngModel)]="servicioPoloForm.datos.m2"
+                [required]="servicioPoloForm.id_tipo_servicio_polo !== 1"
+                class="form-control"
+              />
+            </div>
+
+            <!-- Datos del propietario -->
+            <div
+              *ngIf="servicioPoloForm.propietario === 'propietario'"
+              class="form-group"
+            >
+              <label>Nombre del propietario</label>
+              <input
+                type="text"
+                [(ngModel)]="servicioPoloForm.datos.datos_prop.nombre"
+                name="datos_prop_nombre"
+                class="form-control"
+              />
+
+              <label>Contacto del propietario</label>
+              <input
+                type="text"
+                [(ngModel)]="servicioPoloForm.datos.datos_prop.contacto"
+                name="datos_prop_contacto"
+                class="form-control"
+              />
+            </div>
+
+            <!-- Datos del inquilino -->
+            <div
+              *ngIf="servicioPoloForm.propietario === 'inquilino'"
+              class="form-group"
+            >
+              <label>Nombre del inquilino</label>
+              <input
+                type="text"
+                [(ngModel)]="servicioPoloForm.datos.datos_inquilino.nombre"
+                name="datos_inquilino_nombre"
+                class="form-control"
+              />
+
+              <label>Contacto del inquilino</label>
+              <input
+                type="text"
+                [(ngModel)]="servicioPoloForm.datos.datos_inquilino.contacto"
+                name="datos_inquilino_contacto"
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <!-- Botones -->
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="resetForms()"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="loading || servicioFormRef.invalid"
+            >
+              {{ loading ? "Guardando..." : "Crear Servicio" }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </main>
 </div>
