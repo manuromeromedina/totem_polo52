@@ -815,12 +815,13 @@
               id="tipo_contacto"
               name="tipo_contacto"
               [(ngModel)]="contactoForm.id_tipo_contacto"
+              (change)="onTipoContactoChange()"
               required
               class="form-control"
             >
               <option
                 *ngFor="let tipo of tiposContacto"
-                [value]="tipo.id_tipo_contacto"
+                [ngValue]="tipo.id_tipo_contacto"
               >
                 {{ tipo.tipo }}
               </option>
@@ -860,6 +861,46 @@
           </div>
         </div>
 
+        <!-- Campos solo para contacto tipo Comercial (id 1) -->
+        <div *ngIf="contactoForm.id_tipo_contacto == 1">
+          <!-- usa == y no === -->
+          <div class="form-group">
+            <label for="pagina_web">Página web *</label>
+            <input
+              type="text"
+              id="pagina_web"
+              name="pagina_web"
+              [(ngModel)]="contactoForm.datos.pagina_web"
+              class="form-control"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="correo">Correo electrónico *</label>
+            <input
+              type="email"
+              id="correo"
+              name="correo"
+              [(ngModel)]="contactoForm.datos.correo"
+              class="form-control"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="redes_sociales">Redes sociales *</label>
+            <input
+              type="text"
+              id="redes_sociales"
+              name="redes_sociales"
+              [(ngModel)]="contactoForm.datos.redes_sociales"
+              class="form-control"
+              required
+            />
+          </div>
+        </div>
+
         <div class="form-actions">
           <button
             type="button"
@@ -886,30 +927,190 @@
     </div>
   </div>
 
-  <div *ngIf="activeTab === 'serviciosPolo'">
-    <h3>Servicios del Polo vinculados a tu empresa</h3>
-
-    <div *ngIf="empresaData?.servicios_polo?.length === 0">
-      <p>No hay servicios del polo asociados a tu empresa.</p>
+  <!-- SERVICIOS POLO TAB -->
+  <div *ngIf="activeTab === 'serviciosPolo'" class="tab-content">
+    <div class="section-header">
+      <h2>Servicios del Polo</h2>
+      <div class="header-actions">
+        <div class="info-badge">
+          <span class="badge-icon">ℹ️</span>
+          <span>Solo lectura - Gestionados por Admin Polo</span>
+        </div>
+      </div>
     </div>
 
-    <div *ngFor="let sp of empresaData?.servicios_polo" class="card">
-      <h4>{{ sp.nombre }}</h4>
-      <p><strong>Horario:</strong> {{ sp.horario }}</p>
-      <p>
-        <strong>Tipo:</strong>
-        {{ sp.tipo_servicio_polo || "Sin tipo definido" }}
-      </p>
-      <p><strong>Propietario:</strong> {{ sp.propietario }}</p>
-      <p><strong>Datos:</strong> {{ formatDatos(sp.datos) }}</p>
+    <!-- Mensaje de estado -->
+    <div
+      *ngIf="message"
+      class="message"
+      [class.success]="messageType === 'success'"
+      [class.error]="messageType === 'error'"
+    >
+      {{ message }}
+    </div>
 
-      <div *ngIf="sp.lotes?.length > 0">
-        <strong>Lotes asociados:</strong>
-        <ul>
-          <li *ngFor="let lote of sp.lotes">
-            {{ lote.identificador }} - {{ lote.superficie }} m²
-          </li>
-        </ul>
+    <!-- Loading state -->
+    <div *ngIf="loading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Cargando servicios del polo...</p>
+    </div>
+
+    <!-- Servicios Polo List -->
+    <div *ngIf="!loading" class="data-table">
+      <div class="table-header">
+        <h3>
+          Servicios del Polo Vinculados ({{
+            empresaData?.servicios_polo?.length || 0
+          }})
+        </h3>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>Horario</th>
+              <th>Propietario</th>
+              <th>Datos</th>
+              <th>Lotes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let servicioPolo of empresaData?.servicios_polo || []">
+              <td>
+                <span class="service-id">#{{ servicioPolo.id }}</span>
+              </td>
+              <td>
+                <div class="service-name">
+                  <strong>{{ servicioPolo.nombre || "Sin nombre" }}</strong>
+                  <small
+                    *ngIf="servicioPolo.descripcion"
+                    class="service-description"
+                  >
+                    {{ servicioPolo.descripcion }}
+                  </small>
+                </div>
+              </td>
+              <td>
+                <span class="service-type-badge">
+                  {{
+                    getTipoServicioPoloName(servicioPolo.id_tipo_servicio_polo)
+                  }}
+                </span>
+              </td>
+              <td>
+                <span class="schedule-info">
+                  {{ servicioPolo.horario || "No especificado" }}
+                </span>
+              </td>
+              <td>
+                <span class="owner-info">
+                  {{ servicioPolo.propietario || "No especificado" }}
+                </span>
+              </td>
+              <td>
+                <span
+                  class="data-preview"
+                  [title]="formatDatos(servicioPolo.datos)"
+                >
+                  {{ formatDatos(servicioPolo.datos) }}
+                </span>
+              </td>
+              <td>
+                <div
+                  class="lotes-info"
+                  *ngIf="
+                    empresaData &&
+                    empresaData.servicios_polo &&
+                    empresaData.servicios_polo.length > 0
+                  "
+                >
+                  <span class="lotes-count"
+                    >{{ servicioPolo.lotes.length }} lote(s)</span
+                  >
+                  <div class="lotes-tooltip">
+                    <ul>
+                      <li *ngFor="let lote of servicioPolo.lotes">
+                        <strong>{{ lote.identificador }}</strong
+                        ><br />
+                        <small
+                          >{{ lote.superficie }} m² -
+                          {{ lote.estado || "Disponible" }}</small
+                        >
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <span
+                  *ngIf="!servicioPolo.lotes || servicioPolo.lotes.length === 0"
+                  class="no-lotes"
+                >
+                  Sin lotes
+                </span>
+              </td>
+            </tr>
+            <tr
+              *ngIf="
+                !empresaData?.servicios_polo ||
+                empresaData?.servicios_polo?.length === 0
+              "
+            >
+              <td colspan="9" class="text-center">
+                <div class="empty-state">
+                  <div class="empty-icon">🏢</div>
+                  <p>No hay servicios del polo asociados a tu empresa</p>
+                  <small
+                    >Los servicios del polo son gestionados por el administrador
+                    del polo</small
+                  >
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="info-card" *ngIf="tieneServiciosPolo">
+      <div class="card-header">
+        <h3>Información sobre Servicios del Polo</h3>
+      </div>
+      <div class="card-content">
+        <div class="info-box">
+          <div class="info-content">
+            <h4>Servicios de Solo Lectura</h4>
+            <p>
+              Los servicios del polo mostrados aquí son gestionados
+              exclusivamente por el administrador del polo. Tu empresa está
+              vinculada a estos servicios, pero no puedes modificarlos desde
+              esta interfaz.
+            </p>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-content">
+            <h4>¿Necesitas cambios?</h4>
+            <p>
+              Si necesitas modificar algún aspecto de estos servicios o agregar
+              nuevos, contacta al administrador del polo a través de los canales
+              oficiales.
+            </p>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-content">
+            <h4>Resumen de Vinculación</h4>
+            <p>
+              Tu empresa está vinculada a
+              <strong>{{ empresaData?.servicios_polo?.length }}</strong>
+              servicio(s) del polo. Total de lotes disponibles:
+              <strong>{{ getTotalLotes() }}</strong>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   </div>

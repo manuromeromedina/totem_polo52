@@ -515,10 +515,37 @@ export class AdminPoloComponent implements OnInit {
   openServicioPoloForm(): void {
     this.showServicioPoloForm = true;
   }
+  isCantPuestosRequired(): boolean {
+    return this.servicioPoloForm.id_tipo_servicio_polo === 1;
+  }
+
+  isM2Required(): boolean {
+    return this.servicioPoloForm.id_tipo_servicio_polo !== 1;
+  }
 
   onSubmitServicioPolo(): void {
-    this.loading = true;
+    const tipo = this.servicioPoloForm.id_tipo_servicio_polo;
+    const datos = this.servicioPoloForm.datos || {};
 
+    // Validaciones manuales
+    if (tipo === 1 && (!datos.cant_puestos || datos.cant_puestos <= 0)) {
+      this.showMessage(
+        'Debe ingresar la cantidad de puestos para coworking.',
+        'error'
+      );
+      return;
+    }
+
+    if (tipo !== 1 && (!datos.m2 || datos.m2 <= 0)) {
+      this.showMessage(
+        'Debe ingresar los metros cuadrados para este tipo de servicio.',
+        'error'
+      );
+      return;
+    }
+
+    // Enviar
+    this.loading = true;
     this.adminPoloService.createServicioPolo(this.servicioPoloForm).subscribe({
       next: (servicio) => {
         this.showMessage('Servicio del polo creado exitosamente', 'success');
@@ -540,23 +567,14 @@ export class AdminPoloComponent implements OnInit {
   onTipoServicioChange(): void {
     const tipo = this.servicioPoloForm.id_tipo_servicio_polo;
 
-    // Aseguramos la existencia del objeto datos
+    // Aseguramos estructura inicial
     if (!this.servicioPoloForm.datos) {
       this.servicioPoloForm.datos = {};
     }
 
-    // Opcional: limpiar los valores si cambiás de tipo
-    if (tipo === 1) {
-      this.servicioPoloForm.datos.cant_puestos = 0;
-      if (!this.servicioPoloForm.datos.m2) {
-        this.servicioPoloForm.datos.m2 = null;
-      }
-    } else {
-      this.servicioPoloForm.datos.m2 = 0;
-      if (!this.servicioPoloForm.datos.cant_puestos) {
-        this.servicioPoloForm.datos.cant_puestos = null;
-      }
-    }
+    // Limpiar campos al cambiar tipo
+    this.servicioPoloForm.datos.cant_puestos = null;
+    this.servicioPoloForm.datos.m2 = null;
   }
 
   onPropietarioChange(): void {

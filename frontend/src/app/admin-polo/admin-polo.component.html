@@ -711,49 +711,69 @@
                 required
                 class="form-control"
               >
-                <option value="1">Coworking</option>
-                <option value="2">Nave</option>
-                <option value="3">Oficina</option>
-                <option value="4">Local Comercial</option>
-                <option value="5">Container</option>
-                <option value="6">Lavadero</option>
+                <option [ngValue]="1">Coworking</option>
+                <option [ngValue]="2">Nave</option>
+                <option [ngValue]="3">Oficina</option>
+                <option [ngValue]="4">Local Comercial</option>
+                <option [ngValue]="5">Container</option>
+                <option [ngValue]="6">Lavadero</option>
               </select>
             </div>
 
-            <!-- Cantidad de puestos (obligatorio solo en coworking) -->
+            <!-- Cantidad de puestos -->
             <div class="form-group">
               <label for="cant_puestos">
                 Cantidad de puestos
-                <span *ngIf="servicioPoloForm.id_tipo_servicio_polo === 1"
-                  >*</span
-                >
+                <span *ngIf="isCantPuestosRequired()"> *</span>
               </label>
               <input
                 type="number"
                 id="cant_puestos"
                 name="cant_puestos"
                 [(ngModel)]="servicioPoloForm.datos.cant_puestos"
-                [required]="servicioPoloForm.id_tipo_servicio_polo === 1"
+                #cantPuestos="ngModel"
+                [class.is-invalid]="
+                  isCantPuestosRequired() &&
+                  cantPuestos.invalid &&
+                  cantPuestos.touched
+                "
                 class="form-control"
               />
+              <div
+                *ngIf="
+                  isCantPuestosRequired() &&
+                  cantPuestos.invalid &&
+                  cantPuestos.touched
+                "
+                class="text-danger"
+              >
+                Este campo es obligatorio para coworking.
+              </div>
             </div>
 
-            <!-- Metros cuadrados (obligatorio solo para tipos 2 a 6) -->
+            <!-- Metros cuadrados -->
             <div class="form-group">
               <label for="m2">
                 Metros cuadrados (m2)
-                <span *ngIf="servicioPoloForm.id_tipo_servicio_polo !== 1"
-                  >*</span
-                >
+                <span *ngIf="isM2Required()"> *</span>
               </label>
               <input
                 type="number"
                 id="m2"
                 name="m2"
                 [(ngModel)]="servicioPoloForm.datos.m2"
-                [required]="servicioPoloForm.id_tipo_servicio_polo !== 1"
+                #m2Field="ngModel"
+                [class.is-invalid]="
+                  isM2Required() && m2Field.invalid && m2Field.touched
+                "
                 class="form-control"
               />
+              <div
+                *ngIf="isM2Required() && m2Field.invalid && m2Field.touched"
+                class="text-danger"
+              >
+                Este campo es obligatorio para este tipo de servicio.
+              </div>
             </div>
 
             <!-- Datos del propietario -->
