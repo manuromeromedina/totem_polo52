@@ -500,91 +500,95 @@
           class="form-group full-width"
           *ngIf="vehiculoForm.id_tipo_vehiculo == 1"
         >
-          <label for="vehiculo_cantidad">Cantidad *</label>
-          <input
-            type="number"
-            id="vehiculo_cantidad"
-            name="vehiculo_cantidad"
-            [(ngModel)]="vehiculoForm.datos.cantidad"
-            required
-            class="form-control"
-          />
+          <div class="form-grid">
+            <label for="vehiculo_cantidad">Cantidad *</label>
+            <input
+              type="number"
+              id="vehiculo_cantidad"
+              name="vehiculo_cantidad"
+              [(ngModel)]="vehiculoForm.datos.cantidad"
+              required
+              class="form-control"
+            />
 
-          <label for="vehiculo_patente">Patente *</label>
-          <input
-            type="text"
-            id="vehiculo_patente"
-            name="vehiculo_patente"
-            [(ngModel)]="vehiculoForm.datos.patente"
-            required
-            class="form-control"
-          />
+            <label for="vehiculo_patente">Patente *</label>
+            <input
+              type="text"
+              id="vehiculo_patente"
+              name="vehiculo_patente"
+              [(ngModel)]="vehiculoForm.datos.patente"
+              required
+              class="form-control"
+            />
 
-          <label for="vehiculo_carga">Carga *</label>
-          <select
-            id="vehiculo_carga"
-            name="vehiculo_carga"
-            [(ngModel)]="vehiculoForm.datos.carga"
-            required
-            class="form-control"
-          >
-            <option value="baja">Baja</option>
-            <option value="mediana">Mediana</option>
-            <option value="alta">Alta</option>
-          </select>
+            <label for="vehiculo_carga">Carga *</label>
+            <select
+              id="vehiculo_carga"
+              name="vehiculo_carga"
+              [(ngModel)]="vehiculoForm.datos.carga"
+              required
+              class="form-control"
+            >
+              <option value="baja">Baja</option>
+              <option value="mediana">Mediana</option>
+              <option value="alta">Alta</option>
+            </select>
+          </div>
         </div>
-
         <div
           class="form-group full-width"
           *ngIf="vehiculoForm.id_tipo_vehiculo == 2"
         >
-          <label for="vehiculo_cantidad">Cantidad *</label>
-          <input
-            type="number"
-            id="vehiculo_cantidad"
-            name="vehiculo_cantidad"
-            [(ngModel)]="vehiculoForm.datos.cantidad"
-            required
-            class="form-control"
-          />
+          <div class="form-grid">
+            <label for="vehiculo_cantidad">Cantidad *</label>
+            <input
+              type="number"
+              id="vehiculo_cantidad"
+              name="vehiculo_cantidad"
+              [(ngModel)]="vehiculoForm.datos.cantidad"
+              required
+              class="form-control"
+            />
 
-          <label for="vehiculo_patente">Patente *</label>
-          <input
-            type="text"
-            id="vehiculo_patente"
-            name="vehiculo_patente"
-            [(ngModel)]="vehiculoForm.datos.patente"
-            required
-            class="form-control"
-          />
+            <label for="vehiculo_patente">Patente *</label>
+            <input
+              type="text"
+              id="vehiculo_patente"
+              name="vehiculo_patente"
+              [(ngModel)]="vehiculoForm.datos.patente"
+              required
+              class="form-control"
+            />
+          </div>
         </div>
-
         <div
           class="form-group full-width"
           *ngIf="vehiculoForm.id_tipo_vehiculo == 3"
         >
-          <label for="vehiculo_cantidad">Cantidad *</label>
-          <input
-            type="number"
-            id="vehiculo_cantidad"
-            name="vehiculo_cantidad"
-            [(ngModel)]="vehiculoForm.datos.cantidad"
-            required
-            class="form-control"
-          />
+          <div class="form-grid">
+            <label for="vehiculo_cantidad">Cantidad *</label>
+            <input
+              type="number"
+              id="vehiculo_cantidad"
+              name="vehiculo_cantidad"
+              [(ngModel)]="vehiculoForm.datos.cantidad"
+              required
+              class="form-control"
+            />
 
-          <label for="vehiculo_carga">Carga *</label>
-          <select
-            id="vehiculo_carga"
-            name="vehiculo_carga"
-            [(ngModel)]="vehiculoForm.datos.carga"
-            required
-            class="form-control"
-          >
-            <option value="baja">Baja</option>
-            <option value="mediana">Mediana</option>
-            <option value="alta">Alta</option>
-          </select>
+            <label for="vehiculo_carga">Carga *</label>
+            <select
+              id="vehiculo_carga"
+              name="vehiculo_carga"
+              [(ngModel)]="vehiculoForm.datos.carga"
+              required
+              class="form-control"
+            >
+              <option value="baja">Baja</option>
+              <option value="mediana">Mediana</option>
+              <option value="alta">Alta</option>
+            </select>
+          </div>
         </div>
 
         <div class="form-actions">
@@ -789,6 +793,7 @@
   </div>
 
   <!-- Contacto Form Modal -->
+  <!-- Contacto Form Modal -->
   <div *ngIf="showContactoForm" class="form-modal">
     <div class="form-container">
       <div class="form-header">
@@ -837,14 +842,25 @@
               class="form-control"
             />
           </div>
+          <!-- 👈 CAMPO DIRECCIÓN ACTUALIZADO -->
           <div class="form-group">
-            <label for="contacto_direccion">Dirección</label>
+            <label for="contacto_direccion">
+              Dirección
+              <span *ngIf="esTipoComercial()" class="text-danger">*</span>
+            </label>
             <input
               type="text"
               id="contacto_direccion"
               name="contacto_direccion"
               [(ngModel)]="contactoForm.direccion"
+              (ngModelChange)="onDireccionChange()"
+              [required]="esTipoComercial()"
               class="form-control"
+              [placeholder]="
+                esTipoComercial()
+                  ? 'Dirección requerida para contactos comerciales'
+                  : 'Dirección opcional'
+              "
             />
           </div>
           <div class="form-group">
@@ -863,40 +879,52 @@
 
         <!-- Campos solo para contacto tipo Comercial (id 1) -->
         <div *ngIf="contactoForm.id_tipo_contacto == 1">
-          <!-- usa == y no === -->
-          <div class="form-group">
-            <label for="pagina_web">Página web *</label>
-            <input
-              type="text"
-              id="pagina_web"
-              name="pagina_web"
-              [(ngModel)]="contactoForm.datos.pagina_web"
-              class="form-control"
-              required
-            />
-          </div>
+          <h4 class="section-title">Información Comercial</h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="pagina_web">Página web *</label>
+              <input
+                type="url"
+                id="pagina_web"
+                name="pagina_web"
+                [(ngModel)]="contactoForm.datos.pagina_web"
+                class="form-control"
+                required
+                placeholder="https://ejemplo.com"
+              />
+            </div>
 
-          <div class="form-group">
-            <label for="correo">Correo electrónico *</label>
-            <input
-              type="email"
-              id="correo"
-              name="correo"
-              [(ngModel)]="contactoForm.datos.correo"
-              class="form-control"
-              required
-            />
-          </div>
+            <div class="form-group">
+              <label for="correo">Correo electrónico *</label>
+              <input
+                type="email"
+                id="correo"
+                name="correo"
+                [(ngModel)]="contactoForm.datos.correo"
+                class="form-control"
+                required
+                placeholder="correo@ejemplo.com"
+              />
+            </div>
 
-          <div class="form-group">
-            <label for="redes_sociales">Redes sociales *</label>
+            <div class="form-group">
+              <label for="redes_sociales">Redes sociales *</label>
+              <input
+                type="text"
+                id="redes_sociales"
+                name="redes_sociales"
+                [(ngModel)]="contactoForm.datos.redes_sociales"
+                class="form-control"
+                required
+                placeholder="@usuario o enlace a redes sociales"
+              />
+            </div>
+
+            <!-- 👈 CAMPO ADICIONAL PARA DIRECCIÓN EN DATOS (OCULTO PERO SINCRONIZADO) -->
             <input
-              type="text"
-              id="redes_sociales"
-              name="redes_sociales"
-              [(ngModel)]="contactoForm.datos.redes_sociales"
-              class="form-control"
-              required
+              type="hidden"
+              name="datos_direccion"
+              [(ngModel)]="contactoForm.datos.direccion"
             />
           </div>
         </div>
@@ -912,7 +940,13 @@
           <button
             type="submit"
             class="btn btn-primary"
-            [disabled]="loading || contactoFormRef.invalid"
+            [disabled]="
+              loading ||
+              contactoFormRef.invalid ||
+              (esTipoComercial() &&
+                (!contactoForm.direccion ||
+                  contactoForm.direccion.trim() === ''))
+            "
           >
             {{
               loading
@@ -926,14 +960,12 @@
       </form>
     </div>
   </div>
-
   <!-- SERVICIOS POLO TAB -->
   <div *ngIf="activeTab === 'serviciosPolo'" class="tab-content">
     <div class="section-header">
       <h2>Servicios del Polo</h2>
       <div class="header-actions">
         <div class="info-badge">
-          <span class="badge-icon">ℹ️</span>
           <span>Solo lectura - Gestionados por Admin Polo</span>
         </div>
       </div>
@@ -980,7 +1012,9 @@
           <tbody>
             <tr *ngFor="let servicioPolo of empresaData?.servicios_polo || []">
               <td>
-                <span class="service-id">#{{ servicioPolo.id }}</span>
+                <span class="service-id"
+                  >#{{ servicioPolo.id_servicio_polo }}</span
+                >
               </td>
               <td>
                 <div class="service-name">
@@ -1019,36 +1053,33 @@
                 </span>
               </td>
               <td>
-                <div
-                  class="lotes-info"
-                  *ngIf="
-                    empresaData &&
-                    empresaData.servicios_polo &&
-                    empresaData.servicios_polo.length > 0
-                  "
+                <ng-container
+                  *ngIf="servicioPolo.lotes?.length > 0; else sinLotes"
                 >
-                  <span class="lotes-count"
-                    >{{ servicioPolo.lotes.length }} lote(s)</span
-                  >
-                  <div class="lotes-tooltip">
-                    <ul>
-                      <li *ngFor="let lote of servicioPolo.lotes">
-                        <strong>{{ lote.identificador }}</strong
-                        ><br />
-                        <small
-                          >{{ lote.superficie }} m² -
-                          {{ lote.estado || "Disponible" }}</small
-                        >
-                      </li>
-                    </ul>
+                  <div class="lotes-info">
+                    <span class="lotes-count">
+                      {{ servicioPolo.lotes.length }} lote(s)
+                    </span>
+                    <div class="lotes-tooltip">
+                      <ul>
+                        <li *ngFor="let lote of servicioPolo.lotes">
+                          <strong>{{
+                            lote.identificador ||
+                              "Lote " + lote.lote + ", Mz " + lote.manzana
+                          }}</strong
+                          ><br />
+                          <small>
+                            {{ lote.superficie || 0 }} m² -
+                            {{ lote.estado || "Disponible" }}
+                          </small>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
-                </div>
-                <span
-                  *ngIf="!servicioPolo.lotes || servicioPolo.lotes.length === 0"
-                  class="no-lotes"
-                >
-                  Sin lotes
-                </span>
+                </ng-container>
+                <ng-template #sinLotes>
+                  <span class="no-lotes">Sin lotes</span>
+                </ng-template>
               </td>
             </tr>
             <tr
@@ -1059,7 +1090,6 @@
             >
               <td colspan="9" class="text-center">
                 <div class="empty-state">
-                  <div class="empty-icon">🏢</div>
                   <p>No hay servicios del polo asociados a tu empresa</p>
                   <small
                     >Los servicios del polo son gestionados por el administrador
@@ -1070,47 +1100,6 @@
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
-
-    <!-- Información adicional -->
-    <div class="info-card" *ngIf="tieneServiciosPolo">
-      <div class="card-header">
-        <h3>Información sobre Servicios del Polo</h3>
-      </div>
-      <div class="card-content">
-        <div class="info-box">
-          <div class="info-content">
-            <h4>Servicios de Solo Lectura</h4>
-            <p>
-              Los servicios del polo mostrados aquí son gestionados
-              exclusivamente por el administrador del polo. Tu empresa está
-              vinculada a estos servicios, pero no puedes modificarlos desde
-              esta interfaz.
-            </p>
-          </div>
-        </div>
-        <div class="info-box">
-          <div class="info-content">
-            <h4>¿Necesitas cambios?</h4>
-            <p>
-              Si necesitas modificar algún aspecto de estos servicios o agregar
-              nuevos, contacta al administrador del polo a través de los canales
-              oficiales.
-            </p>
-          </div>
-        </div>
-        <div class="info-box">
-          <div class="info-content">
-            <h4>Resumen de Vinculación</h4>
-            <p>
-              Tu empresa está vinculada a
-              <strong>{{ empresaData?.servicios_polo?.length }}</strong>
-              servicio(s) del polo. Total de lotes disponibles:
-              <strong>{{ getTotalLotes() }}</strong>
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   </div>
