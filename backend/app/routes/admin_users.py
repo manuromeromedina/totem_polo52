@@ -91,7 +91,10 @@ def create_user(
 ):
     if db.query(models.Usuario).filter(models.Usuario.nombre == dto.nombre).first():
         raise HTTPException(status_code=400, detail="Ya existe un usuario con ese nombre")
-
+    
+    if db.query(models.Usuario).filter(models.Usuario.email == dto.email).first():
+        raise HTTPException(status_code=400, detail="Ya existe un usuario con ese email")
+    
     new_user = models.Usuario(
         email         = dto.email,
         nombre        = dto.nombre,

@@ -436,6 +436,7 @@ export class EmpresaMeComponent implements OnInit {
   }
 
   // CONTACTOS
+  // CONTACTOS - VERSIÓN CORREGIDA
   openContactoForm(contacto?: Contacto): void {
     if (contacto) {
       this.editingContacto = contacto;
@@ -447,6 +448,7 @@ export class EmpresaMeComponent implements OnInit {
           pagina_web: '',
           correo: '',
           redes_sociales: '',
+          direccion: '', // 👈 Agregamos dirección al JSON datos
         },
         direccion: contacto.direccion || '',
         id_servicio_polo: contacto.id_servicio_polo,
@@ -457,7 +459,12 @@ export class EmpresaMeComponent implements OnInit {
         id_tipo_contacto: 1,
         nombre: '',
         telefono: '',
-        datos: {},
+        datos: {
+          pagina_web: '',
+          correo: '',
+          redes_sociales: '',
+          direccion: '', // 👈 Inicializamos dirección en datos
+        },
         direccion: '',
         id_servicio_polo: 1,
       };
@@ -466,8 +473,55 @@ export class EmpresaMeComponent implements OnInit {
     this.onTipoContactoChange(); // 👈 fuerza la recarga dinámica de campos
   }
 
+  onTipoContactoChange(): void {
+    console.log(
+      'Tipo contacto:',
+      this.contactoForm.id_tipo_contacto,
+      typeof this.contactoForm.id_tipo_contacto
+    );
+    const tipo = Number(this.contactoForm.id_tipo_contacto);
+
+    if (tipo === 1) {
+      // Para tipo comercial, asegurar que todos los campos estén en datos
+      this.contactoForm.datos = {
+        pagina_web: this.contactoForm.datos.pagina_web || '',
+        correo: this.contactoForm.datos.correo || '',
+        redes_sociales: this.contactoForm.datos.redes_sociales || '',
+        direccion:
+          this.contactoForm.direccion ||
+          this.contactoForm.datos.direccion ||
+          '', // 👈 Sincronizar dirección
+      };
+    } else {
+      this.contactoForm.datos = {};
+    }
+  }
+
   onSubmitContacto(): void {
     this.loading = true;
+
+    // 👈 VALIDACIÓN ADICIONAL ANTES DE ENVIAR
+    if (this.esTipoComercial()) {
+      // Asegurar que la dirección esté en ambos lugares
+      if (this.contactoForm.direccion) {
+        this.contactoForm.datos.direccion = this.contactoForm.direccion;
+      } else if (this.contactoForm.datos.direccion) {
+        this.contactoForm.direccion = this.contactoForm.datos.direccion;
+      }
+
+      // Validar que los campos requeridos para comercial estén presentes
+      if (
+        !this.contactoForm.datos.direccion ||
+        this.contactoForm.datos.direccion.trim() === ''
+      ) {
+        this.showMessage(
+          'La dirección es requerida para contactos comerciales',
+          'error'
+        );
+        this.loading = false;
+        return;
+      }
+    }
 
     if (this.editingContacto) {
       // Actualizar
@@ -510,6 +564,13 @@ export class EmpresaMeComponent implements OnInit {
     }
   }
 
+  // 👈 MÉTODO ADICIONAL PARA SINCRONIZAR DIRECCIÓN
+  onDireccionChange(): void {
+    if (this.esTipoComercial()) {
+      this.contactoForm.datos.direccion = this.contactoForm.direccion;
+    }
+  }
+
   deleteContacto(id: number): void {
     if (confirm('¿Está seguro de que desea eliminar este contacto?')) {
       this.adminEmpresaService.deleteContacto(id).subscribe({
@@ -525,25 +586,6 @@ export class EmpresaMeComponent implements OnInit {
           );
         },
       });
-    }
-  }
-
-  onTipoContactoChange(): void {
-    console.log(
-      'Tipo contacto:',
-      this.contactoForm.id_tipo_contacto,
-      typeof this.contactoForm.id_tipo_contacto
-    );
-    const tipo = Number(this.contactoForm.id_tipo_contacto);
-
-    if (tipo === 1) {
-      this.contactoForm.datos = {
-        pagina_web: this.contactoForm.datos.pagina_web || '',
-        correo: this.contactoForm.datos.correo || '',
-        redes_sociales: this.contactoForm.datos.redes_sociales || '',
-      };
-    } else {
-      this.contactoForm.datos = {};
     }
   }
 

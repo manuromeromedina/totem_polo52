@@ -217,12 +217,18 @@ def delete_servicio(
     db: Session = Depends(get_db)
 ):
     servicio = db.query(models.Servicio).filter(models.Servicio.id_servicio == servicio_id).first()
+    
     if not servicio:
         raise HTTPException(status_code=404, detail="Servicio no encontrado")
     
+    # Eliminar asociaciones en empresa_servicio primero
+    db.query(models.EmpresaServicio).filter(models.EmpresaServicio.id_servicio == servicio_id).delete()
+
+    # Luego eliminar el servicio
     db.delete(servicio)
     db.commit()
-    return {"msg": "Servicio eliminado correctamente"}
+
+    return 
 
 
 # ─── Contacto ────────────────────────────────────────────────────────
@@ -322,6 +328,9 @@ def update_my_company(
     # Como response_model=EmpresaSelfOut, FastAPI sólo serializa
     # cant_empleados, observaciones y horario_trabajo
     return emp
+
+
+
 def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
     vehs = []
     for v in emp.vehiculos_emp:
