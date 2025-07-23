@@ -5,7 +5,6 @@ from app.config import SessionLocal
 from app.routes.auth import router as auth_router
 from app.routes.company_user import router as company_user_router
 from app.routes.admin_users import router as admin_users_router
-from app.routes.public import router as public_router
 from app.routes.chat import router as chat_router  # Importar el router de chat
 from app.routes.tipos import router as tipos
 from dotenv import load_dotenv
@@ -34,7 +33,6 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(company_user_router)
 app.include_router(admin_users_router)
-app.include_router(public_router)
 app.include_router(chat_router)  # Incluir el router del chat
 app.include_router(tipos)
 
