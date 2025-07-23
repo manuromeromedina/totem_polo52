@@ -632,127 +632,125 @@ table tr:last-child td {
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .admin-container {
-    background: #1a1a1a;
-    color: #e0e0e0;
-  }
-  
-  .admin-header {
-    background: #2d2d2d;
-    border-bottom-color: #404040;
-  }
-  
-  .logo-section h1 {
-    color: #e0e0e0;
-  }
-  
-  .logo-section p {
-    color: #a0a0a0;
-  }
-  
-  .tab-navigation {
-    background: #2d2d2d;
-    border-bottom-color: #404040;
-  }
-  
-  .tab-button {
-    color: #a0a0a0;
-  }
-  
-  .tab-button:hover {
-    color: #e0e0e0;
-    background: #383838;
-  }
-  
-  .tab-button.active {
-    color: #e0e0e0;
-    background: #383838;
-    border-bottom-color: #a0a0a0;
-  }
-  
-  .data-table,
-  .form-container {
-    background: #2d2d2d;
-    border-color: #404040;
-  }
-  
-  .table-header,
-  .form-header,
-  .form-actions {
-    background: #383838;
-    border-color: #404040;
-  }
-  
-  .table-header h3,
-  .form-header h3,
-  .section-header h2 {
-    color: #e0e0e0;
-  }
-  
-  table th {
-    background: #383838;
-    color: #e0e0e0;
-    border-bottom-color: #404040;
-  }
-  
-  table td {
-    color: #e0e0e0;
-    border-bottom-color: #333;
-  }
-  
-  table tr:hover {
-    background: #383838;
-  }
-  
-  .form-control {
-    background: #383838;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-  
-  .form-control:focus {
-    border-color: #a0a0a0;
-    box-shadow: 0 0 0 2px rgba(160, 160, 160, 0.1);
-  }
-  
-  .form-control:disabled {
-    background: #2d2d2d;
-    color: #666;
-  }
-  
-  .form-group label {
-    color: #e0e0e0;
-  }
-  
-  .message.success {
-    background: #155724;
-    color: #d4edda;
-    border-color: #0a4622;
-  }
-  
-  .message.error {
-    background: #721c24;
-    color: #f8d7da;
-    border-color: #5a161c;
-  }
-  
-  .badge-success {
-    background: #155724;
-    color: #d4edda;
-    border-color: #0a4622;
-  }
-  
-  .badge-danger {
-    background: #721c24;
-    color: #f8d7da;
-    border-color: #5a161c;
-  }
-  
-  .text-center {
-    color: #a0a0a0;
-  }
+/*dark mode*/
+.admin-container.dark-mode {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+.admin-container.dark-mode .admin-header {
+  background: #2d2d2d;
+  border-bottom-color: #404040;
+}
+
+.admin-container.dark-mode .logo-section h1 {
+  color: #e0e0e0;
+}
+
+.admin-container.dark-mode .logo-section p {
+  color: #a0a0a0;
+}
+
+.admin-container.dark-mode .tab-navigation {
+  background: #2d2d2d;
+  border-bottom-color: #404040;
+}
+
+.admin-container.dark-mode .tab-button {
+  color: #a0a0a0;
+}
+
+.admin-container.dark-mode .tab-button:hover {
+  color: #e0e0e0;
+  background: #383838;
+}
+
+.admin-container.dark-mode .tab-button.active {
+  color: #e0e0e0;
+  background: #383838;
+  border-bottom-color: #a0a0a0;
+}
+
+.admin-container.dark-mode .data-table,
+.admin-container.dark-mode .form-container {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.admin-container.dark-mode .table-header,
+.admin-container.dark-mode .form-header,
+.admin-container.dark-mode .form-actions {
+  background: #383838;
+  border-color: #404040;
+}
+
+.admin-container.dark-mode .table-header h3,
+.admin-container.dark-mode .form-header h3,
+.admin-container.dark-mode .section-header h2 {
+  color: #e0e0e0;
+}
+
+.admin-container.dark-mode table th {
+  background: #383838;
+  color: #e0e0e0;
+  border-bottom-color: #404040;
+}
+
+.admin-container.dark-mode table td {
+  color: #e0e0e0;
+  border-bottom-color: #333;
+}
+
+.admin-container.dark-mode table tr:hover {
+  background: #383838;
+}
+
+.admin-container.dark-mode .form-control {
+  background: #383838;
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+.admin-container.dark-mode .form-control:focus {
+  border-color: #a0a0a0;
+  box-shadow: 0 0 0 2px rgba(160, 160, 160, 0.1);
+}
+
+.admin-container.dark-mode .form-control:disabled {
+  background: #2d2d2d;
+  color: #666;
+}
+
+.admin-container.dark-mode .form-group label {
+  color: #e0e0e0;
+}
+
+.admin-container.dark-mode .message.success {
+  background: #155724;
+  color: #d4edda;
+  border-color: #0a4622;
+}
+
+.admin-container.dark-mode .message.error {
+  background: #721c24;
+  color: #f8d7da;
+  border-color: #5a161c;
+}
+
+.admin-container.dark-mode .badge-success {
+  background: #155724;
+  color: #d4edda;
+  border-color: #0a4622;
+}
+
+.admin-container.dark-mode .badge-danger {
+  background: #721c24;
+  color: #f8d7da;
+  border-color: #5a161c;
+}
+
+.admin-container.dark-mode .text-center {
+  color: #a0a0a0;
 }
 
 .actions {

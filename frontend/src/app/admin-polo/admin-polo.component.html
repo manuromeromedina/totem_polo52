@@ -1,5 +1,5 @@
 <!-- admin-polo.component.html -->
-<div class="admin-container">
+<div class="admin-container" [class.dark-mode]="isDarkMode">
   <!-- Header -->
   <header class="admin-header">
     <div class="header-content">
@@ -8,6 +8,9 @@
         <p>Gestión integral del parque industrial</p>
       </div>
       <div class="header-actions">
+        <button class="btn btn-sm btn-light" (click)="toggleDarkMode()">
+          Modo {{ isDarkMode ? "Claro" : "Oscuro" }}
+        </button>
         <app-logout-button></app-logout-button>
       </div>
     </div>
@@ -229,13 +232,6 @@
                     >
                       + Servicio
                     </button>
-                    <button
-                      class="btn btn-xs btn-primary"
-                      (click)="createLoteForEmpresa(empresa)"
-                      title="Crear lote para esta empresa"
-                    >
-                      + Lote
-                    </button>
                   </div>
                 </td>
               </tr>
@@ -333,7 +329,6 @@
                 <th>CUIL Empresa</th>
                 <th>Horario</th>
                 <th>Propietario</th>
-                <th>Tipo</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -343,12 +338,14 @@
                 <td>{{ servicio.cuil }}</td>
                 <td>{{ servicio.horario || "No especificado" }}</td>
                 <td>{{ servicio.propietario || "No especificado" }}</td>
-                <td>
-                  {{
-                    servicio.tipo_servicio_polo ||
-                      "Tipo " + servicio.id_tipo_servicio_polo
-                  }}
-                </td>
+                <button
+                  class="btn btn-xs btn-primary"
+                  (click)="openLoteForm(servicio.id_servicio_polo)"
+                  title="Crear lote para este servicio"
+                >
+                  + Lote
+                </button>
+
                 <td class="actions">
                   <button
                     class="btn btn-sm btn-danger"
@@ -550,7 +547,7 @@
     <div *ngIf="showLoteForm" class="form-modal">
       <div class="form-container">
         <div class="form-header">
-          <h3>Nuevo Lote</h3>
+          <h3>Nuevo Lote para: {{ nombreServicioSeleccionado }}</h3>
           <button class="close-btn" (click)="resetForms()">&times;</button>
         </div>
 
@@ -600,7 +597,8 @@
                 type="number"
                 id="lote_servicio_polo"
                 name="lote_servicio_polo"
-                [(ngModel)]="loteForm.id_servicio_polo"
+                [ngModel]="loteForm.id_servicio_polo"
+                disabled
                 class="form-control"
               />
             </div>

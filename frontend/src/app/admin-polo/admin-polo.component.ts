@@ -80,6 +80,7 @@ export class AdminPoloComponent implements OnInit {
     id_tipo_servicio_polo: 1,
     cuil: 0,
   };
+  nombreServicioSeleccionado: string = '';
 
   // Lotes
   lotes: Lote[] = [];
@@ -98,10 +99,28 @@ export class AdminPoloComponent implements OnInit {
 
   constructor(private adminPoloService: AdminPoloService) {}
 
+  public isDarkMode: boolean = false;
+
   ngOnInit(): void {
     this.loadRoles();
     // Cargar datos de la pestaña activa por defecto
     this.loadData();
+    const savedTheme = localStorage.getItem('theme');
+    this.isDarkMode = savedTheme === 'dark';
+  }
+
+  toggleDarkMode(): void {
+    this.isDarkMode = !this.isDarkMode;
+    localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
+  }
+
+  updateTheme(): void {
+    const body = document.body;
+    if (this.isDarkMode) {
+      body.classList.add('dark-mode');
+    } else {
+      body.classList.remove('dark-mode');
+    }
   }
 
   setActiveTab(tab: string): void {
@@ -622,12 +641,29 @@ export class AdminPoloComponent implements OnInit {
   }
 
   // LOTES
-  openLoteForm(): void {
+  selectedServicioPoloId: number | null = null;
+
+  openLoteForm(idServicioPolo: number, nombreServicio?: string): void {
+    this.selectedServicioPoloId = idServicioPolo;
+    this.nombreServicioSeleccionado = nombreServicio || '';
+
+    this.loteForm = {
+      dueno: '',
+      lote: 0,
+      manzana: 0,
+      id_servicio_polo: idServicioPolo,
+    };
+
     this.showLoteForm = true;
   }
 
   onSubmitLote(): void {
     this.loading = true;
+
+    // Por si acaso querés setear el ID explícitamente
+    if (this.selectedServicioPoloId !== null) {
+      this.loteForm.id_servicio_polo = this.selectedServicioPoloId;
+    }
 
     this.adminPoloService.createLote(this.loteForm).subscribe({
       next: (lote) => {

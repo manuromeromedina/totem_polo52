@@ -92,10 +92,17 @@ export class EmpresaMeComponent implements OnInit {
   tiposServicioPolo: TipoServicioPolo[] = [];
 
   constructor(private adminEmpresaService: AdminEmpresaService) {}
+  public isDarkMode: boolean = false;
 
   ngOnInit(): void {
     this.loadTipos();
     this.loadEmpresaData();
+    const savedTheme = localStorage.getItem('theme');
+    this.isDarkMode = savedTheme === 'dark';
+  }
+  toggleDarkMode(): void {
+    this.isDarkMode = !this.isDarkMode;
+    localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
   }
 
   setActiveTab(tab: string): void {
