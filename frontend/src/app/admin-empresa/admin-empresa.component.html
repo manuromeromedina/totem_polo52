@@ -1,5 +1,5 @@
 <!-- admin-empresa.component.html -->
-<div class="admin-container">
+<div class="admin-container" [class.dark-mode]="isDarkMode">
   <!-- Header -->
   <header class="admin-header">
     <div class="header-content">
@@ -11,6 +11,9 @@
         <p *ngIf="!empresaData">Gestión de datos empresariales</p>
       </div>
       <div class="header-actions">
+        <button class="btn btn-sm btn-light" (click)="toggleDarkMode()">
+          Modo {{ isDarkMode ? "Claro" : "Oscuro" }}
+        </button>
         <app-logout-button></app-logout-button>
       </div>
     </div>
@@ -154,7 +157,7 @@
       </div>
     </div>
 
-    <!-- VEHÍCULOS TAB -->
+    <!-- VEHÍCULOS TAB ---------------------------------------------------------->
     <div *ngIf="activeTab === 'vehiculos'" class="tab-content">
       <div class="section-header">
         <h2>Gestión de Vehículos</h2>
@@ -215,7 +218,7 @@
       </div>
     </div>
 
-    <!-- SERVICIOS TAB -->
+    <!-- SERVICIOS TAB --------------------------------------------------------------->
     <div *ngIf="activeTab === 'servicios'" class="tab-content">
       <div class="section-header">
         <h2>Gestión de Servicios</h2>
@@ -272,7 +275,7 @@
       </div>
     </div>
 
-    <!-- CONTACTOS TAB -->
+    <!-- CONTACTOS TAB ----------------------------------------------------------------->
     <div *ngIf="activeTab === 'contactos'" class="tab-content">
       <div class="section-header">
         <h2>Gestión de Contactos</h2>
@@ -338,7 +341,7 @@
 
   <!-- MODALS -->
 
-  <!-- Password Form Modal -->
+  <!-- Password Form Modal ---------------------------------------------->
   <div *ngIf="showPasswordForm" class="form-modal">
     <div class="form-container">
       <div class="form-header">
@@ -442,7 +445,7 @@
     </div>
   </div>
 
-  <!-- Vehiculo Form Modal -->
+  <!-- Vehiculo Form Modal ------------------------------------------------------->
   <div *ngIf="showVehiculoForm" class="form-modal">
     <div class="form-container">
       <div class="form-header">
@@ -617,7 +620,7 @@
     </div>
   </div>
 
-  <!-- Servicio Form Modal -->
+  <!-- Servicio Form Modal ------------------------------------------------------------->
   <div *ngIf="showServicioForm" class="form-modal">
     <div class="form-container">
       <div class="form-header">
@@ -793,7 +796,7 @@
   </div>
 
   <!-- Contacto Form Modal -->
-  <!-- Contacto Form Modal -->
+  <!-- Contacto Form Modal ---------------------------------------------------------------------->
   <div *ngIf="showContactoForm" class="form-modal">
     <div class="form-container">
       <div class="form-header">
@@ -920,7 +923,7 @@
               />
             </div>
 
-            <!-- 👈 CAMPO ADICIONAL PARA DIRECCIÓN EN DATOS (OCULTO PERO SINCRONIZADO) -->
+            <!--CAMPO ADICIONAL PARA DIRECCIÓN EN DATOS (OCULTO PERO SINCRONIZADO) -->
             <input
               type="hidden"
               name="datos_direccion"
@@ -960,7 +963,7 @@
       </form>
     </div>
   </div>
-  <!-- SERVICIOS POLO TAB -->
+  <!-- SERVICIOS POLO TAB --------------------------------------------------------------->
   <div *ngIf="activeTab === 'serviciosPolo'" class="tab-content">
     <div class="section-header">
       <h2>Servicios del Polo</h2>
