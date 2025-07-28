@@ -3,28 +3,37 @@
     <div class="welcome-overlay">
       <div class="welcome-content">
         <div class="polo-brand">POLO 52</div>
-        <h1 class="welcome-title">¡Bienvenido!</h1>
-        <p class="welcome-subtitle">Accede a tu cuenta para continuar</p>
+        <h1 class="welcome-title">Portal Corporativo</h1>
+        <p class="welcome-subtitle">
+          Acceda a su cuenta empresarial para gestionar los recursos y servicios
+          de su organización
+        </p>
       </div>
     </div>
   </div>
 
   <div class="login-form">
-    <h1>Iniciar sesión</h1>
-    <p class="description">Ingresa tus credenciales para acceder al sistema</p>
+    <div class="form-header">
+      <h1>Acceso al Sistema</h1>
+      <p class="description">Ingrese sus credenciales corporativas</p>
+    </div>
 
     <form (ngSubmit)="onLogin()" #loginForm="ngForm">
       <!-- Email o Usuario -->
       <div class="form-group">
-        <label for="username"> Correo o usuario </label>
+        <label for="username">
+          <i class="fas fa-user label-icon"></i>
+          Usuario o Correo Electrónico
+        </label>
         <input
           id="username"
           name="username"
           type="text"
           [(ngModel)]="username"
-          placeholder="ejemplo@correo.com"
+          placeholder="usuario@empresa.com"
           required
           [ngClass]="{ error: usernameError }"
+          (input)="onUsernameChange()"
         />
         <span *ngIf="usernameError" class="field-error">{{
           usernameErrorMessage
@@ -33,19 +42,25 @@
 
       <!-- Password -->
       <div class="form-group">
-        <label for="password"> Contraseña </label>
+        <label for="password">
+          <i class="fas fa-lock label-icon"></i>
+          Contraseña
+        </label>
         <div class="password-wrapper">
           <input
             id="password"
             name="password"
             [type]="showPassword ? 'text' : 'password'"
             [(ngModel)]="password"
-            placeholder="Tu contraseña"
+            placeholder="Ingrese su contraseña"
             required
             [ngClass]="{ error: passwordError }"
+            (input)="onPasswordChange()"
           />
           <button type="button" class="eye-btn" (click)="togglePassword()">
-            <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            <span
+              [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"
+            ></span>
           </button>
         </div>
         <span *ngIf="passwordError" class="field-error">{{
@@ -65,7 +80,7 @@
             $event.preventDefault()
           "
         >
-          ¿Olvidaste tu contraseña?
+          ¿Olvidó su contraseña?
         </a>
       </div>
 
@@ -74,48 +89,54 @@
         class="btn-signin"
         [disabled]="loginForm.invalid || loading"
       >
-        {{ loading ? "Entrando…" : "Iniciar sesión" }}
+        {{ loading ? "Verificando acceso..." : "Iniciar Sesión" }}
       </button>
 
+      <p *ngIf="successMessage" class="success-message">{{ successMessage }}</p>
       <p *ngIf="loginMessage" class="login-error">{{ loginMessage }}</p>
 
       <!-- Links de registro -->
       <div class="links">
-        <span>¿No tienes cuenta?</span>
-        <a routerLink="/register">Regístrate aquí</a>
+        <span>¿No tiene acceso al sistema?</span>
+        <a routerLink="/register">Solicitar Cuenta</a>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Modal de recuperación FUERA del div login-form -->
+<!-- Modal de recuperación -->
 <div
   *ngIf="showResetPassword"
   class="modal-overlay"
   (click)="showResetPassword = false"
 >
   <div class="modal-content" (click)="$event.stopPropagation()">
-    <h3>Recuperar contraseña</h3>
+    <h3>Recuperar Contraseña</h3>
+    <p class="modal-description">
+      Ingrese su correo electrónico corporativo para recibir las instrucciones
+      de recuperación
+    </p>
     <form (ngSubmit)="requestPasswordReset()" #resetForm="ngForm">
       <input
         type="email"
         name="email"
         [(ngModel)]="resetEmail"
-        placeholder="Tu email registrado"
+        placeholder="correo@empresa.com"
         required
         email
+        (input)="onResetEmailChange()"
       />
       <div class="modal-buttons">
         <button type="submit" [disabled]="resetForm.invalid || resetLoading">
-          {{ resetLoading ? "Enviando..." : "Enviar link" }}
+          {{ resetLoading ? "Enviando..." : "Enviar Enlace" }}
         </button>
         <button type="button" (click)="showResetPassword = false">
           Cancelar
         </button>
       </div>
     </form>
-    <p *ngIf="resetMessage" style="color: green">{{ resetMessage }}</p>
-    <p *ngIf="resetError" style="color: red">{{ resetError }}</p>
+    <p *ngIf="resetMessage" class="modal-message success">{{ resetMessage }}</p>
+    <p *ngIf="resetError" class="modal-message error">{{ resetError }}</p>
     <button
       *ngIf="resetMessage"
       type="button"

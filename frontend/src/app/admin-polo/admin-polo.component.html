@@ -8,9 +8,14 @@
         <p>Gestión integral del parque industrial</p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-sm btn-light" (click)="toggleDarkMode()">
-          Modo {{ isDarkMode ? "Claro" : "Oscuro" }}
-        </button>
+        <label class="switch">
+          <input
+            type="checkbox"
+            [checked]="isDarkMode"
+            (change)="toggleDarkMode()"
+          />
+          <span class="slider"></span>
+        </label>
         <app-logout-button></app-logout-button>
       </div>
     </div>

@@ -43,6 +43,30 @@
   gap: 16px;
 }
 
+/* Estilo general del switch */
+.mode-toggle-btn {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+  color: #555; /* Color base del ícono */
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mode-toggle-btn:hover {
+  background-color: rgba(0,0,0,0.1);
+}
+
+.dark-mode .mode-toggle-btn {
+  color: #eee; /* Color del ícono en modo oscuro */
+}
+
+
 /* Navigation Tabs */
 .tab-navigation {
   background: #ffffff;
@@ -1016,10 +1040,12 @@ table tr:last-child td {
   font-size: 16px;
 }
 
-.service-name strong {
-  color: #212529;
-  font-weight: 600;
+.service-name{
+    font-weight: 400;
+
 }
+
+
 
 .service-type-badge {
   display: inline-block;
@@ -1238,13 +1264,17 @@ table tr:last-child td {
   color: #495057;
 }
 
+
+
 .service-description {
   display: block;
-  color: #6c757d;
+  color: #dae5ee;
   font-size: 12px;
   margin-top: 4px;
   line-height: 1.3;
 }
+
+
 
 .status-badge {
   padding: 4px 8px;
@@ -1303,10 +1333,18 @@ table tr:last-child td {
     background: #383838;
     color: #e0e0e0;
   }
-  
-  .service-description {
-    color: #a0a0a0;
+
+
+  .service-name strong {
+    color: #a0a0a0 ;
   }
+
+  .service-description {
+    color: #6c757d;
+  }
+
+
+  
   
   .status-active {
     background: #155724;
