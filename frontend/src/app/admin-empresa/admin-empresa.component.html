@@ -226,30 +226,61 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let vehiculo of empresaData.vehiculos">
-                <td>{{ getTipoVehiculoName(vehiculo.id_tipo_vehiculo) }}</td>
-                <td>{{ vehiculo.horarios }}</td>
-                <td>{{ vehiculo.frecuencia }}</td>
-                <td>
-                  <span class="data-preview">{{
-                    formatDatos(vehiculo.datos)
-                  }}</span>
-                </td>
-                <td class="actions">
-                  <button
-                    class="btn btn-sm btn-secondary"
-                    (click)="openVehiculoForm(vehiculo)"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    class="btn btn-sm btn-danger"
-                    (click)="deleteVehiculo(vehiculo.id_vehiculo)"
-                  >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
+              <ng-container
+                *ngFor="let vehiculo of empresaData.vehiculos; let i = index"
+              >
+                <tr>
+                  <td>{{ getTipoVehiculoName(vehiculo.id_tipo_vehiculo) }}</td>
+                  <td>{{ vehiculo.horarios }}</td>
+                  <td>{{ vehiculo.frecuencia }}</td>
+                  <td>
+                    <button
+                      class="btn-ver-mas"
+                      (click)="toggleExpandRow('vehiculo-' + i)"
+                      [attr.aria-label]="
+                        expandedRows.has('vehiculo-' + i)
+                          ? 'Ver menos'
+                          : 'Ver más'
+                      "
+                    >
+                      {{
+                        expandedRows.has("vehiculo-" + i)
+                          ? "Ver menos"
+                          : "Ver más"
+                      }}
+                    </button>
+                  </td>
+                  <td class="actions">
+                    <button
+                      class="btn btn-sm btn-secondary"
+                      (click)="openVehiculoForm(vehiculo)"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      class="btn btn-sm btn-danger"
+                      (click)="deleteVehiculo(vehiculo.id_vehiculo)"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+
+                <tr
+                  *ngIf="expandedRows.has('vehiculo-' + i)"
+                  class="expanded-row"
+                >
+                  <td colspan="5">
+                    <div class="expanded-content">
+                      <h4>Datos del Vehículo</h4>
+                      <ngx-json-viewer
+                        [json]="vehiculo.datos"
+                      ></ngx-json-viewer>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+
               <tr *ngIf="empresaData.vehiculos.length === 0">
                 <td colspan="5" class="text-center">
                   No hay vehículos registrados
@@ -285,28 +316,59 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let servicio of empresaData.servicios">
-                <td>{{ getTipoServicioName(servicio.id_tipo_servicio) }}</td>
-                <td>
-                  <span class="data-preview">{{
-                    formatDatos(servicio.datos)
-                  }}</span>
-                </td>
-                <td class="actions">
-                  <button
-                    class="btn btn-sm btn-secondary"
-                    (click)="openServicioForm(servicio)"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    class="btn btn-sm btn-danger"
-                    (click)="deleteServicio(servicio.id_servicio)"
-                  >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
+              <ng-container
+                *ngFor="let servicio of empresaData.servicios; let i = index"
+              >
+                <tr>
+                  <td>{{ getTipoServicioName(servicio.id_tipo_servicio) }}</td>
+                  <td>
+                    <button
+                      class="btn-ver-mas"
+                      (click)="toggleExpandRow('servicio-' + i)"
+                      [attr.aria-label]="
+                        expandedRows.has('servicio-' + i)
+                          ? 'Ver menos'
+                          : 'Ver más'
+                      "
+                    >
+                      {{
+                        expandedRows.has("servicio-" + i)
+                          ? "Ver menos"
+                          : "Ver más"
+                      }}
+                    </button>
+                  </td>
+                  <td class="actions">
+                    <button
+                      class="btn btn-sm btn-secondary"
+                      (click)="openServicioForm(servicio)"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      class="btn btn-sm btn-danger"
+                      (click)="deleteServicio(servicio.id_servicio)"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+
+                <tr
+                  *ngIf="expandedRows.has('servicio-' + i)"
+                  class="expanded-row"
+                >
+                  <td colspan="3">
+                    <div class="expanded-content">
+                      <h4>Datos del Servicio</h4>
+                      <ngx-json-viewer
+                        [json]="servicio.datos"
+                      ></ngx-json-viewer>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+
               <tr *ngIf="empresaData.servicios.length === 0">
                 <td colspan="3" class="text-center">
                   No hay servicios registrados
@@ -345,31 +407,62 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let contacto of empresaData.contactos">
-                <td>{{ contacto.nombre }}</td>
-                <td>{{ getTipoContactoName(contacto.id_tipo_contacto) }}</td>
-                <td>{{ contacto.telefono || "No especificado" }}</td>
-                <td>{{ contacto.direccion || "No especificada" }}</td>
-                <td>
-                  <span class="data-preview">{{
-                    formatDatos(contacto.datos)
-                  }}</span>
-                </td>
-                <td class="actions">
-                  <button
-                    class="btn btn-sm btn-secondary"
-                    (click)="openContactoForm(contacto)"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    class="btn btn-sm btn-danger"
-                    (click)="deleteContacto(contacto.id_contacto)"
-                  >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
+              <ng-container
+                *ngFor="let contacto of empresaData.contactos; let i = index"
+              >
+                <tr>
+                  <td>{{ contacto.nombre }}</td>
+                  <td>{{ getTipoContactoName(contacto.id_tipo_contacto) }}</td>
+                  <td>{{ contacto.telefono || "No especificado" }}</td>
+                  <td>{{ contacto.direccion || "No especificada" }}</td>
+                  <td>
+                    <button
+                      class="btn-ver-mas"
+                      (click)="toggleExpandRow('contacto-' + i)"
+                      [attr.aria-label]="
+                        expandedRows.has('contacto-' + i)
+                          ? 'Ver menos'
+                          : 'Ver más'
+                      "
+                    >
+                      {{
+                        expandedRows.has("contacto-" + i)
+                          ? "Ver menos"
+                          : "Ver más"
+                      }}
+                    </button>
+                  </td>
+                  <td class="actions">
+                    <button
+                      class="btn btn-sm btn-secondary"
+                      (click)="openContactoForm(contacto)"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      class="btn btn-sm btn-danger"
+                      (click)="deleteContacto(contacto.id_contacto)"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+
+                <tr
+                  *ngIf="expandedRows.has('contacto-' + i)"
+                  class="expanded-row"
+                >
+                  <td colspan="6">
+                    <div class="expanded-content">
+                      <h4>Datos del Contacto</h4>
+                      <ngx-json-viewer
+                        [json]="contacto.datos"
+                      ></ngx-json-viewer>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+
               <tr *ngIf="empresaData.contactos.length === 0">
                 <td colspan="6" class="text-center">
                   No hay contactos registrados
@@ -1056,85 +1149,113 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let servicioPolo of empresaData?.servicios_polo || []">
-              <td>
-                <span class="service-id"
-                  >#{{ servicioPolo.id_servicio_polo }}</span
-                >
-              </td>
-              <td>
-                <div class="service-name">
-                  <strong>{{ servicioPolo.nombre || "Sin nombre" }}</strong>
-                  <small
-                    *ngIf="servicioPolo.descripcion"
-                    class="service-description"
-                  >
-                    {{ servicioPolo.descripcion }}
-                  </small>
-                </div>
-              </td>
-              <td>
-                <span class="service-type-badge">
-                  {{
-                    getTipoServicioPoloName(servicioPolo.id_tipo_servicio_polo)
-                  }}
-                </span>
-              </td>
-              <td>
-                <span class="schedule-info">
-                  {{ servicioPolo.horario || "No especificado" }}
-                </span>
-              </td>
-              <td>
-                <span class="owner-info">
-                  {{ servicioPolo.propietario || "No especificado" }}
-                </span>
-              </td>
-              <td>
-                <span
-                  class="data-preview"
-                  [title]="formatDatos(servicioPolo.datos)"
-                >
-                  {{ formatDatos(servicioPolo.datos) }}
-                </span>
-              </td>
-              <td>
-                <ng-container
-                  *ngIf="servicioPolo.lotes?.length > 0; else sinLotes"
-                >
-                  <div class="lotes-info">
-                    <span class="lotes-count">
-                      {{ servicioPolo.lotes.length }} lote(s)
-                    </span>
-                    <div class="lotes-tooltip">
-                      <ul>
-                        <li *ngFor="let lote of servicioPolo.lotes">
-                          <strong>{{
-                            lote.identificador ||
-                              "Lote " + lote.lote + ", Mz " + lote.manzana
-                          }}</strong
-                          ><br />
-                          <small>
-                            {{ lote.superficie || 0 }} m² -
-                            {{ lote.estado || "Disponible" }}
-                          </small>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </ng-container>
-                <ng-template #sinLotes>
-                  <span class="no-lotes">Sin lotes</span>
-                </ng-template>
-              </td>
-            </tr>
-            <tr
-              *ngIf="
-                !empresaData?.servicios_polo ||
-                empresaData?.servicios_polo?.length === 0
+            <ng-container
+              *ngFor="
+                let servicioPolo of empresaData?.servicios_polo || [];
+                let i = index
               "
             >
-              <td colspan="9" class="text-center">
+              <tr>
+                <td>
+                  <span class="service-id"
+                    >#{{ servicioPolo.id_servicio_polo }}</span
+                  >
+                </td>
+                <td>
+                  <div class="service-name">
+                    <strong>{{ servicioPolo.nombre || "Sin nombre" }}</strong>
+                    <small
+                      *ngIf="servicioPolo.descripcion"
+                      class="service-description"
+                    >
+                      {{ servicioPolo.descripcion }}
+                    </small>
+                  </div>
+                </td>
+                <td>
+                  <span class="service-type-badge">
+                    {{
+                      getTipoServicioPoloName(
+                        servicioPolo.id_tipo_servicio_polo
+                      )
+                    }}
+                  </span>
+                </td>
+                <td>
+                  <span class="schedule-info">{{
+                    servicioPolo.horario || "No especificado"
+                  }}</span>
+                </td>
+                <td>
+                  <span class="owner-info">{{
+                    servicioPolo.propietario || "No especificado"
+                  }}</span>
+                </td>
+                <td>
+                  <button
+                    class="btn-ver-mas"
+                    (click)="toggleExpandRow('serviciopolo-' + i)"
+                    [attr.aria-label]="
+                      expandedRows.has('serviciopolo-' + i)
+                        ? 'Ver menos'
+                        : 'Ver más'
+                    "
+                  >
+                    {{
+                      expandedRows.has("serviciopolo-" + i)
+                        ? "Ver menos"
+                        : "Ver más"
+                    }}
+                  </button>
+                </td>
+                <td>
+                  <ng-container
+                    *ngIf="servicioPolo.lotes?.length > 0; else sinLotes"
+                  >
+                    <div class="lotes-info">
+                      <span class="lotes-count"
+                        >{{ servicioPolo.lotes.length }} lote(s)</span
+                      >
+                      <div class="lotes-tooltip">
+                        <ul>
+                          <li *ngFor="let lote of servicioPolo.lotes">
+                            <strong>{{
+                              lote.identificador ||
+                                "Lote " + lote.lote + ", Mz " + lote.manzana
+                            }}</strong
+                            ><br />
+                            <small
+                              >{{ lote.superficie || 0 }} m² -
+                              {{ lote.estado || "Disponible" }}</small
+                            >
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </ng-container>
+                  <ng-template #sinLotes>
+                    <span class="no-lotes">Sin lotes</span>
+                  </ng-template>
+                </td>
+              </tr>
+
+              <tr
+                *ngIf="expandedRows.has('serviciopolo-' + i)"
+                class="expanded-row"
+              >
+                <td colspan="7">
+                  <div class="expanded-content">
+                    <h4>Datos del Servicio del Polo</h4>
+                    <ngx-json-viewer
+                      [json]="servicioPolo.datos"
+                    ></ngx-json-viewer>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+
+            <tr *ngIf="empresaData?.servicios_polo?.length === 0">
+              <td colspan="7" class="text-center">
                 <div class="empty-state">
                   <p>No hay servicios del polo asociados a tu empresa</p>
                   <small

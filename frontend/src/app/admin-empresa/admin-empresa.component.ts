@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NgxJsonViewerModule } from 'ngx-json-viewer';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import {
@@ -24,7 +26,13 @@ import { LogoutButtonComponent } from '../shared/logout-button/logout-button.com
 @Component({
   selector: 'app-empresa-me',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LogoutButtonComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    LogoutButtonComponent,
+    NgxJsonViewerModule,
+  ],
   templateUrl: './admin-empresa.component.html',
   styleUrls: ['./admin-empresa.component.css'],
 })
@@ -633,13 +641,21 @@ export class EmpresaMeComponent implements OnInit {
     }
   }
 
-  formatDatos(datos: any): string {
+  // TAMBIÉN ACTUALIZA el método formatDatos existente para que sea:
+  formatDatos(datos: any, isExpanded: boolean = false): string {
     if (!datos || Object.keys(datos).length === 0) {
       return 'Sin datos adicionales';
     }
 
     try {
-      const dataString = JSON.stringify(datos);
+      const dataString = JSON.stringify(datos, null, 2);
+
+      // Si está expandido, devolver todo el contenido
+      if (isExpanded) {
+        return dataString;
+      }
+
+      // Si no está expandido, limitar a 50 caracteres
       return dataString.length > 50
         ? dataString.substring(0, 50) + '...'
         : dataString;
@@ -712,5 +728,18 @@ export class EmpresaMeComponent implements OnInit {
         console.error('Error loading tipos contacto:', error);
       },
     });
+  }
+  expandedRows = new Set<string>();
+
+  /**
+   * Alterna la expansión de una fila específica
+   * @param key Índice de la fila en la tabla
+   */
+  toggleExpandRow(key: string): void {
+    if (this.expandedRows.has(key)) {
+      this.expandedRows.delete(key);
+    } else {
+      this.expandedRows.add(key);
+    }
   }
 }
