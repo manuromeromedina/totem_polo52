@@ -6,6 +6,33 @@
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+
+
+/* Estilo general del switch */
+.mode-toggle-btn {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+  color: #555; /* Color base del ícono */
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mode-toggle-btn:hover {
+  background-color: rgba(0,0,0,0.1);
+}
+
+.dark-mode .mode-toggle-btn {
+  color: #eee; /* Color del ícono en modo oscuro */
+}
+
+
+
 /* Header */
 .admin-header {
   background: #ffffff;
