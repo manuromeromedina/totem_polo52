@@ -742,4 +742,8 @@ export class EmpresaMeComponent implements OnInit {
       this.expandedRows.add(key);
     }
   }
+
+  hasKeys(obj: any): boolean {
+    return obj && Object.keys(obj).length > 0;
+  }
 }

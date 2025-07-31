@@ -166,32 +166,30 @@
           </div>
         </div>
       </div>
-
-      <!-- Estadísticas Cards -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon">🚗</div>
+          <div class="stat-icon"><i class="fas fa-car"></i></div>
           <div class="stat-info">
             <h4>{{ empresaData.vehiculos.length }}</h4>
             <p>Vehículos</p>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">🛠️</div>
+          <div class="stat-icon"><i class="fas fa-tools"></i></div>
           <div class="stat-info">
             <h4>{{ empresaData.servicios.length }}</h4>
             <p>Servicios</p>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">📞</div>
+          <div class="stat-icon"><i class="fas fa-phone-alt"></i></div>
           <div class="stat-info">
             <h4>{{ empresaData.contactos.length }}</h4>
             <p>Contactos</p>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">🏢</div>
+          <div class="stat-icon"><i class="fas fa-building"></i></div>
           <div class="stat-info">
             <h4>{{ empresaData.servicios_polo.length }}</h4>
             <p>Servicios del Polo</p>
@@ -273,9 +271,43 @@
                   <td colspan="5">
                     <div class="expanded-content">
                       <h4>Datos del Vehículo</h4>
-                      <ngx-json-viewer
-                        [json]="vehiculo.datos"
-                      ></ngx-json-viewer>
+                      <tr
+                        *ngIf="expandedRows.has('vehiculo-' + i)"
+                        class="expanded-row"
+                      >
+                        <td colspan="5">
+                          <div class="expanded-content">
+                            <div class="data-block vehicle-block">
+                              <div class="data-item">
+                                <span class="label"
+                                  >Cantidad de vehículos:</span
+                                >
+                                <span class="value">{{
+                                  vehiculo.datos.cantidad
+                                }}</span>
+                              </div>
+                              <div
+                                class="data-item"
+                                *ngIf="vehiculo.datos.patente"
+                              >
+                                <span class="label">Patente:</span>
+                                <span class="value">{{
+                                  vehiculo.datos.patente
+                                }}</span>
+                              </div>
+                              <div
+                                class="data-item"
+                                *ngIf="vehiculo.datos.carga"
+                              >
+                                <span class="label">Carga estimada:</span>
+                                <span class="value text-capitalize">{{
+                                  vehiculo.datos.carga
+                                }}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
                     </div>
                   </td>
                 </tr>
@@ -361,9 +393,90 @@
                   <td colspan="3">
                     <div class="expanded-content">
                       <h4>Datos del Servicio</h4>
-                      <ngx-json-viewer
-                        [json]="servicio.datos"
-                      ></ngx-json-viewer>
+                      <tr
+                        *ngIf="expandedRows.has('servicio-' + i)"
+                        class="expanded-row"
+                      >
+                        <td colspan="3">
+                          <div class="expanded-content">
+                            <div
+                              *ngIf="servicio.id_tipo_servicio === 1"
+                              class="data-block service-block"
+                            >
+                              <div class="data-item">
+                                <span class="label">Biofiltro:</span>
+                                <span class="value">{{
+                                  servicio.datos.biofiltro
+                                }}</span>
+                              </div>
+                              <div class="data-item">
+                                <span class="label"
+                                  >Tratamiento de aguas grises:</span
+                                >
+                                <span class="value">{{
+                                  servicio.datos.tratamiento_aguas_grises
+                                }}</span>
+                              </div>
+                            </div>
+
+                            <div
+                              *ngIf="servicio.id_tipo_servicio === 2"
+                              class="data-block service-block"
+                            >
+                              <div class="data-item">
+                                <span class="label">Abierto:</span>
+                                <span class="value">{{
+                                  servicio.datos.abierto
+                                }}</span>
+                              </div>
+                              <div class="data-item">
+                                <span class="label"
+                                  >Metros cuadrados (m2):</span
+                                >
+                                <span class="value">{{
+                                  servicio.datos.m2
+                                }}</span>
+                              </div>
+                            </div>
+
+                            <div
+                              *ngIf="servicio.id_tipo_servicio === 3"
+                              class="data-block service-block"
+                            >
+                              <div class="data-item">
+                                <span class="label">Tipo de Internet:</span>
+                                <span class="value">{{
+                                  servicio.datos.tipo
+                                }}</span>
+                              </div>
+                              <div class="data-item">
+                                <span class="label">Proveedor:</span>
+                                <span class="value">{{
+                                  servicio.datos.proveedor
+                                }}</span>
+                              </div>
+                            </div>
+
+                            <div
+                              *ngIf="servicio.id_tipo_servicio === 4"
+                              class="data-block service-block"
+                            >
+                              <div class="data-item">
+                                <span class="label">Tipo de Residuo:</span>
+                                <span class="value">{{
+                                  servicio.datos.tipo
+                                }}</span>
+                              </div>
+                              <div class="data-item">
+                                <span class="label">Cantidad:</span>
+                                <span class="value">{{
+                                  servicio.datos.cantidad
+                                }}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
                     </div>
                   </td>
                 </tr>
@@ -455,9 +568,53 @@
                   <td colspan="6">
                     <div class="expanded-content">
                       <h4>Datos del Contacto</h4>
-                      <ngx-json-viewer
-                        [json]="contacto.datos"
-                      ></ngx-json-viewer>
+                      <tr
+                        *ngIf="expandedRows.has('contacto-' + i)"
+                        class="expanded-row"
+                      >
+                        <td colspan="6">
+                          <div class="expanded-content">
+                            <div class="data-block contact-block">
+                              <div
+                                class="data-item"
+                                *ngIf="contacto.datos.direccion"
+                              >
+                                <span class="label">Dirección:</span>
+                                <span class="value">{{
+                                  contacto.datos.direccion
+                                }}</span>
+                              </div>
+                              <div
+                                class="data-item"
+                                *ngIf="contacto.datos.pagina_web"
+                              >
+                                <span class="label">Página Web:</span>
+                                <span class="value">{{
+                                  contacto.datos.pagina_web
+                                }}</span>
+                              </div>
+                              <div
+                                class="data-item"
+                                *ngIf="contacto.datos.correo"
+                              >
+                                <span class="label">Correo:</span>
+                                <span class="value">{{
+                                  contacto.datos.correo
+                                }}</span>
+                              </div>
+                              <div
+                                class="data-item"
+                                *ngIf="contacto.datos.redes_sociales"
+                              >
+                                <span class="label">Redes Sociales:</span>
+                                <span class="value">{{
+                                  contacto.datos.redes_sociales
+                                }}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
                     </div>
                   </td>
                 </tr>
@@ -1245,10 +1402,79 @@
               >
                 <td colspan="7">
                   <div class="expanded-content">
-                    <h4>Datos del Servicio del Polo</h4>
-                    <ngx-json-viewer
-                      [json]="servicioPolo.datos"
-                    ></ngx-json-viewer>
+                    <h4>Datos de Servicios del Polo</h4>
+                    <tr
+                      *ngIf="expandedRows.has('serviciopolo-' + i)"
+                      class="expanded-row"
+                    >
+                      <td colspan="7">
+                        <div class="expanded-content">
+                          <div class="data-block polo-service-block">
+                            <!-- Cantidad de Puestos -->
+                            <div
+                              class="data-item"
+                              *ngIf="servicioPolo.datos?.cant_puestos"
+                            >
+                              <span class="label">Cantidad de Puestos:</span>
+                              <span class="value">{{
+                                servicioPolo.datos.cant_puestos
+                              }}</span>
+                            </div>
+
+                            <!-- Metros cuadrados -->
+                            <div
+                              class="data-item"
+                              *ngIf="servicioPolo.datos?.m2"
+                            >
+                              <span class="label">Metros Cuadrados (m²):</span>
+                              <span class="value">{{
+                                servicioPolo.datos.m2
+                              }}</span>
+                            </div>
+
+                            <!-- Datos del Propietario -->
+                            <div
+                              class="data-item"
+                              *ngIf="hasKeys(servicioPolo.datos?.datos_prop)"
+                            >
+                              <span class="label">Datos del Propietario:</span>
+                              <span class="value">
+                                <div
+                                  *ngFor="
+                                    let item of servicioPolo.datos.datos_prop
+                                      | keyvalue
+                                  "
+                                >
+                                  <strong>{{ item.key }}:</strong>
+                                  {{ item.value }}
+                                </div>
+                              </span>
+                            </div>
+
+                            <!-- Datos del Inquilino -->
+                            <div
+                              class="data-item"
+                              *ngIf="
+                                hasKeys(servicioPolo.datos?.datos_inquilino)
+                              "
+                            >
+                              <span class="label">Datos del Inquilino:</span>
+                              <span class="value">
+                                <div
+                                  *ngFor="
+                                    let item of servicioPolo.datos
+                                      .datos_inquilino | keyvalue
+                                  "
+                                >
+                                  <strong>{{ item.key }}:</strong>
+                                  {{ item.value }}
+                                </div>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   </div>
                 </td>
               </tr>
