@@ -172,6 +172,7 @@ import { AuthenticationService } from '../../auth/auth.service';
       .modal-content h3 {
         margin-bottom: 0.5rem;
         font-size: 18px;
+        color: black;
       }
 
       .modal-content p {

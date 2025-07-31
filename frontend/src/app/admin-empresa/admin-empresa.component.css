@@ -1524,36 +1524,33 @@ table tr:last-child td {
   }
 }
 
-
-/* Modos claros (default) ya están definidos arriba */
-
 /* Modo oscuro */
 .dark-mode .data-table {
-  background: #2a2d34;
-  border-color: #444c56;
-  color: #cbd5e1;
+  background: #1a1c23;
+  border-color: #3b3f4c;
+  color: #e5e7eb;
   box-shadow: none;
 }
 
 .dark-mode .table-header {
-  background: #22252b;
-  border-bottom-color: #444c56;
-  color: #cbd5e1;
+  background: #23262d;
+  border-bottom-color: #3b3f4c;
+  color: #e5e7eb;
 }
 
 .dark-mode table th {
-  background: #22252b;
-  border-bottom: 1px solid #444c56;
-  color: #cbd5e1;
+  background: #23262d;
+  border-bottom: 1px solid #3b3f4c;
+  color: #e5e7eb;
 }
 
 .dark-mode table td {
-  border-bottom: 1px solid #3b4252;
-  color: #cbd5e1;
+  border-bottom: 1px solid #2e323d;
+  color: #e5e7eb;
 }
 
 .dark-mode table tr:hover {
-  background: #3b4252;
+  background: #2c303a;
 }
 
 .dark-mode .text-center {
@@ -1562,68 +1559,135 @@ table tr:last-child td {
 }
 
 .dark-mode .actions button {
-  filter: brightness(1.3);
+  filter: brightness(1.2);
 }
 
 .dark-mode .datos-cell {
-  color: #cbd5e1;
+  color: #e5e7eb;
 }
 
 .dark-mode .datos-cell.expanded .data-preview {
-  background: #3b4252;
+  background: #2c303a;
   color: #e0e0e0;
 }
 
-/* Botón Ver más modo oscuro */
+
+
+
+/* Modo oscuro - Botón Ver más */
 .dark-mode .btn-ver-mas {
-  color: #93c5fd;
+  background: none;
+  border: none;
+  color: #7ab8ff; /* azul claro para legibilidad */
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  text-decoration: underline;
+  flex-shrink: 0;
 }
 
 .dark-mode .btn-ver-mas:hover {
-  background: #1e40af;
-  color: #dbeafe;
+  background: #335a8a; /* azul oscuro semi-transparente */
+  color: #c1d9ff; /* azul más claro */
+  text-decoration: none;
 }
 
-/* Fila expandida en modo oscuro */
-.dark-mode .expanded-row td {
-  background-color: #1f2937;
-  border: none;
+.dark-mode .btn-ver-mas:focus {
+  outline: 2px solid #7ab8ff;
+  outline-offset: 1px;
 }
 
-.dark-mode .expanded-content {
-  background: #111827;
-  border-left-color: #60a5fa;
-  color: #d1d5db;
-  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.05);
+/* Bloques de datos */
+.dark-mode .data-block {
+  padding: 16px;
+  background-color: #2a2f3a; /* gris oscuro */
+  border-left: 4px solid #7ab8ff; /* color por defecto azul claro */
+  border-radius: 6px;
+  font-family: 'Segoe UI', sans-serif;
+  margin-top: 10px;
+  color: #d0d4db; /* texto gris claro */
 }
 
-.dark-mode .expanded-content h4 {
-  color: #60a5fa;
+/* Colores por tipo para borde izquierdo */
+.dark-mode .vehicle-block {
+  border-left-color: #7ab8ff; /* azul claro */
 }
 
-.dark-mode .expanded-content pre {
-  background: #374151;
-  color: #e0e0e0;
+.dark-mode .service-block {
+  border-left-color: #6ecf7a; /* verde claro */
 }
 
-
-:host ::ng-deep ngx-json-viewer .json-key {
-  color: #ff4500 !important;
+.dark-mode .contact-block {
+  border-left-color: #f3d76e; /* amarillo suave */
 }
 
-:host ::ng-deep ngx-json-viewer .json-string {
-  color: #2a9d8f !important;
+.dark-mode .servicio-polo-block {
+  border-left-color: #4fd9ff; /* cyan claro */
 }
 
-:host ::ng-deep ngx-json-viewer .json-number {
-  color: #e76f51 !important;
+/* Items de datos */
+.dark-mode .data-item {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed #4a4f59; /* gris medio */
+  padding: 8px 0;
+  word-break: break-word;
+  gap: 20px;
+  align-items: center;
 }
 
-:host ::ng-deep ngx-json-viewer .json-boolean {
-  color: #0077b6 !important;
+.dark-mode .data-item .label {
+  font-weight: 600;
+  color: #b3b9c1; /* gris claro */
+  flex-shrink: 0;
+  min-width: 140px;
 }
 
-:host ::ng-deep ngx-json-viewer .json-null {
-  color: #6c757d !important;
+.dark-mode .data-item .value {
+  color: #e1e5eb; /* casi blanco */
+  text-align: left;
+  max-width: calc(100% - 160px);
+  overflow-wrap: break-word;
 }
 
+.dark-mode .data-item:last-child {
+  border-bottom: none;
+}
+
+/* Textos capitalizados */
+.dark-mode .text-capitalize {
+  text-transform: capitalize;
+}
+
+/* Sub bloques */
+.dark-mode .sub-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.dark-mode .sub-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px dashed #50545c; /* gris oscuro */
+  padding: 4px 0;
+}
+
+.dark-mode .sub-label {
+  font-weight: 500;
+  color: #a1a6ad; /* gris medio */
+  flex-basis: 40%;
+  white-space: nowrap;
+}
+
+.dark-mode .sub-value {
+  color: #d8dce3; /* gris claro */
+  text-align: right;
+  flex-basis: 60%;
+  overflow-wrap: break-word;
+}
