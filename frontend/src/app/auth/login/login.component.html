@@ -1,66 +1,94 @@
-<div class="login-page">
-  <div class="login-image">
-    <div class="welcome-overlay">
-      <div class="welcome-content">
-        <div class="polo-brand">POLO 52</div>
-        <h1 class="welcome-title">Portal Corporativo</h1>
-        <p class="welcome-subtitle">
-          Acceda a su cuenta empresarial para gestionar los recursos y servicios
-          de su organización
-        </p>
+<div class="login-container">
+  <!-- Panel Izquierdo -->
+  <div class="left-panel">
+    <div class="logo-section">
+      <div class="logo-text">
+        <h1>POLO 52</h1>
+        <p>Parque Industrial de Córdoba</p>
       </div>
+    </div>
+
+    <div class="content-section">
+      <h2>Plataforma Empresarial Integrada</h2>
+      <p>
+        Accede a todos los servicios y herramientas necesarios para optimizar
+        las operaciones de tu empresa en el parque industrial más moderno de
+        Argentina.
+      </p>
+
+      <ul class="features">
+        <li>Gestión integral de servicios</li>
+        <li>Monitoreo en tiempo real</li>
+        <li>Soporte técnico especializado</li>
+        <li>Reportes y analytics avanzados</li>
+      </ul>
     </div>
   </div>
 
-  <div class="login-form">
-    <div class="form-header">
-      <h1>Acceso al Sistema</h1>
-      <p class="description">Ingrese sus credenciales corporativas</p>
+  <!-- Panel Derecho -->
+  <div class="right-panel">
+    <div class="login-header">
+      <div class="login-icon">
+        <!-- Aquí va tu imagen del logo -->
+        <img
+          src="/frontend/public/images/PoloLogo-rojo.jpg"
+          alt="POLO Logo"
+          class="logo-image"
+        />
+        <!-- O mantener el icono: <i class="fas fa-building"></i> -->
+      </div>
+      <h2>Acceso Empresarial</h2>
+      <p>Ingresa con tus credenciales corporativas</p>
     </div>
 
     <form (ngSubmit)="onLogin()" #loginForm="ngForm">
-      <!-- Email o Usuario -->
       <div class="form-group">
-        <label for="username">
-          <i class="fas fa-user label-icon"></i>
-          Usuario o Correo Electrónico
+        <label class="form-label">
+          <i class="fas fa-envelope"></i>
+          Email Corporativo
         </label>
-        <input
-          id="username"
-          name="username"
-          type="text"
-          [(ngModel)]="username"
-          placeholder="usuario@empresa.com"
-          required
-          [ngClass]="{ error: usernameError }"
-          (input)="onUsernameChange()"
-        />
+        <div class="input-wrapper">
+          <input
+            type="text"
+            class="form-input"
+            id="username"
+            name="username"
+            [(ngModel)]="username"
+            placeholder="usuario@empresa.com"
+            required
+            [ngClass]="{ error: usernameError }"
+            (input)="onUsernameChange()"
+          />
+        </div>
         <span *ngIf="usernameError" class="field-error">{{
           usernameErrorMessage
         }}</span>
       </div>
 
-      <!-- Password -->
       <div class="form-group">
-        <label for="password">
-          <i class="fas fa-lock label-icon"></i>
+        <label class="form-label">
+          <i class="fas fa-lock"></i>
           Contraseña
         </label>
-        <div class="password-wrapper">
+        <div class="input-wrapper">
           <input
+            type="password"
+            class="form-input"
             id="password"
             name="password"
             [type]="showPassword ? 'text' : 'password'"
             [(ngModel)]="password"
-            placeholder="Ingrese su contraseña"
+            placeholder="••••••••"
             required
             [ngClass]="{ error: passwordError }"
             (input)="onPasswordChange()"
           />
-          <button type="button" class="eye-btn" (click)="togglePassword()">
-            <span
-              [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"
-            ></span>
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePassword()"
+          >
+            <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
           </button>
         </div>
         <span *ngIf="passwordError" class="field-error">{{
@@ -68,47 +96,49 @@
         }}</span>
       </div>
 
-      <!-- Olvidar contraseña -->
       <div class="forgot-password">
-        <a
-          href="#"
-          (click)="
-            showResetPassword = true;
-            resetEmail = '';
-            resetMessage = '';
-            resetError = '';
-            $event.preventDefault()
-          "
+        <a href="#" (click)="openResetModal(); $event.preventDefault()"
+          >¿Olvidaste tu contraseña?</a
         >
-          ¿Olvidó su contraseña?
-        </a>
       </div>
 
       <button
         type="submit"
-        class="btn-signin"
+        class="login-button"
         [disabled]="loginForm.invalid || loading"
       >
         {{ loading ? "Verificando acceso..." : "Iniciar Sesión" }}
       </button>
 
-      <p *ngIf="successMessage" class="success-message">{{ successMessage }}</p>
-      <p *ngIf="loginMessage" class="login-error">{{ loginMessage }}</p>
+      <div *ngIf="successMessage" class="success-message">
+        {{ successMessage }}
+      </div>
+      <div *ngIf="loginMessage" class="error-message">{{ loginMessage }}</div>
 
-      <!-- Links de registro -->
-      <div class="links">
-        <span>¿No tiene acceso al sistema?</span>
-        <a routerLink="/register">Solicitar Cuenta</a>
+      <div class="divider">
+        <span>O accede con</span>
+      </div>
+
+      <button type="button" class="google-button">
+        <i class="fab fa-google"></i>
+        Google Workspace
+      </button>
+
+      <div class="footer-info">
+        <i class="fas fa-shield-alt"></i>
+        Conexión segura SSL<br />
+        © 2024 POLO - Parque Industrial de Córdoba<br />
+        <strong>UTM</strong>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Modal de recuperación -->
+<!-- Modal de recuperación de contraseña -->
 <div
   *ngIf="showResetPassword"
   class="modal-overlay"
-  (click)="showResetPassword = false"
+  (click)="closeResetModal()"
 >
   <div class="modal-content" (click)="$event.stopPropagation()">
     <h3>Recuperar Contraseña</h3>
@@ -117,30 +147,33 @@
       de recuperación
     </p>
     <form (ngSubmit)="requestPasswordReset()" #resetForm="ngForm">
-      <input
-        type="email"
-        name="email"
-        [(ngModel)]="resetEmail"
-        placeholder="correo@empresa.com"
-        required
-        email
-        (input)="onResetEmailChange()"
-      />
+      <div class="form-group">
+        <input
+          type="email"
+          class="form-input"
+          name="email"
+          [(ngModel)]="resetEmail"
+          placeholder="correo@empresa.com"
+          required
+          email
+          (input)="onResetEmailChange()"
+        />
+      </div>
       <div class="modal-buttons">
         <button type="submit" [disabled]="resetForm.invalid || resetLoading">
           {{ resetLoading ? "Enviando..." : "Enviar Enlace" }}
         </button>
-        <button type="button" (click)="showResetPassword = false">
-          Cancelar
-        </button>
+        <button type="button" (click)="closeResetModal()">Cancelar</button>
       </div>
     </form>
-    <p *ngIf="resetMessage" class="modal-message success">{{ resetMessage }}</p>
-    <p *ngIf="resetError" class="modal-message error">{{ resetError }}</p>
+    <div *ngIf="resetMessage" class="modal-message success">
+      {{ resetMessage }}
+    </div>
+    <div *ngIf="resetError" class="modal-message error">{{ resetError }}</div>
     <button
       *ngIf="resetMessage"
       type="button"
-      (click)="showResetPassword = false"
+      (click)="closeResetModal()"
       class="close-btn"
     >
       Cerrar
