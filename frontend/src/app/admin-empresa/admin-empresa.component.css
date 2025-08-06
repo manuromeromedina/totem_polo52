@@ -52,7 +52,6 @@
   border-radius: 50%;
   transition: background-color 0.3s;
   color: #555; /* Color base del ícono */
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -65,7 +64,6 @@
 .dark-mode .mode-toggle-btn {
   color: #eee; /* Color del ícono en modo oscuro */
 }
-
 
 /* Navigation Tabs */
 .tab-navigation {
@@ -134,13 +132,6 @@
   margin: 0 auto;
   padding: 32px 24px;
 }
-
-.stat-icon {
-  font-size: 2rem;
-  color: #721c24; /* Ajustá el color al branding */
-  margin-bottom: 0.5rem;
-}
-
 
 .tab-content {
   animation: fadeIn 0.3s ease-in;
@@ -291,6 +282,7 @@
   background: #f8f9fa;
   border-radius: 12px;
   border: 2px solid #dee2e6;
+  color: #721c24; /* Color específico del branding */
 }
 
 .stat-info h4 {
@@ -572,42 +564,27 @@ table tr:last-child td {
   justify-content: flex-end;
 }
 
-/* Estilos para la celda de datos */
-.datos-cell {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  max-width: 300px;
+/* Expanded Rows */
+.expanded-row {
+  background: #f8f9fa !important;
 }
 
-.datos-cell.expanded {
-  max-width: none;
-  width: 100%;
+.expanded-row td {
+  padding: 0 !important;
 }
 
-.data-preview {
-  display: inline-block;
-  max-width: 200px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: 'Courier New', monospace;
-  background: #f8f9fa;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  transition: all 0.3s ease;
-  flex: 1;
+.expanded-content {
+  padding: 20px;
+  border-top: 1px solid #dee2e6;
 }
 
-.data-preview.expanded {
-  max-width: none;
-  width: 100%;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow: visible;
-  text-overflow: unset;
-  min-width: 300px;
+.expanded-content h4 {
+  margin: 0 0 16px 0;
+  color: #495057;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 2px solid #6c757d;
+  padding-bottom: 8px;
 }
 
 /* Botón Ver más */
@@ -635,6 +612,8 @@ table tr:last-child td {
   outline: 2px solid #007bff;
   outline-offset: 1px;
 }
+
+/* Data Blocks */
 .data-block {
   padding: 16px;
   background-color: #f0f4f8;
@@ -656,77 +635,224 @@ table tr:last-child td {
   border-left-color: #ffc107; /* amarillo/dorado para contactos */
 }
 
-.servicio-polo-block {
+.polo-service-block {
   border-left-color: #03ddff; /* cyan/azul claro para servicios del polo */
 }
 
+/* Data Items - ESTRUCTURA PRINCIPAL */
 .data-item {
   display: flex;
-  justify-content: space-between; /* deja label a la izquierda y value a la derecha */
+  justify-content: flex-start;
   border-bottom: 1px dashed #dee2e6;
-  padding: 8px 0; /* aumenté el padding vertical para dar más espacio */
+  padding: 8px 0;
   word-break: break-word;
-  gap: 20px; /* separa label y value horizontalmente */
-  align-items: center; /* alinea verticalmente */
+  gap: 20px;
+  align-items: flex-start;
 }
 
 .data-item .label {
   font-weight: 600;
   color: #495057;
-  flex-shrink: 0; /* evita que el label se achique */
-  min-width: 140px; /* ancho mínimo para labels, para que no estén pegados al valor */
+  flex-shrink: 0;
+  min-width: 200px;
+  max-width: 200px;
 }
 
 .data-item .value {
   color: #343a40;
-  text-align: left; /* lo cambio para que quede justo a la derecha del label */
-  max-width: calc(100% - 160px); /* evita que el valor ocupe todo el espacio */
+  text-align: left;
+  flex: 1;
   overflow-wrap: break-word;
+  line-height: 1.4;
 }
-
 
 .data-item:last-child {
   border-bottom: none;
 }
 
+/* Sub-items dentro del value */
+.data-item .value div {
+  display: flex;
+  justify-content: flex-start;
+  gap: 15px;
+  padding: 4px 0;
+  margin: 2px 0;
+  border-bottom: 1px dashed #e0e0e0;
+  align-items: center;
+}
 
+.data-item .value div:last-child {
+  border-bottom: none;
+}
+
+/* Elementos dentro de los sub-items */
+.data-item .value div strong {
+  font-weight: 500;
+  color: #666;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.data-item .value div span:not(.sub-label):not(.sub-value) {
+  color: #333;
+  text-align: left;
+  flex: 1;
+  overflow-wrap: break-word;
+}
+
+/* Sub-items con clases específicas */
+.sub-item {
+  display: flex;
+  justify-content: flex-start;
+  gap: 15px;
+  border-bottom: 1px dashed #e0e0e0;
+  padding: 6px 0;
+  margin: 2px 0;
+  align-items: center;
+}
+
+.sub-label {
+  font-weight: 500;
+  color: #666;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.sub-value {
+  color: #333;
+  text-align: left;
+  flex: 1;
+  overflow-wrap: break-word;
+}
 
 .text-capitalize {
   text-transform: capitalize;
 }
 
-
-
-
-.sub-block {
+/* Info Box Styles */
+.info-box {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 8px;
 }
 
-.sub-item {
+.info-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  border-bottom: 1px dashed #ccc;
-  padding: 4px 0;
+  align-items: center;
+  justify-content: center;
+  background: #e9ecef;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
-.sub-label {
+.info-content h4 {
+  margin: 0 0 8px 0;
+  color: #495057;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.info-content p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Estilos específicos para la sección de servicios polo */
+.info-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #1976d2;
   font-weight: 500;
-  color: #555;
-  flex-basis: 40%;
-  white-space: nowrap;
 }
 
-.sub-value {
-  color: #333;
-  text-align: right;
-  flex-basis: 60%;
-  overflow-wrap: break-word;
+.lotes-count {
+  padding: 4px 8px;
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #155724;
+  display: inline-block;
 }
 
+.no-lotes {
+  color: #6c757d;
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* Loading States */
+.btn.loading {
+  position: relative;
+  color: transparent;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  transform: translate(-50%, -50%);
+  color: white;
+}
+
+/* Hover Effects for Interactive Elements */
+.info-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.data-table:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+/* Custom Scrollbar */
+.form-container::-webkit-scrollbar,
+.table-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.form-container::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track {
+  background: #f1f3f4;
+  border-radius: 4px;
+}
+
+.form-container::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb {
+  background: #ced4da;
+  border-radius: 4px;
+}
+
+.form-container::-webkit-scrollbar-thumb:hover,
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #adb5bd;
+}
 
 /* Responsive Design */
 @media (max-width: 1200px) {
@@ -824,8 +950,18 @@ table tr:last-child td {
     padding: 20px;
   }
   
-  .data-preview {
-    max-width: 150px;
+  .info-badge {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  .lotes-count {
+    font-size: 11px;
+  }
+
+  .data-item .label {
+    min-width: 120px;
+    max-width: 120px;
   }
 }
 
@@ -852,6 +988,11 @@ table tr:last-child td {
   
   .stat-icon {
     margin-bottom: 8px;
+  }
+
+  .data-item .label {
+    min-width: 100px;
+    max-width: 100px;
   }
 }
 
@@ -977,6 +1118,19 @@ table tr:last-child td {
   background: #383838;
 }
 
+.admin-container.dark-mode .expanded-row {
+  background: #383838 !important;
+}
+
+.admin-container.dark-mode .expanded-content {
+  border-top-color: #404040;
+}
+
+.admin-container.dark-mode .expanded-content h4 {
+  color: #e0e0e0;
+  border-bottom-color: #a0a0a0;
+}
+
 .admin-container.dark-mode .form-control {
   background: #383838;
   border-color: #555;
@@ -1024,66 +1178,114 @@ table tr:last-child td {
   color: #a0a0a0;
 }
 
-.admin-container.dark-mode .data-preview {
+/* Dark mode - Botón Ver más */
+.admin-container.dark-mode .btn-ver-mas {
+  color: #7ab8ff;
+}
+
+.admin-container.dark-mode .btn-ver-mas:hover {
+  background: #335a8a;
+  color: #c1d9ff;
+}
+
+.admin-container.dark-mode .btn-ver-mas:focus {
+  outline-color: #7ab8ff;
+}
+
+/* Dark mode - Data Blocks */
+.admin-container.dark-mode .data-block {
+  background-color: #2a2f3a;
+  color: #d0d4db;
+}
+
+.admin-container.dark-mode .vehicle-block {
+  border-left-color: #7ab8ff;
+}
+
+.admin-container.dark-mode .service-block {
+  border-left-color: #6ecf7a;
+}
+
+.admin-container.dark-mode .contact-block {
+  border-left-color: #f3d76e;
+}
+
+.admin-container.dark-mode .polo-service-block {
+  border-left-color: #4fd9ff;
+}
+
+/* Dark mode - Data Items */
+.admin-container.dark-mode .data-item {
+  border-bottom-color: #4a4f59;
+}
+
+.admin-container.dark-mode .data-item .label {
+  color: #b3b9c1;
+}
+
+.admin-container.dark-mode .data-item .value {
+  color: #e1e5eb;
+}
+
+/* Dark mode - Sub-items dentro del value */
+.admin-container.dark-mode .data-item .value div {
+  border-bottom-color: #50545c;
+}
+
+.admin-container.dark-mode .data-item .value div strong {
+  color: #a1a6ad;
+}
+
+.admin-container.dark-mode .data-item .value div span:not(.sub-label):not(.sub-value) {
+  color: #d8dce3;
+}
+
+/* Dark mode - Sub-items con clases específicas */
+.admin-container.dark-mode .sub-item {
+  border-bottom-color: #50545c;
+}
+
+.admin-container.dark-mode .sub-label {
+  color: #a1a6ad;
+}
+
+.admin-container.dark-mode .sub-value {
+  color: #d8dce3;
+}
+
+/* Dark mode - Info Box */
+.admin-container.dark-mode .info-box {
   background: #383838;
+  border-color: #555;
+}
+
+.admin-container.dark-mode .info-icon {
+  background: #505050;
+}
+
+.admin-container.dark-mode .info-content h4 {
   color: #e0e0e0;
 }
 
-
-/* Loading States */
-.btn.loading {
-  position: relative;
-  color: transparent;
+.admin-container.dark-mode .info-content p {
+  color: #a0a0a0;
 }
 
-.btn.loading::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 16px;
-  height: 16px;
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  transform: translate(-50%, -50%);
-  color: white;
+/* Dark mode - Servicios Polo */
+.admin-container.dark-mode .info-badge {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
 }
 
-/* Hover Effects for Interactive Elements */
-.info-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
+.admin-container.dark-mode .lotes-count {
+  background: #155724;
+  border-color: #0a4622;
+  color: #d4edda;
 }
 
-.data-table:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-/* Custom Scrollbar */
-.form-container::-webkit-scrollbar,
-.table-container::-webkit-scrollbar {
-  width: 8px;
-}
-
-.form-container::-webkit-scrollbar-track,
-.table-container::-webkit-scrollbar-track {
-  background: #f1f3f4;
-  border-radius: 4px;
-}
-
-.form-container::-webkit-scrollbar-thumb,
-.table-container::-webkit-scrollbar-thumb {
-  background: #ced4da;
-  border-radius: 4px;
-}
-
-.form-container::-webkit-scrollbar-thumb:hover,
-.table-container::-webkit-scrollbar-thumb:hover {
-  background: #adb5bd;
+.admin-container.dark-mode .no-lotes {
+  color: #a0a0a0;
 }
 
 /* Print Styles */
@@ -1113,581 +1315,29 @@ table tr:last-child td {
   }
 }
 
-
-/* Info Box Styles */
-.info-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 20px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  margin-bottom: 8px;
+/* Utility Classes */
+.text-danger {
+  color: #dc3545 !important;
 }
 
-.info-icon {
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #e9ecef;
-  border-radius: 8px;
-  flex-shrink: 0;
+.admin-container.dark-mode .text-danger {
+  color: #f87171 !important;
 }
 
-.info-content h4 {
-  margin: 0 0 8px 0;
-  color: #495057;
+.section-title {
   font-size: 16px;
   font-weight: 600;
-}
-
-.info-content p {
-  margin: 0;
-  color: #6c757d;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-/* Dark mode support for info box */
-@media (prefers-color-scheme: dark) {
-  .info-box {
-    background: #383838;
-    border-color: #555;
-  }
-  
-  .info-icon {
-    background: #505050;
-  }
-  
-  .info-content h4 {
-    color: #e0e0e0;
-  }
-  
-  .info-content p {
-    color: #a0a0a0;
-  }
-
-  
-}
-
-/* Estilos específicos para la sección de servicios polo */
-.info-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #e3f2fd;
-  border: 1px solid #bbdefb;
-  border-radius: 20px;
-  font-size: 14px;
-  color: #1976d2;
-  font-weight: 500;
-}
-
-.badge-icon {
-  font-size: 16px;
-}
-
-.service-name{
-    font-weight: 400;
-
-}
-
-
-
-.service-type-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 500;
   color: #495057;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  margin: 20px 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #dee2e6;
 }
 
-.schedule-info {
-  font-family: 'Courier New', monospace;
-  background: #f8f9fa;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 13px;
-  color: #495057;
-}
-
-.owner-info {
-  color: #6c757d;
-  font-weight: 500;
-}
-
-.lotes-info {
-  position: relative;
-  display: inline-block;
-}
-
-.lotes-count {
-  padding: 4px 8px;
-  background: #d4edda;
-  border: 1px solid #c3e6cb;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #155724;
-  cursor: pointer;
-}
-
-.lotes-tooltip {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #212529;
-  color: white;
-  padding: 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  white-space: nowrap;
-  z-index: 1000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  margin-top: 5px;
-}
-
-.lotes-tooltip::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 5px solid #212529;
-}
-
-.lotes-info:hover .lotes-tooltip {
-  opacity: 1;
-}
-
-.lotes-tooltip ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.lotes-tooltip li {
-  padding: 2px 0;
-  border-bottom: 1px solid #495057;
-}
-
-.lotes-tooltip li:last-child {
-  border-bottom: none;
-}
-
-.no-lotes {
-  color: #6c757d;
-  font-style: italic;
-  font-size: 13px;
-}
-
-.empty-state {
-  padding: 40px 20px;
-  text-align: center;
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  color: #6c757d;
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-
-.empty-state small {
-  color: #adb5bd;
-  font-size: 14px;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .info-badge {
-    background: #1e3a8a;
-    border-color: #3b82f6;
-    color: #93c5fd;
-  }
-  
-  .service-type-badge {
-    background: #383838;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-  
-  .schedule-info {
-    background: #383838;
-    color: #e0e0e0;
-  }
-  
-  .owner-info {
-    color: #a0a0a0;
-  }
-  
-  .lotes-count {
-    background: #155724;
-    border-color: #0a4622;
-    color: #d4edda;
-  }
-  
-  .lotes-tooltip {
-    background: #f8f9fa;
-    color: #212529;
-  }
-  
-  .lotes-tooltip::before {
-    border-bottom-color: #f8f9fa;
-  }
-  
-  .lotes-tooltip li {
-    border-bottom-color: #dee2e6;
-  }
-  
-  .no-lotes {
-    color: #a0a0a0;
-  }
-  
-  .empty-state p {
-    color: #a0a0a0;
-  }
-  
-  .empty-state small {
-    color: #666;
-  }
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .info-badge {
-    font-size: 12px;
-    padding: 6px 12px;
-  }
-  
-  .service-type-badge {
-    font-size: 11px;
-    padding: 3px 8px;
-  }
-  
-  .schedule-info {
-    font-size: 12px;
-  }
-  
-  .lotes-count {
-    font-size: 11px;
-  }
-  
-  .empty-state {
-    padding: 30px 15px;
-  }
-  
-  .empty-icon {
-    font-size: 36px;
-  }
-}
-
-
-/* Estilos adicionales para servicios polo */
-.service-id {
-  font-family: 'Courier New', monospace;
-  background: #f8f9fa;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  color: #495057;
-}
-
-
-
-.service-description {
-  display: block;
-  color: #dae5ee;
-  font-size: 12px;
-  margin-top: 4px;
-  line-height: 1.3;
-}
-
-
-
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.status-active {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.status-inactive {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-.date-info {
-  font-size: 13px;
-  color: #6c757d;
-  font-family: 'Courier New', monospace;
-}
-
-.lotes-tooltip ul {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.lotes-tooltip li {
-  padding: 8px 0;
-  border-bottom: 1px solid #495057;
-  line-height: 1.4;
-}
-
-.lotes-tooltip li:last-child {
-  border-bottom: none;
-}
-
-.lotes-tooltip strong {
-  font-weight: 600;
-}
-
-.lotes-tooltip small {
-  color: #adb5bd;
-  font-size: 11px;
-}
-
-/* Dark mode support para los nuevos elementos */
-@media (prefers-color-scheme: dark) {
-  .service-id {
-    background: #383838;
-    color: #e0e0e0;
-  }
-
-
-  .service-name strong {
-    color: #a0a0a0 ;
-  }
-
-  .service-description {
-    color: #6c757d;
-  }
-
-
-  
-  
-  .status-active {
-    background: #155724;
-    color: #d4edda;
-    border-color: #0a4622;
-  }
-  
-  .status-inactive {
-    background: #721c24;
-    color: #f8d7da;
-    border-color: #5a161c;
-  }
-  
-  .date-info {
-    color: #a0a0a0;
-  }
-  
-  .lotes-tooltip {
-    background: #f8f9fa;
-    color: #212529;
-  }
-  
-  .lotes-tooltip small {
-    color: #6c757d;
-  }
-}
-
-/* Modo oscuro */
-.dark-mode .data-table {
-  background: #1a1c23;
-  border-color: #3b3f4c;
-  color: #e5e7eb;
-  box-shadow: none;
-}
-
-.dark-mode .table-header {
-  background: #23262d;
-  border-bottom-color: #3b3f4c;
-  color: #e5e7eb;
-}
-
-.dark-mode table th {
-  background: #23262d;
-  border-bottom: 1px solid #3b3f4c;
-  color: #e5e7eb;
-}
-
-.dark-mode table td {
-  border-bottom: 1px solid #2e323d;
-  color: #e5e7eb;
-}
-
-.dark-mode table tr:hover {
-  background: #2c303a;
-}
-
-.dark-mode .text-center {
-  color: #94a3b8;
-  font-style: italic;
-}
-
-.dark-mode .actions button {
-  filter: brightness(1.2);
-}
-
-.dark-mode .datos-cell {
-  color: #e5e7eb;
-}
-
-.dark-mode .datos-cell.expanded .data-preview {
-  background: #2c303a;
+.admin-container.dark-mode .section-title {
   color: #e0e0e0;
+  border-bottom-color: #404040;
 }
 
-
-
-
-/* Modo oscuro - Botón Ver más */
-.dark-mode .btn-ver-mas {
-  background: none;
-  border: none;
-  color: #7ab8ff; /* azul claro para legibilidad */
-  font-size: 11px;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 3px;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  text-decoration: underline;
-  flex-shrink: 0;
-}
-
-.dark-mode .btn-ver-mas:hover {
-  background: #335a8a; /* azul oscuro semi-transparente */
-  color: #c1d9ff; /* azul más claro */
-  text-decoration: none;
-}
-
-.dark-mode .btn-ver-mas:focus {
-  outline: 2px solid #7ab8ff;
-  outline-offset: 1px;
-}
-
-/* Bloques de datos */
-.dark-mode .data-block {
-  padding: 16px;
-  background-color: #2a2f3a; /* gris oscuro */
-  border-left: 4px solid #7ab8ff; /* color por defecto azul claro */
-  border-radius: 6px;
-  font-family: 'Segoe UI', sans-serif;
-  margin-top: 10px;
-  color: #d0d4db; /* texto gris claro */
-}
-
-/* Colores por tipo para borde izquierdo */
-.dark-mode .vehicle-block {
-  border-left-color: #7ab8ff; /* azul claro */
-}
-
-.dark-mode .service-block {
-  border-left-color: #6ecf7a; /* verde claro */
-}
-
-.dark-mode .contact-block {
-  border-left-color: #f3d76e; /* amarillo suave */
-}
-
-.dark-mode .servicio-polo-block {
-  border-left-color: #4fd9ff; /* cyan claro */
-}
-
-/* Items de datos */
-.dark-mode .data-item {
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px dashed #4a4f59; /* gris medio */
-  padding: 8px 0;
-  word-break: break-word;
-  gap: 20px;
-  align-items: center;
-}
-
-.dark-mode .data-item .label {
-  font-weight: 600;
-  color: #b3b9c1; /* gris claro */
-  flex-shrink: 0;
-  min-width: 140px;
-}
-
-.dark-mode .data-item .value {
-  color: #e1e5eb; /* casi blanco */
-  text-align: left;
-  max-width: calc(100% - 160px);
-  overflow-wrap: break-word;
-}
-
-.dark-mode .data-item:last-child {
-  border-bottom: none;
-}
-
-/* Textos capitalizados */
-.dark-mode .text-capitalize {
-  text-transform: capitalize;
-}
-
-/* Sub bloques */
-.dark-mode .sub-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
-}
-
-.dark-mode .sub-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  border-bottom: 1px dashed #50545c; /* gris oscuro */
-  padding: 4px 0;
-}
-
-.dark-mode .sub-label {
-  font-weight: 500;
-  color: #a1a6ad; /* gris medio */
-  flex-basis: 40%;
-  white-space: nowrap;
-}
-
-.dark-mode .sub-value {
-  color: #d8dce3; /* gris claro */
-  text-align: right;
-  flex-basis: 60%;
-  overflow-wrap: break-word;
+.mt-2 {
+  margin-top: 0.5rem;
 }

@@ -1,4 +1,4 @@
-<!-- admin-polo.component.html -->
+<!-- admin-polo.component.html MEJORADO -->
 <div class="admin-container" [class.dark-mode]="isDarkMode">
   <!-- Header -->
   <header class="admin-header">
@@ -103,118 +103,57 @@
       <div class="section-header">
         <h2>Gestión de Empresas</h2>
         <button class="btn btn-primary" (click)="openEmpresaForm()">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
+            />
+          </svg>
           Nueva Empresa
         </button>
       </div>
 
-      <!-- Empresa Form -->
-      <div *ngIf="showEmpresaForm" class="form-modal">
-        <div class="form-container">
-          <div class="form-header">
-            <h3>{{ editingEmpresa ? "Editar Empresa" : "Nueva Empresa" }}</h3>
-            <button class="close-btn" (click)="resetForms()">&times;</button>
-          </div>
-
-          <form (ngSubmit)="onSubmitEmpresa()" #empresaFormRef="ngForm">
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="cuil">CUIL *</label>
-                <input
-                  type="number"
-                  id="cuil"
-                  name="cuil"
-                  [(ngModel)]="empresaForm.cuil"
-                  required
-                  [disabled]="!!editingEmpresa"
-                  class="form-control"
-                />
-              </div>
-
-              <div class="form-group">
-                <label for="nombre">Nombre *</label>
-                <input
-                  type="text"
-                  id="nombre"
-                  name="nombre"
-                  [(ngModel)]="empresaForm.nombre"
-                  required
-                  class="form-control"
-                />
-              </div>
-
-              <div class="form-group">
-                <label for="rubro">Rubro *</label>
-                <input
-                  type="text"
-                  id="rubro"
-                  name="rubro"
-                  [(ngModel)]="empresaForm.rubro"
-                  required
-                  class="form-control"
-                />
-              </div>
-
-              <div class="form-group" *ngIf="!editingEmpresa">
-                <label for="cant_empleados">Cantidad de Empleados *</label>
-                <input
-                  type="number"
-                  id="cant_empleados"
-                  name="cant_empleados"
-                  [(ngModel)]="empresaForm.cant_empleados"
-                  required
-                  min="1"
-                  class="form-control"
-                />
-              </div>
-
-              <div class="form-group full-width" *ngIf="!editingEmpresa">
-                <label for="horario_trabajo">Horario de Trabajo *</label>
-                <input
-                  type="text"
-                  id="horario_trabajo"
-                  name="horario_trabajo"
-                  [(ngModel)]="empresaForm.horario_trabajo"
-                  required
-                  placeholder="Ej: Lunes a Viernes 8:00 - 17:00"
-                  class="form-control"
-                />
-              </div>
-
-              <div class="form-group full-width" *ngIf="!editingEmpresa">
-                <label for="observaciones">Observaciones</label>
-                <textarea
-                  id="observaciones"
-                  name="observaciones"
-                  [(ngModel)]="empresaForm.observaciones"
-                  rows="3"
-                  class="form-control"
-                ></textarea>
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button
-                type="button"
-                class="btn btn-secondary"
-                (click)="resetForms()"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                class="btn btn-primary"
-                [disabled]="loading || empresaFormRef.invalid"
-              >
-                {{
-                  loading
-                    ? "Guardando..."
-                    : !!editingEmpresa
-                    ? "Actualizar"
-                    : "Crear"
-                }}
-              </button>
-            </div>
-          </form>
+      <!-- Barra de búsqueda para Empresas -->
+      <div class="search-bar">
+        <div class="search-container">
+          <svg
+            class="search-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            [(ngModel)]="empresaSearchTerm"
+            (input)="filterEmpresas()"
+            placeholder="Buscar empresas por nombre, CUIL o rubro..."
+            class="search-input"
+          />
+          <button
+            *ngIf="empresaSearchTerm"
+            (click)="clearEmpresaSearch()"
+            class="clear-search-btn"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        <div class="search-results" *ngIf="empresaSearchTerm">
+          <small
+            >{{ filteredEmpresas.length }} de
+            {{ empresas.length }} empresas</small
+          >
         </div>
       </div>
 
@@ -236,56 +175,142 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let empresa of empresas">
+              <tr *ngFor="let empresa of filteredEmpresas">
                 <td>{{ empresa.cuil }}</td>
                 <td>{{ empresa.nombre }}</td>
                 <td>{{ empresa.rubro }}</td>
                 <td>{{ empresa.cant_empleados }}</td>
                 <td>{{ empresa.fecha_ingreso | date : "dd/MM/yyyy" }}</td>
                 <td class="actions">
-                  <!-- Acciones principales -->
-                  <div class="action-row">
-                    <button
-                      class="btn btn-sm btn-secondary"
-                      (click)="openEmpresaForm(empresa)"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      class="btn btn-sm btn-danger"
-                      (click)="deleteEmpresa(empresa.cuil)"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
+                  <div class="action-buttons">
+                    <!-- Acciones principales -->
+                    <div class="primary-actions">
+                      <button
+                        class="btn btn-sm btn-secondary"
+                        (click)="openEmpresaForm(empresa)"
+                        title="Editar empresa"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                        >
+                          <path
+                            d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3-6.5 6.5v3h3l6.5-6.5z"
+                          />
+                        </svg>
+                        Editar
+                      </button>
+                      <button
+                        class="btn btn-sm btn-danger"
+                        (click)="deleteEmpresa(empresa.cuil)"
+                        title="Eliminar empresa"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                        >
+                          <path
+                            d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
+                          />
+                          <path
+                            fill-rule="evenodd"
+                            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                          />
+                        </svg>
+                        Eliminar
+                      </button>
+                    </div>
 
-                  <!-- Botones de asociación -->
-                  <div class="association-buttons">
-                    <button
-                      class="btn btn-xs btn-primary"
-                      (click)="createUsuarioForEmpresa(empresa)"
-                      title="Crear usuario para esta empresa"
-                    >
-                      + Usuario
-                    </button>
-                    <button
-                      class="btn btn-xs btn-primary"
-                      (click)="createServicioPoloForEmpresa(empresa)"
-                      title="Crear servicio del polo para esta empresa"
-                    >
-                      + Servicio
-                    </button>
+                    <!-- Acciones secundarias -->
+                    <div class="secondary-actions">
+                      <button
+                        class="btn btn-xs btn-success"
+                        (click)="createUsuarioForEmpresa(empresa)"
+                        title="Crear usuario para esta empresa"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                        >
+                          <path
+                            d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"
+                          />
+                        </svg>
+                        Usuario
+                      </button>
+                      <button
+                        class="btn btn-xs btn-info"
+                        (click)="createServicioPoloForEmpresa(empresa)"
+                        title="Crear servicio del polo para esta empresa"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                        >
+                          <path
+                            d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm11 1H3v10h10V4z"
+                          />
+                          <path d="M5 7h6v2H5V7z" />
+                        </svg>
+                        Servicio
+                      </button>
+                    </div>
                   </div>
                 </td>
               </tr>
-              <tr *ngIf="empresas.length === 0">
+              <tr *ngIf="filteredEmpresas.length === 0">
                 <td colspan="6" class="text-center">
-                  No hay empresas registradas
+                  <div class="empty-state">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="48"
+                      height="48"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
+                      />
+                      <path
+                        fill-rule="evenodd"
+                        d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"
+                      />
+                      <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                    </svg>
+                    <p>
+                      {{
+                        empresaSearchTerm
+                          ? "No se encontraron empresas"
+                          : "No hay empresas registradas"
+                      }}
+                    </p>
+                    <small *ngIf="empresaSearchTerm"
+                      >Prueba con otros términos de búsqueda</small
+                    >
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+      </div>
+
+      <!-- Resto de formularios... (mantener igual) -->
+      <!-- Usuario Form -->
+      <div *ngIf="showEmpresaForm" class="form-modal">
+        <!-- Contenido del formulario de empresa (mantener igual) -->
       </div>
     </div>
 
@@ -293,6 +318,45 @@
     <div *ngIf="activeTab === 'usuarios'" class="tab-content">
       <div class="section-header">
         <h2>Gestión de Usuarios</h2>
+      </div>
+
+      <!-- Barra de búsqueda para Usuarios -->
+      <div class="search-bar">
+        <div class="search-container">
+          <svg
+            class="search-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            [(ngModel)]="usuarioSearchTerm"
+            (input)="filterUsuarios()"
+            placeholder="Buscar usuarios por nombre, email o CUIL..."
+            class="search-input"
+          />
+          <button
+            *ngIf="usuarioSearchTerm"
+            (click)="clearUsuarioSearch()"
+            class="clear-search-btn"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        <div class="search-results" *ngIf="usuarioSearchTerm">
+          <small
+            >{{ filteredUsuarios.length }} de
+            {{ usuarios.length }} usuarios</small
+          >
+        </div>
       </div>
 
       <!-- Usuarios List -->
@@ -313,7 +377,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let usuario of usuarios">
+              <tr *ngFor="let usuario of filteredUsuarios">
                 <td>{{ usuario.nombre }}</td>
                 <td>{{ usuario.email }}</td>
                 <td>{{ usuario.cuil }}</td>
@@ -327,24 +391,100 @@
                 </td>
                 <td>{{ usuario.fecha_registro | date : "dd/MM/yyyy" }}</td>
                 <td class="actions">
-                  <button
-                    class="btn btn-sm btn-secondary"
-                    (click)="openUsuarioForm(usuario)"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    class="btn btn-sm"
-                    [class]="usuario.estado ? 'btn-danger' : 'btn-success'"
-                    (click)="toggleUsuarioEstado(usuario)"
-                  >
-                    {{ usuario.estado ? "Inhabilitar" : "Habilitar" }}
-                  </button>
+                  <div class="action-buttons">
+                    <div class="primary-actions">
+                      <button
+                        class="btn btn-sm btn-secondary"
+                        (click)="openUsuarioForm(usuario)"
+                        title="Editar usuario"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                        >
+                          <path
+                            d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3-6.5 6.5v3h3l6.5-6.5z"
+                          />
+                        </svg>
+                        Editar
+                      </button>
+                      <button
+                        class="btn btn-sm"
+                        [class]="usuario.estado ? 'btn-warning' : 'btn-success'"
+                        (click)="toggleUsuarioEstado(usuario)"
+                        [title]="
+                          usuario.estado
+                            ? 'Inhabilitar usuario'
+                            : 'Habilitar usuario'
+                        "
+                      >
+                        <svg
+                          *ngIf="usuario.estado"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                        >
+                          <path
+                            d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"
+                          />
+                          <path
+                            d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"
+                          />
+                          <path
+                            d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.708zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"
+                          />
+                        </svg>
+                        <svg
+                          *ngIf="!usuario.estado"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                        >
+                          <path
+                            d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"
+                          />
+                          <path
+                            d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"
+                          />
+                        </svg>
+                        {{ usuario.estado ? "Inhabilitar" : "Habilitar" }}
+                      </button>
+                    </div>
+                  </div>
                 </td>
               </tr>
-              <tr *ngIf="usuarios.length === 0">
+              <tr *ngIf="filteredUsuarios.length === 0">
                 <td colspan="6" class="text-center">
-                  No hay usuarios registrados
+                  <div class="empty-state">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="48"
+                      height="48"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
+                      />
+                    </svg>
+                    <p>
+                      {{
+                        usuarioSearchTerm
+                          ? "No se encontraron usuarios"
+                          : "No hay usuarios registrados"
+                      }}
+                    </p>
+                    <small *ngIf="usuarioSearchTerm"
+                      >Prueba con otros términos de búsqueda</small
+                    >
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -357,6 +497,45 @@
     <div *ngIf="activeTab === 'servicios'" class="tab-content">
       <div class="section-header">
         <h2>Servicios del Polo</h2>
+      </div>
+
+      <!-- Barra de búsqueda para Servicios -->
+      <div class="search-bar">
+        <div class="search-container">
+          <svg
+            class="search-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            [(ngModel)]="servicioSearchTerm"
+            (input)="filterServicios()"
+            placeholder="Buscar servicios por nombre, CUIL o propietario..."
+            class="search-input"
+          />
+          <button
+            *ngIf="servicioSearchTerm"
+            (click)="clearServicioSearch()"
+            class="clear-search-btn"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        <div class="search-results" *ngIf="servicioSearchTerm">
+          <small
+            >{{ filteredServicios.length }} de
+            {{ serviciosPolo.length }} servicios</small
+          >
+        </div>
       </div>
 
       <!-- Servicios Polo List -->
@@ -376,31 +555,83 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let servicio of serviciosPolo">
+              <tr *ngFor="let servicio of filteredServicios">
                 <td>{{ servicio.nombre }}</td>
                 <td>{{ servicio.cuil }}</td>
                 <td>{{ servicio.horario || "No especificado" }}</td>
                 <td>{{ servicio.propietario || "No especificado" }}</td>
-                <button
-                  class="btn btn-xs btn-primary"
-                  (click)="openLoteForm(servicio.id_servicio_polo)"
-                  title="Crear lote para este servicio"
-                >
-                  + Lote
-                </button>
-
                 <td class="actions">
-                  <button
-                    class="btn btn-sm btn-danger"
-                    (click)="deleteServicioPolo(servicio.id_servicio_polo)"
-                  >
-                    Eliminar
-                  </button>
+                  <div class="action-buttons">
+                    <div class="primary-actions">
+                      <button
+                        class="btn btn-sm btn-success"
+                        (click)="openLoteForm(servicio.id_servicio_polo)"
+                        title="Crear lote para este servicio"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                        >
+                          <path
+                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
+                          />
+                        </svg>
+                        Crear Lote
+                      </button>
+                      <button
+                        class="btn btn-sm btn-danger"
+                        (click)="deleteServicioPolo(servicio.id_servicio_polo)"
+                        title="Eliminar servicio"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                        >
+                          <path
+                            d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
+                          />
+                          <path
+                            fill-rule="evenodd"
+                            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                          />
+                        </svg>
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
                 </td>
               </tr>
-              <tr *ngIf="serviciosPolo.length === 0">
-                <td colspan="6" class="text-center">
-                  No hay servicios del polo registrados
+              <tr *ngIf="filteredServicios.length === 0">
+                <td colspan="5" class="text-center">
+                  <div class="empty-state">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="48"
+                      height="48"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm11 1H3v10h10V4z"
+                      />
+                    </svg>
+                    <p>
+                      {{
+                        servicioSearchTerm
+                          ? "No se encontraron servicios"
+                          : "No hay servicios del polo registrados"
+                      }}
+                    </p>
+                    <small *ngIf="servicioSearchTerm"
+                      >Prueba con otros términos de búsqueda</small
+                    >
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -413,6 +644,42 @@
     <div *ngIf="activeTab === 'lotes'" class="tab-content">
       <div class="section-header">
         <h2>Gestión de Lotes</h2>
+      </div>
+
+      <!-- Barra de búsqueda para Lotes -->
+      <div class="search-bar">
+        <div class="search-container">
+          <svg
+            class="search-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            [(ngModel)]="loteSearchTerm"
+            (input)="filterLotes()"
+            placeholder="Buscar lotes por dueño, número de lote o manzana..."
+            class="search-input"
+          />
+          <button
+            *ngIf="loteSearchTerm"
+            (click)="clearLoteSearch()"
+            class="clear-search-btn"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        <div class="search-results" *ngIf="loteSearchTerm">
+          <small>{{ filteredLotes.length }} de {{ lotes.length }} lotes</small>
+        </div>
       </div>
 
       <!-- Lotes List -->
@@ -432,23 +699,68 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let lote of lotes">
+              <tr *ngFor="let lote of filteredLotes">
                 <td>{{ lote.dueno }}</td>
                 <td>{{ lote.lote }}</td>
                 <td>{{ lote.manzana }}</td>
                 <td>{{ lote.id_servicio_polo }}</td>
                 <td class="actions">
-                  <button
-                    class="btn btn-sm btn-danger"
-                    (click)="deleteLote(lote.id_lotes)"
-                  >
-                    Eliminar
-                  </button>
+                  <div class="action-buttons">
+                    <div class="primary-actions">
+                      <button
+                        class="btn btn-sm btn-danger"
+                        (click)="deleteLote(lote.id_lotes)"
+                        title="Eliminar lote"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                        >
+                          <path
+                            d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
+                          />
+                          <path
+                            fill-rule="evenodd"
+                            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                          />
+                        </svg>
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
                 </td>
               </tr>
-              <tr *ngIf="lotes.length === 0">
+              <tr *ngIf="filteredLotes.length === 0">
                 <td colspan="5" class="text-center">
-                  No hay lotes registrados
+                  <div class="empty-state">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="48"
+                      height="48"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        d="M2.5 3A1.5 1.5 0 0 0 1 4.5v.793c.026.009.051.02.076.032L7.674 8.51c.206.1.446.1.652 0l6.598-3.185A.755.755 0 0 1 15 5.293V4.5A1.5 1.5 0 0 0 13.5 3h-11Z"
+                      />
+                      <path
+                        d="M15 6.954 8.978 9.86a2.25 2.25 0 0 1-1.956 0L1 6.954V11.5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5V6.954Z"
+                      />
+                    </svg>
+                    <p>
+                      {{
+                        loteSearchTerm
+                          ? "No se encontraron lotes"
+                          : "No hay lotes registrados"
+                      }}
+                    </p>
+                    <small *ngIf="loteSearchTerm"
+                      >Prueba con otros términos de búsqueda</small
+                    >
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -457,7 +769,120 @@
       </div>
     </div>
 
-    <!-- Usuario Form -->
+    <!-- FORMULARIOS MODALES (mantener todos los formularios existentes) -->
+
+    <!-- Empresa Form Modal -->
+    <div *ngIf="showEmpresaForm" class="form-modal">
+      <div class="form-container">
+        <div class="form-header">
+          <h3>{{ editingEmpresa ? "Editar Empresa" : "Nueva Empresa" }}</h3>
+          <button class="close-btn" (click)="resetForms()">&times;</button>
+        </div>
+
+        <form (ngSubmit)="onSubmitEmpresa()" #empresaFormRef="ngForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="cuil">CUIL *</label>
+              <input
+                type="number"
+                id="cuil"
+                name="cuil"
+                [(ngModel)]="empresaForm.cuil"
+                required
+                [disabled]="!!editingEmpresa"
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="nombre">Nombre *</label>
+              <input
+                type="text"
+                id="nombre"
+                name="nombre"
+                [(ngModel)]="empresaForm.nombre"
+                required
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="rubro">Rubro *</label>
+              <input
+                type="text"
+                id="rubro"
+                name="rubro"
+                [(ngModel)]="empresaForm.rubro"
+                required
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group" *ngIf="!editingEmpresa">
+              <label for="cant_empleados">Cantidad de Empleados *</label>
+              <input
+                type="number"
+                id="cant_empleados"
+                name="cant_empleados"
+                [(ngModel)]="empresaForm.cant_empleados"
+                required
+                min="1"
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group full-width" *ngIf="!editingEmpresa">
+              <label for="horario_trabajo">Horario de Trabajo *</label>
+              <input
+                type="text"
+                id="horario_trabajo"
+                name="horario_trabajo"
+                [(ngModel)]="empresaForm.horario_trabajo"
+                required
+                placeholder="Ej: Lunes a Viernes 8:00 - 17:00"
+                class="form-control"
+              />
+            </div>
+
+            <div class="form-group full-width" *ngIf="!editingEmpresa">
+              <label for="observaciones">Observaciones</label>
+              <textarea
+                id="observaciones"
+                name="observaciones"
+                [(ngModel)]="empresaForm.observaciones"
+                rows="3"
+                class="form-control"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="resetForms()"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="loading || empresaFormRef.invalid"
+            >
+              {{
+                loading
+                  ? "Guardando..."
+                  : !!editingEmpresa
+                  ? "Actualizar"
+                  : "Crear"
+              }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Usuario Form Modal -->
     <div *ngIf="showUsuarioForm" class="form-modal">
       <div class="form-container">
         <div class="form-header">
@@ -541,7 +966,6 @@
                 class="form-control"
               >
                 <option value="0">Seleccionar rol</option>
-                <!-- CAMBIAR value="" por value="0" -->
                 <option *ngFor="let rol of roles" [value]="rol.id_rol">
                   {{ rol.tipo_rol }}
                 </option>
@@ -586,7 +1010,7 @@
       </div>
     </div>
 
-    <!-- Lote Form -->
+    <!-- Lote Form Modal -->
     <div *ngIf="showLoteForm" class="form-modal">
       <div class="form-container">
         <div class="form-header">
@@ -667,7 +1091,7 @@
       </div>
     </div>
 
-    <!-- Servicio Polo Form -->
+    <!-- Servicio Polo Form Modal -->
     <div *ngIf="showServicioPoloForm" class="form-modal">
       <div class="form-container">
         <div class="form-header">

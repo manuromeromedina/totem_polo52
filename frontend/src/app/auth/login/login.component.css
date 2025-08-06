@@ -1,3 +1,4 @@
+
 :host {
   display: flex;
   width: 100%;
@@ -28,7 +29,7 @@
 /* Panel Izquierdo */
 .left-panel {
   flex: 1.2;
-  background: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), url('../../../assets/images/polo-inicio.jpg');
+  background: linear-gradient(rgba(255, 255, 255, 0.57), rgba(255, 255, 255, 0.57)), url('../../../assets/images/iniciosesion.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -100,7 +101,7 @@
   font-weight: 700;
   margin-bottom: 0.5vh;
   letter-spacing: 2px;
-  color: #1a202c;
+  color: #870000;
   text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
 }
 
@@ -177,20 +178,30 @@
 }
 
 .login-icon {
-  width: 5vw;
-  height: 5vw;
-  min-width: 65px;
-  min-height: 65px;
-  max-width: 85px;
-  max-height: 85px;
-  background: linear-gradient(135deg, #8B0000 0%, #B22222 50%, #DC143C 100%);
-  border-radius: 18px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  margin: 0 auto 2vh;
-  box-shadow: 0 8px 25px rgba(139, 0, 0, 0.3);
+  align-items: center;
+  margin: 0 auto 20px;
+  border-radius: 18px;
+  overflow: hidden;
+  width: 100px;
+  height: 100px;
+  background-color: white; /* Fondo blanco para que el borde rojo desaparezca visualmente */
+  padding: 2px; /* Separación interna para que no se vea el borde de la imagen */
+  box-sizing: border-box; /* Para que padding no aumente tamaño total */
 }
+
+.login-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Cambiado para que la imagen se ajuste sin recortarse */
+  display: block;
+  border-radius: 12px; /* Bordes redondeados para que combine con el contenedor */
+  background-color: white; /* Fondo blanco para la imagen */
+  box-shadow: none; /* Quitar sombra interna si hay */
+}
+
+
 
 .login-icon i {
   font-size: clamp(28px, 2.2vw, 36px);

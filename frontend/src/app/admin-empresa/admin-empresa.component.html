@@ -1259,7 +1259,7 @@
       </form>
     </div>
   </div>
-  <!-- SERVICIOS POLO TAB --------------------------------------------------------------->
+  <!-- SERVICIOS POLO TAB - DISEÑO UNIFICADO -->
   <div *ngIf="activeTab === 'serviciosPolo'" class="tab-content">
     <div class="section-header">
       <h2>Servicios del Polo</h2>
@@ -1270,36 +1270,15 @@
       </div>
     </div>
 
-    <!-- Mensaje de estado -->
-    <div
-      *ngIf="message"
-      class="message"
-      [class.success]="messageType === 'success'"
-      [class.error]="messageType === 'error'"
-    >
-      {{ message }}
-    </div>
-
-    <!-- Loading state -->
-    <div *ngIf="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>Cargando servicios del polo...</p>
-    </div>
-
     <!-- Servicios Polo List -->
-    <div *ngIf="!loading" class="data-table">
+    <div class="data-table">
       <div class="table-header">
-        <h3>
-          Servicios del Polo Vinculados ({{
-            empresaData?.servicios_polo?.length || 0
-          }})
-        </h3>
+        <h3>Servicios del Polo Vinculados</h3>
       </div>
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>ID</th>
               <th>Nombre</th>
               <th>Tipo</th>
               <th>Horario</th>
@@ -1316,41 +1295,14 @@
               "
             >
               <tr>
+                <td>{{ servicioPolo.nombre || "Sin nombre" }}</td>
                 <td>
-                  <span class="service-id"
-                    >#{{ servicioPolo.id_servicio_polo }}</span
-                  >
+                  {{
+                    getTipoServicioPoloName(servicioPolo.id_tipo_servicio_polo)
+                  }}
                 </td>
-                <td>
-                  <div class="service-name">
-                    <strong>{{ servicioPolo.nombre || "Sin nombre" }}</strong>
-                    <small
-                      *ngIf="servicioPolo.descripcion"
-                      class="service-description"
-                    >
-                      {{ servicioPolo.descripcion }}
-                    </small>
-                  </div>
-                </td>
-                <td>
-                  <span class="service-type-badge">
-                    {{
-                      getTipoServicioPoloName(
-                        servicioPolo.id_tipo_servicio_polo
-                      )
-                    }}
-                  </span>
-                </td>
-                <td>
-                  <span class="schedule-info">{{
-                    servicioPolo.horario || "No especificado"
-                  }}</span>
-                </td>
-                <td>
-                  <span class="owner-info">{{
-                    servicioPolo.propietario || "No especificado"
-                  }}</span>
-                </td>
+                <td>{{ servicioPolo.horario || "No especificado" }}</td>
+                <td>{{ servicioPolo.propietario || "No especificado" }}</td>
                 <td>
                   <button
                     class="btn-ver-mas"
@@ -1372,26 +1324,9 @@
                   <ng-container
                     *ngIf="servicioPolo.lotes?.length > 0; else sinLotes"
                   >
-                    <div class="lotes-info">
-                      <span class="lotes-count"
-                        >{{ servicioPolo.lotes.length }} lote(s)</span
-                      >
-                      <div class="lotes-tooltip">
-                        <ul>
-                          <li *ngFor="let lote of servicioPolo.lotes">
-                            <strong>{{
-                              lote.identificador ||
-                                "Lote " + lote.lote + ", Mz " + lote.manzana
-                            }}</strong
-                            ><br />
-                            <small
-                              >{{ lote.superficie || 0 }} m² -
-                              {{ lote.estado || "Disponible" }}</small
-                            >
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
+                    <span class="lotes-count"
+                      >{{ servicioPolo.lotes.length }} lote(s)</span
+                    >
                   </ng-container>
                   <ng-template #sinLotes>
                     <span class="no-lotes">Sin lotes</span>
@@ -1403,95 +1338,105 @@
                 *ngIf="expandedRows.has('serviciopolo-' + i)"
                 class="expanded-row"
               >
-                <td colspan="7">
+                <td colspan="6">
                   <div class="expanded-content">
-                    <h4>Datos de Servicios del Polo</h4>
-                    <tr
-                      *ngIf="expandedRows.has('serviciopolo-' + i)"
-                      class="expanded-row"
-                    >
-                      <td colspan="7">
-                        <div class="expanded-content">
-                          <div class="data-block polo-service-block">
-                            <!-- Cantidad de Puestos -->
-                            <div
-                              class="data-item"
-                              *ngIf="servicioPolo.datos?.cant_puestos"
-                            >
-                              <span class="label">Cantidad de Puestos:</span>
-                              <span class="value">{{
-                                servicioPolo.datos.cant_puestos
-                              }}</span>
-                            </div>
+                    <h4>Datos del Servicio del Polo</h4>
+                    <div class="data-block polo-service-block">
+                      <!-- ID del Servicio -->
+                      <div class="data-item">
+                        <span class="label">ID Servicio:</span>
+                        <span class="value"
+                          >#{{ servicioPolo.id_servicio_polo }}</span
+                        >
+                      </div>
 
-                            <!-- Metros cuadrados -->
-                            <div
-                              class="data-item"
-                              *ngIf="servicioPolo.datos?.m2"
-                            >
-                              <span class="label">Metros Cuadrados (m²):</span>
-                              <span class="value">{{
-                                servicioPolo.datos.m2
-                              }}</span>
-                            </div>
+                      <!-- Cantidad de Puestos -->
+                      <div
+                        class="data-item"
+                        *ngIf="servicioPolo.datos?.cant_puestos"
+                      >
+                        <span class="label">Cantidad de Puestos:</span>
+                        <span class="value">{{
+                          servicioPolo.datos.cant_puestos
+                        }}</span>
+                      </div>
 
-                            <!-- Datos del Propietario -->
-                            <div
-                              class="data-item"
-                              *ngIf="hasKeys(servicioPolo.datos?.datos_prop)"
-                            >
-                              <span class="label">Datos del Propietario:</span>
-                              <span class="value">
-                                <div
-                                  *ngFor="
-                                    let item of servicioPolo.datos.datos_prop
-                                      | keyvalue
-                                  "
-                                >
-                                  <strong>{{ item.key }}:</strong>
-                                  {{ item.value }}
-                                </div>
-                              </span>
-                            </div>
+                      <!-- Metros cuadrados -->
+                      <div class="data-item" *ngIf="servicioPolo.datos?.m2">
+                        <span class="label">Metros Cuadrados (m²):</span>
+                        <span class="value">{{ servicioPolo.datos.m2 }}</span>
+                      </div>
 
-                            <!-- Datos del Inquilino -->
-                            <div
-                              class="data-item"
-                              *ngIf="
-                                hasKeys(servicioPolo.datos?.datos_inquilino)
-                              "
-                            >
-                              <span class="label">Datos del Inquilino:</span>
-                              <span class="value">
-                                <div
-                                  *ngFor="
-                                    let item of servicioPolo.datos
-                                      .datos_inquilino | keyvalue
-                                  "
-                                >
-                                  <strong>{{ item.key }}:</strong>
-                                  {{ item.value }}
-                                </div>
-                              </span>
-                            </div>
+                      <!-- Datos del Propietario (Alternativa) -->
+                      <div
+                        class="data-item"
+                        *ngIf="hasKeys(servicioPolo.datos?.datos_prop)"
+                      >
+                        <span class="label">Datos del Propietario:</span>
+                        <span class="value">
+                          <div
+                            *ngFor="
+                              let item of servicioPolo.datos.datos_prop
+                                | keyvalue
+                            "
+                            class="sub-item"
+                          >
+                            <span class="sub-label">{{ item.key }}:</span>
+                            <span class="sub-value">{{ item.value }}</span>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
+                        </span>
+                      </div>
+
+                      <!-- Datos del Inquilino (Alternativa) -->
+                      <div
+                        class="data-item"
+                        *ngIf="hasKeys(servicioPolo.datos?.datos_inquilino)"
+                      >
+                        <span class="label">Datos del Inquilino:</span>
+                        <span class="value">
+                          <div
+                            *ngFor="
+                              let item of servicioPolo.datos.datos_inquilino
+                                | keyvalue
+                            "
+                            class="sub-item"
+                          >
+                            <span class="sub-label">{{ item.key }}:</span>
+                            <span class="sub-value">{{ item.value }}</span>
+                          </div>
+                        </span>
+                      </div>
+
+                      <!-- Información de Lotes -->
+                      <div
+                        class="data-item"
+                        *ngIf="servicioPolo.lotes?.length > 0"
+                      >
+                        <span class="label">Lotes Asociados:</span>
+                        <span class="value">
+                          <div
+                            *ngFor="let lote of servicioPolo.lotes"
+                            class="sub-item"
+                          >
+                            <span class="sub-label"
+                              >Lote {{ lote.lote }}, Mz
+                              {{ lote.manzana }}:</span
+                            >
+                            <span class="sub-value">{{
+                              lote.dueno || "Sin propietario"
+                            }}</span>
+                          </div>
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </td>
               </tr>
             </ng-container>
 
             <tr *ngIf="empresaData?.servicios_polo?.length === 0">
-              <td colspan="7" class="text-center">
-                <div class="empty-state">
-                  <p>No hay servicios del polo asociados a tu empresa</p>
-                  <small
-                    >Los servicios del polo son gestionados por el administrador
-                    del polo</small
-                  >
-                </div>
+              <td colspan="6" class="text-center">
+                No hay servicios del polo registrados
               </td>
             </tr>
           </tbody>
