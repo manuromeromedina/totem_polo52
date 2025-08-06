@@ -14,6 +14,8 @@ from sqlalchemy import inspect
 from sqlalchemy.sql import text
 from fastapi import HTTPException
 
+
+
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
 

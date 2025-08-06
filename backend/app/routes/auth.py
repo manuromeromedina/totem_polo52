@@ -152,35 +152,47 @@ def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_
         raise HTTPException(status_code=404, detail="Email no registrado")
     
     token = services.create_password_reset_token(user.email)
-    reset_link = f"http://http://localhost:4200/password-reset?token={token}"  # Replace with your frontend URL
+    # Corregir la URL duplicada
+    reset_link = f"http://localhost:4200/password-reset?token={token}"
     
     # Email setup
     msg = MIMEText(f"Click this link to reset your password: {reset_link}")
     msg["Subject"] = "Password Reset Request"
-    msg["From"] = settings.EMAIL_USER  # e.g., "your-email@gmail.com"
+    msg["From"] = settings.EMAIL_USER
     msg["To"] = dto.email
     
     # Send email
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
-            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)  # Use app password for Gmail
+            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
             server.send_message(msg)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error sending email: {str(e)}")
     
-    return {"reset_token": token}
+    return {"message": "Email de reset enviado correctamente"}  # No devolver el token por seguridad
 
 @router.post("/password-reset/confirm", tags=["auth"])
 def password_reset_confirm(dto: PasswordResetConfirm, db: Session = Depends(get_db)):
-    email = services.verify_password_reset_token(dto.token)
-    user  = db.query(models.Usuario).filter(models.Usuario.email == email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    user.contrasena = services.hash_password(dto.new_password)
-    db.commit()
-    return {"message": "Contraseña actualizada correctamente"}
-
+    try:
+        # Verificar el token y obtener el email
+        email = services.verify_password_reset_token(dto.token)
+        if not email:
+            raise HTTPException(status_code=400, detail="Token inválido o expirado")
+            
+        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        # Actualizar la contraseña
+        user.contrasena = services.hash_password(dto.new_password)
+        db.commit()
+        db.refresh(user)  # Asegurar que los cambios se reflejen
+        
+        return {"message": "Contraseña actualizada correctamente"}
+    except Exception as e:
+        db.rollback()  # Rollback en caso de error
+        raise HTTPException(status_code=400, detail=f"Error al actualizar contraseña: {str(e)}")
 
 @router.post("/password-reset/request-logged-user", tags=["auth"])
 def password_reset_request_logged_user(
