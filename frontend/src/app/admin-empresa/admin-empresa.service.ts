@@ -102,7 +102,7 @@ export interface TipoServicioPolo {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AdminEmpresaService {
   private apiUrl = environment.apiUrl;
@@ -123,7 +123,9 @@ export class AdminEmpresaService {
   }
 
   getTiposServicioPolo(): Observable<TipoServicioPolo[]> {
-    return this.http.get<TipoServicioPolo[]>(`${this.apiUrl}/tipos/servicio-polo`);
+    return this.http.get<TipoServicioPolo[]>(
+      `${this.apiUrl}/tipos/servicio-polo`
+    );
   }
 
   // Actualizar contraseña
@@ -178,10 +180,14 @@ export class AdminEmpresaService {
   getMyCompanyDetails(): Observable<EmpresaDetail> {
     return this.http.get<EmpresaDetail>(`${this.apiUrl}/me`);
   }
-  
+
   // Solicitar cambio de contraseña por email
-changePasswordRequest(): Observable<any> {
-  return this.http.post(`${this.apiUrl}/password-reset/request-logged-user`, {});
-}}
+  changePasswordRequest(): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/password-reset/request-logged-user`,
+      {}
+    );
+  }
+}
 
 // Solicitar cambio de contraseña por email

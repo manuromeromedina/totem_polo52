@@ -23,6 +23,20 @@ import {
 } from './admin-empresa.service';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
 
+// Interfaces para manejo de errores
+interface FormError {
+  field: string;
+  message: string;
+  type: 'required' | 'invalid' | 'duplicate' | 'server' | 'validation';
+}
+
+interface ErrorResponse {
+  detail?: string;
+  message?: string;
+  errors?: { [key: string]: string[] };
+  status?: number;
+}
+
 @Component({
   selector: 'app-empresa-me',
   standalone: true,
@@ -64,7 +78,7 @@ export class EmpresaMeComponent implements OnInit {
     id_tipo_vehiculo: 1,
     horarios: '',
     frecuencia: '',
-    datos: {}, // Asegúrate de que sea un objeto vacío válido
+    datos: {},
   };
 
   servicioForm: ServicioCreate = {
@@ -93,11 +107,30 @@ export class EmpresaMeComponent implements OnInit {
   message = '';
   messageType: 'success' | 'error' = 'success';
 
+  // 🔥 Sistema de errores mejorado
+  formErrors: { [key: string]: FormError[] } = {};
+  showErrorDetails = false;
+
   // Tipos desde la BD
   tiposVehiculo: TipoVehiculo[] = [];
   tiposServicio: TipoServicio[] = [];
   tiposContacto: TipoContacto[] = [];
   tiposServicioPolo: TipoServicioPolo[] = [];
+
+  // 🔥 NUEVAS PROPIEDADES PARA BÚSQUEDA
+  vehiculoSearchTerm: string = '';
+  servicioSearchTerm: string = '';
+  contactoSearchTerm: string = '';
+  servicioPoloSearchTerm: string = '';
+
+  // Arrays filtrados
+  filteredVehiculos: Vehiculo[] = [];
+  filteredServicios: Servicio[] = [];
+  filteredContactos: Contacto[] = [];
+  filteredServiciosPolo: any[] = [];
+
+  // Expanded rows
+  expandedRows = new Set<string>();
 
   constructor(private adminEmpresaService: AdminEmpresaService) {}
   public isDarkMode: boolean = false;
@@ -108,6 +141,7 @@ export class EmpresaMeComponent implements OnInit {
     const savedTheme = localStorage.getItem('theme');
     this.isDarkMode = savedTheme === 'dark';
   }
+
   toggleDarkMode(): void {
     this.isDarkMode = !this.isDarkMode;
     localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
@@ -116,10 +150,358 @@ export class EmpresaMeComponent implements OnInit {
   setActiveTab(tab: string): void {
     this.activeTab = tab;
     this.resetForms();
+    // Aplicar filtros al cambiar de pestaña
+    this.applyFilters();
+  }
+
+  // 🔥 NUEVOS MÉTODOS DE FILTRADO
+  applyFilters(): void {
+    switch (this.activeTab) {
+      case 'vehiculos':
+        this.filterVehiculos();
+        break;
+      case 'servicios':
+        this.filterServicios();
+        break;
+      case 'contactos':
+        this.filterContactos();
+        break;
+      case 'serviciosPolo':
+        this.filterServiciosPolo();
+        break;
+    }
+  }
+
+  filterVehiculos(): void {
+    if (!this.empresaData?.vehiculos) {
+      this.filteredVehiculos = [];
+      return;
+    }
+
+    if (!this.vehiculoSearchTerm.trim()) {
+      this.filteredVehiculos = [...this.empresaData.vehiculos];
+      return;
+    }
+
+    const term = this.vehiculoSearchTerm.toLowerCase().trim();
+    this.filteredVehiculos = this.empresaData.vehiculos.filter(
+      (vehiculo) =>
+        this.getTipoVehiculoName(vehiculo.id_tipo_vehiculo)
+          .toLowerCase()
+          .includes(term) ||
+        vehiculo.horarios.toLowerCase().includes(term) ||
+        vehiculo.frecuencia.toLowerCase().includes(term) ||
+        (vehiculo.datos.patente &&
+          vehiculo.datos.patente.toLowerCase().includes(term)) ||
+        (vehiculo.datos.carga &&
+          vehiculo.datos.carga.toLowerCase().includes(term))
+    );
+  }
+
+  clearVehiculoSearch(): void {
+    this.vehiculoSearchTerm = '';
+    this.filteredVehiculos = this.empresaData?.vehiculos
+      ? [...this.empresaData.vehiculos]
+      : [];
+  }
+
+  filterServicios(): void {
+    if (!this.empresaData?.servicios) {
+      this.filteredServicios = [];
+      return;
+    }
+
+    if (!this.servicioSearchTerm.trim()) {
+      this.filteredServicios = [...this.empresaData.servicios];
+      return;
+    }
+
+    const term = this.servicioSearchTerm.toLowerCase().trim();
+    this.filteredServicios = this.empresaData.servicios.filter(
+      (servicio) =>
+        this.getTipoServicioName(servicio.id_tipo_servicio)
+          .toLowerCase()
+          .includes(term) ||
+        JSON.stringify(servicio.datos).toLowerCase().includes(term)
+    );
+  }
+
+  clearServicioSearch(): void {
+    this.servicioSearchTerm = '';
+    this.filteredServicios = this.empresaData?.servicios
+      ? [...this.empresaData.servicios]
+      : [];
+  }
+
+  filterContactos(): void {
+    if (!this.empresaData?.contactos) {
+      this.filteredContactos = [];
+      return;
+    }
+
+    if (!this.contactoSearchTerm.trim()) {
+      this.filteredContactos = [...this.empresaData.contactos];
+      return;
+    }
+
+    const term = this.contactoSearchTerm.toLowerCase().trim();
+    this.filteredContactos = this.empresaData.contactos.filter(
+      (contacto) =>
+        contacto.nombre.toLowerCase().includes(term) ||
+        this.getTipoContactoName(contacto.id_tipo_contacto)
+          .toLowerCase()
+          .includes(term) ||
+        (contacto.telefono && contacto.telefono.toLowerCase().includes(term)) ||
+        (contacto.direccion &&
+          contacto.direccion.toLowerCase().includes(term)) ||
+        (contacto.datos?.correo &&
+          contacto.datos.correo.toLowerCase().includes(term)) ||
+        (contacto.datos?.pagina_web &&
+          contacto.datos.pagina_web.toLowerCase().includes(term))
+    );
+  }
+
+  clearContactoSearch(): void {
+    this.contactoSearchTerm = '';
+    this.filteredContactos = this.empresaData?.contactos
+      ? [...this.empresaData.contactos]
+      : [];
+  }
+
+  filterServiciosPolo(): void {
+    if (!this.empresaData?.servicios_polo) {
+      this.filteredServiciosPolo = [];
+      return;
+    }
+
+    if (!this.servicioPoloSearchTerm.trim()) {
+      this.filteredServiciosPolo = [...this.empresaData.servicios_polo];
+      return;
+    }
+
+    const term = this.servicioPoloSearchTerm.toLowerCase().trim();
+    this.filteredServiciosPolo = this.empresaData.servicios_polo.filter(
+      (servicio) =>
+        (servicio.nombre && servicio.nombre.toLowerCase().includes(term)) ||
+        this.getTipoServicioPoloName(servicio.id_tipo_servicio_polo)
+          .toLowerCase()
+          .includes(term) ||
+        (servicio.horario && servicio.horario.toLowerCase().includes(term)) ||
+        (servicio.propietario &&
+          servicio.propietario.toLowerCase().includes(term))
+    );
+  }
+
+  clearServicioPoloSearch(): void {
+    this.servicioPoloSearchTerm = '';
+    this.filteredServiciosPolo = this.empresaData?.servicios_polo
+      ? [...this.empresaData.servicios_polo]
+      : [];
+  }
+
+  // 🔥 Método para limpiar errores específicos
+  clearFormErrors(formName: string): void {
+    this.formErrors[formName] = [];
+  }
+
+  // 🔥 Método para obtener errores de un campo específico
+  getFieldErrors(formName: string, fieldName: string): FormError[] {
+    const errors = this.formErrors[formName] || [];
+    return errors.filter((error) => error.field === fieldName);
+  }
+
+  // 🔥 Método para verificar si un campo tiene errores
+  hasFieldError(formName: string, fieldName: string): boolean {
+    return this.getFieldErrors(formName, fieldName).length > 0;
+  }
+
+  // 🔥 Procesador de errores HTTP mejorado
+  private handleError(error: any, formName: string, operation: string): void {
+    console.error(`Error en ${operation}:`, error);
+
+    this.clearFormErrors(formName);
+    let errorMessages: FormError[] = [];
+
+    if (error.status === 0) {
+      errorMessages.push({
+        field: 'general',
+        message: 'Error de conexión. Verifique su conexión a internet.',
+        type: 'server',
+      });
+    } else if (error.status === 401) {
+      errorMessages.push({
+        field: 'general',
+        message: 'Sesión expirada. Por favor, inicie sesión nuevamente.',
+        type: 'server',
+      });
+    } else if (error.status === 403) {
+      errorMessages.push({
+        field: 'general',
+        message: 'No tiene permisos para realizar esta acción.',
+        type: 'server',
+      });
+    } else if (error.status === 404) {
+      errorMessages.push({
+        field: 'general',
+        message: 'El recurso solicitado no fue encontrado.',
+        type: 'server',
+      });
+    } else if (error.status === 422) {
+      // Errores de validación específicos del backend
+      const errorResponse: ErrorResponse = error.error;
+
+      if (errorResponse.errors) {
+        Object.keys(errorResponse.errors).forEach((field) => {
+          const fieldErrors = errorResponse.errors![field];
+          fieldErrors.forEach((message) => {
+            errorMessages.push({
+              field: field,
+              message: this.translateFieldError(field, message, formName),
+              type: 'validation',
+            });
+          });
+        });
+      } else if (errorResponse.detail) {
+        errorMessages.push({
+          field: 'general',
+          message: this.translateGenericError(errorResponse.detail, formName),
+          type: 'validation',
+        });
+      }
+    } else if (error.status === 400) {
+      const errorDetail = error.error?.detail || 'Datos inválidos';
+      errorMessages.push({
+        field: 'general',
+        message: this.translateGenericError(errorDetail, formName),
+        type: 'validation',
+      });
+    } else if (error.status === 500) {
+      errorMessages.push({
+        field: 'general',
+        message: 'Error interno del servidor. Intente más tarde.',
+        type: 'server',
+      });
+    } else {
+      const detail =
+        error.error?.detail || error.message || 'Error desconocido';
+      errorMessages.push({
+        field: 'general',
+        message: this.translateGenericError(detail, formName),
+        type: 'server',
+      });
+    }
+
+    this.formErrors[formName] = errorMessages;
+
+    // Mostrar mensaje general
+    const generalError = errorMessages.find((e) => e.field === 'general');
+    if (generalError) {
+      this.showMessage(generalError.message, 'error');
+    } else {
+      this.showMessage(
+        `Error en ${operation}. Revise los campos marcados.`,
+        'error'
+      );
+    }
+  }
+
+  // 🔥 Traductor de errores de campos específicos
+  private translateFieldError(
+    field: string,
+    message: string,
+    formName: string
+  ): string {
+    const translations: { [key: string]: { [key: string]: string } } = {
+      vehiculo: {
+        id_tipo_vehiculo: 'El tipo de vehículo es requerido',
+        horarios: 'Los horarios son requeridos (formato: HH:MM - HH:MM)',
+        frecuencia: 'La frecuencia es requerida',
+        'datos.cantidad': 'La cantidad debe ser mayor a 0',
+        'datos.patente':
+          'La patente debe tener formato válido (ABC123 o AB123CD)',
+        'datos.carga': 'Seleccione un tipo de carga válido',
+        'datos.m2': 'Los metros cuadrados deben ser mayor a 0',
+      },
+      servicio: {
+        id_tipo_servicio: 'El tipo de servicio es requerido',
+        'datos.biofiltro': 'Debe especificar si tiene biofiltro',
+        'datos.tratamiento_aguas_grises':
+          'Debe especificar el tratamiento de aguas grises',
+        'datos.abierto': 'Debe especificar si está abierto al público',
+        'datos.m2': 'Los metros cuadrados son requeridos y deben ser mayor a 0',
+        'datos.tipo': 'El tipo es requerido',
+        'datos.proveedor': 'El proveedor es requerido',
+        'datos.cantidad': 'La cantidad es requerida y debe ser mayor a 0',
+      },
+      contacto: {
+        nombre: 'El nombre es requerido (mínimo 2 caracteres)',
+        id_tipo_contacto: 'El tipo de contacto es requerido',
+        telefono: 'El teléfono debe tener formato válido',
+        direccion: 'La dirección es requerida para contactos comerciales',
+        id_servicio_polo: 'El ID del servicio polo es requerido',
+        'datos.pagina_web':
+          'La página web debe tener formato válido (https://)',
+        'datos.correo': 'El correo debe tener formato válido',
+        'datos.redes_sociales':
+          'Las redes sociales son requeridas para contactos comerciales',
+      },
+      empresa: {
+        cant_empleados: 'La cantidad de empleados debe ser mayor a 0',
+        horario_trabajo: 'El horario de trabajo es requerido',
+        observaciones: 'Las observaciones no pueden exceder 500 caracteres',
+      },
+      password: {
+        password: 'La contraseña debe tener al menos 6 caracteres',
+        email: 'El email no fue encontrado en el sistema',
+      },
+    };
+
+    const formTranslations = translations[formName];
+    if (formTranslations && formTranslations[field]) {
+      return formTranslations[field];
+    }
+
+    const genericTranslations: { [key: string]: string } = {
+      required: 'Este campo es requerido',
+      invalid: 'El formato de este campo es inválido',
+      min_length: 'Este campo es muy corto',
+      max_length: 'Este campo es muy largo',
+      email: 'El formato del email es inválido',
+      url: 'El formato de la URL es inválido',
+      number: 'Debe ser un número válido',
+    };
+
+    return genericTranslations[message] || message;
+  }
+
+  // 🔥 Traductor de errores genéricos
+  private translateGenericError(detail: string, formName: string): string {
+    const translations: { [key: string]: string } = {
+      'Ya existe un vehículo con esa patente':
+        'Ya existe un vehículo registrado con esa patente',
+      'Ya existe un contacto con ese nombre':
+        'Ya existe un contacto registrado con ese nombre',
+      'Usuario no encontrado': 'Usuario no encontrado en el sistema',
+      'Email no registrado': 'El email no está registrado en el sistema',
+      'Credenciales inválidas': 'Usuario o contraseña incorrectos',
+      'Token inválido':
+        'La sesión ha expirado, por favor inicie sesión nuevamente',
+      'Servicio no encontrado': 'El servicio solicitado no existe',
+      'Vehículo no encontrado': 'El vehículo solicitado no existe',
+      'Contacto no encontrado': 'El contacto solicitado no existe',
+      'Empresa no encontrada': 'La empresa no fue encontrada',
+      'Rol inválido': 'El rol especificado no es válido',
+      'Acceso denegado': 'No tiene permisos para realizar esta acción',
+      'Datos inválidos': 'Los datos enviados contienen errores',
+    };
+
+    return translations[detail] || detail;
   }
 
   loadEmpresaData(): void {
     this.loading = true;
+    this.clearFormErrors('general');
+
     this.adminEmpresaService.getMyCompanyDetails().subscribe({
       next: (data) => {
         this.empresaData = data;
@@ -128,14 +510,17 @@ export class EmpresaMeComponent implements OnInit {
           observaciones: data.observaciones || '',
           horario_trabajo: data.horario_trabajo,
         };
+
+        // Inicializar arrays filtrados
+        this.filteredVehiculos = [...(data.vehiculos || [])];
+        this.filteredServicios = [...(data.servicios || [])];
+        this.filteredContactos = [...(data.contactos || [])];
+        this.filteredServiciosPolo = [...(data.servicios_polo || [])];
+
         this.loading = false;
       },
       error: (error) => {
-        this.showMessage(
-          'Error al cargar datos de la empresa: ' +
-            (error.error?.detail || error.message),
-          'error'
-        );
+        this.handleError(error, 'general', 'cargar datos de la empresa');
         this.loading = false;
       },
     });
@@ -151,6 +536,9 @@ export class EmpresaMeComponent implements OnInit {
     this.editingServicio = null;
     this.editingContacto = null;
     this.message = '';
+
+    // Limpiar errores de todos los formularios
+    this.formErrors = {};
 
     this.passwordForm = { password: '', confirmPassword: '' };
     this.vehiculoForm = {
@@ -184,10 +572,14 @@ export class EmpresaMeComponent implements OnInit {
 
   // PASSWORD
   openPasswordForm(): void {
+    this.clearFormErrors('password');
     this.showPasswordForm = true;
   }
+
   onSubmitPassword(): void {
     this.loading = true;
+    this.clearFormErrors('password');
+
     this.adminEmpresaService.changePasswordRequest().subscribe({
       next: () => {
         this.showMessage(
@@ -198,11 +590,7 @@ export class EmpresaMeComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        this.showMessage(
-          'Error al solicitar cambio de contraseña: ' +
-            (error.error?.detail || error.message),
-          'error'
-        );
+        this.handleError(error, 'password', 'solicitar cambio de contraseña');
         this.loading = false;
       },
     });
@@ -210,11 +598,14 @@ export class EmpresaMeComponent implements OnInit {
 
   // EMPRESA EDIT
   openEmpresaEditForm(): void {
+    this.clearFormErrors('empresa');
     this.showEmpresaEditForm = true;
   }
 
   onSubmitEmpresaEdit(): void {
     this.loading = true;
+    this.clearFormErrors('empresa');
+
     this.adminEmpresaService.updateMyCompany(this.empresaEditForm).subscribe({
       next: () => {
         this.showMessage(
@@ -226,11 +617,7 @@ export class EmpresaMeComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        this.showMessage(
-          'Error al actualizar empresa: ' +
-            (error.error?.detail || error.message),
-          'error'
-        );
+        this.handleError(error, 'empresa', 'actualizar datos de empresa');
         this.loading = false;
       },
     });
@@ -238,6 +625,8 @@ export class EmpresaMeComponent implements OnInit {
 
   // VEHÍCULOS
   openVehiculoForm(vehiculo?: Vehiculo): void {
+    this.clearFormErrors('vehiculo');
+
     if (vehiculo) {
       this.editingVehiculo = vehiculo;
       this.vehiculoForm = {
@@ -260,9 +649,9 @@ export class EmpresaMeComponent implements OnInit {
 
   onSubmitVehiculo(): void {
     this.loading = true;
+    this.clearFormErrors('vehiculo');
 
     if (this.editingVehiculo) {
-      // Actualizar
       this.adminEmpresaService
         .updateVehiculo(this.editingVehiculo.id_vehiculo, this.vehiculoForm)
         .subscribe({
@@ -273,16 +662,11 @@ export class EmpresaMeComponent implements OnInit {
             this.loading = false;
           },
           error: (error) => {
-            this.showMessage(
-              'Error al actualizar vehículo: ' +
-                (error.error?.detail || error.message),
-              'error'
-            );
+            this.handleError(error, 'vehiculo', 'actualizar vehículo');
             this.loading = false;
           },
         });
     } else {
-      // Crear
       this.adminEmpresaService.createVehiculo(this.vehiculoForm).subscribe({
         next: () => {
           this.showMessage('Vehículo creado exitosamente', 'success');
@@ -291,11 +675,7 @@ export class EmpresaMeComponent implements OnInit {
           this.loading = false;
         },
         error: (error) => {
-          this.showMessage(
-            'Error al crear vehículo: ' +
-              (error.error?.detail || error.message),
-            'error'
-          );
+          this.handleError(error, 'vehiculo', 'crear vehículo');
           this.loading = false;
         },
       });
@@ -310,11 +690,7 @@ export class EmpresaMeComponent implements OnInit {
           this.loadEmpresaData();
         },
         error: (error) => {
-          this.showMessage(
-            'Error al eliminar vehículo: ' +
-              (error.error?.detail || error.message),
-            'error'
-          );
+          this.handleError(error, 'general', 'eliminar vehículo');
         },
       });
     }
@@ -322,11 +698,13 @@ export class EmpresaMeComponent implements OnInit {
 
   // SERVICIOS
   openServicioForm(servicio?: Servicio): void {
+    this.clearFormErrors('servicio');
+
     if (servicio) {
       this.editingServicio = servicio;
       this.servicioForm = {
         id_tipo_servicio: servicio.id_tipo_servicio,
-        datos: { ...servicio.datos }, // Clonamos para no mutar directamente
+        datos: { ...servicio.datos },
       };
     } else {
       this.editingServicio = null;
@@ -336,10 +714,8 @@ export class EmpresaMeComponent implements OnInit {
       };
     }
 
-    // Llamamos para inicializar datos según tipo
     this.onTipoServicioChange();
 
-    // Si estamos editando, sobreescribimos con los datos reales para no perderlos
     if (this.editingServicio) {
       this.servicioForm.datos = { ...servicio?.datos };
     }
@@ -349,9 +725,9 @@ export class EmpresaMeComponent implements OnInit {
 
   onSubmitServicio(): void {
     this.loading = true;
+    this.clearFormErrors('servicio');
 
     if (this.editingServicio) {
-      // Actualizar
       const updateData: ServicioUpdate = {
         datos: this.servicioForm.datos,
         id_tipo_servicio: this.servicioForm.id_tipo_servicio,
@@ -367,16 +743,11 @@ export class EmpresaMeComponent implements OnInit {
             this.loading = false;
           },
           error: (error) => {
-            this.showMessage(
-              'Error al actualizar servicio: ' +
-                (error.error?.detail || error.message),
-              'error'
-            );
+            this.handleError(error, 'servicio', 'actualizar servicio');
             this.loading = false;
           },
         });
     } else {
-      // Crear
       this.adminEmpresaService.createServicio(this.servicioForm).subscribe({
         next: () => {
           this.showMessage('Servicio creado exitosamente', 'success');
@@ -385,11 +756,7 @@ export class EmpresaMeComponent implements OnInit {
           this.loading = false;
         },
         error: (error) => {
-          this.showMessage(
-            'Error al crear servicio: ' +
-              (error.error?.detail || error.message),
-            'error'
-          );
+          this.handleError(error, 'servicio', 'crear servicio');
           this.loading = false;
         },
       });
@@ -404,42 +771,35 @@ export class EmpresaMeComponent implements OnInit {
           this.loadEmpresaData();
         },
         error: (error) => {
-          this.showMessage(
-            'Error al eliminar servicio: ' +
-              (error.error?.detail || error.message),
-            'error'
-          );
+          this.handleError(error, 'general', 'eliminar servicio');
         },
       });
     }
   }
 
-  // Método que se llama al cambiar el tipo de servicio en el select
   onTipoServicioChange(): void {
-    // Reseteamos los datos para evitar datos residuales al cambiar tipo
     this.servicioForm.datos = {};
 
-    // Inicializar con valores vacíos o por defecto según el tipo seleccionado
     switch (this.servicioForm.id_tipo_servicio) {
-      case 1: // Agua
+      case 1:
         this.servicioForm.datos = {
           biofiltro: '',
           tratamiento_aguas_grises: '',
         };
         break;
-      case 2: // Espacios verdes
+      case 2:
         this.servicioForm.datos = {
           abierto: '',
           m2: null,
         };
         break;
-      case 3: // Internet
+      case 3:
         this.servicioForm.datos = {
           tipo: '',
           proveedor: '',
         };
         break;
-      case 4: // Residuos
+      case 4:
         this.servicioForm.datos = {
           tipo: '',
           cantidad: null,
@@ -451,8 +811,9 @@ export class EmpresaMeComponent implements OnInit {
   }
 
   // CONTACTOS
-  // CONTACTOS - VERSIÓN CORREGIDA
   openContactoForm(contacto?: Contacto): void {
+    this.clearFormErrors('contacto');
+
     if (contacto) {
       this.editingContacto = contacto;
       this.contactoForm = {
@@ -463,7 +824,7 @@ export class EmpresaMeComponent implements OnInit {
           pagina_web: '',
           correo: '',
           redes_sociales: '',
-          direccion: '', // 👈 Agregamos dirección al JSON datos
+          direccion: '',
         },
         direccion: contacto.direccion || '',
         id_servicio_polo: contacto.id_servicio_polo,
@@ -478,26 +839,20 @@ export class EmpresaMeComponent implements OnInit {
           pagina_web: '',
           correo: '',
           redes_sociales: '',
-          direccion: '', // 👈 Inicializamos dirección en datos
+          direccion: '',
         },
         direccion: '',
         id_servicio_polo: 1,
       };
     }
     this.showContactoForm = true;
-    this.onTipoContactoChange(); // 👈 fuerza la recarga dinámica de campos
+    this.onTipoContactoChange();
   }
 
   onTipoContactoChange(): void {
-    console.log(
-      'Tipo contacto:',
-      this.contactoForm.id_tipo_contacto,
-      typeof this.contactoForm.id_tipo_contacto
-    );
     const tipo = Number(this.contactoForm.id_tipo_contacto);
 
     if (tipo === 1) {
-      // Para tipo comercial, asegurar que todos los campos estén en datos
       this.contactoForm.datos = {
         pagina_web: this.contactoForm.datos.pagina_web || '',
         correo: this.contactoForm.datos.correo || '',
@@ -505,7 +860,7 @@ export class EmpresaMeComponent implements OnInit {
         direccion:
           this.contactoForm.direccion ||
           this.contactoForm.datos.direccion ||
-          '', // 👈 Sincronizar dirección
+          '',
       };
     } else {
       this.contactoForm.datos = {};
@@ -514,21 +869,27 @@ export class EmpresaMeComponent implements OnInit {
 
   onSubmitContacto(): void {
     this.loading = true;
+    this.clearFormErrors('contacto');
 
-    // 👈 VALIDACIÓN ADICIONAL ANTES DE ENVIAR
+    // Validación adicional antes de enviar
     if (this.esTipoComercial()) {
-      // Asegurar que la dirección esté en ambos lugares
       if (this.contactoForm.direccion) {
         this.contactoForm.datos.direccion = this.contactoForm.direccion;
       } else if (this.contactoForm.datos.direccion) {
         this.contactoForm.direccion = this.contactoForm.datos.direccion;
       }
 
-      // Validar que los campos requeridos para comercial estén presentes
       if (
         !this.contactoForm.datos.direccion ||
         this.contactoForm.datos.direccion.trim() === ''
       ) {
+        this.formErrors['contacto'] = [
+          {
+            field: 'direccion',
+            message: 'La dirección es requerida para contactos comerciales',
+            type: 'required',
+          },
+        ];
         this.showMessage(
           'La dirección es requerida para contactos comerciales',
           'error'
@@ -539,7 +900,6 @@ export class EmpresaMeComponent implements OnInit {
     }
 
     if (this.editingContacto) {
-      // Actualizar
       this.adminEmpresaService
         .updateContacto(this.editingContacto.id_contacto, this.contactoForm)
         .subscribe({
@@ -550,16 +910,11 @@ export class EmpresaMeComponent implements OnInit {
             this.loading = false;
           },
           error: (error) => {
-            this.showMessage(
-              'Error al actualizar contacto: ' +
-                (error.error?.detail || error.message),
-              'error'
-            );
+            this.handleError(error, 'contacto', 'actualizar contacto');
             this.loading = false;
           },
         });
     } else {
-      // Crear
       this.adminEmpresaService.createContacto(this.contactoForm).subscribe({
         next: () => {
           this.showMessage('Contacto creado exitosamente', 'success');
@@ -568,18 +923,13 @@ export class EmpresaMeComponent implements OnInit {
           this.loading = false;
         },
         error: (error) => {
-          this.showMessage(
-            'Error al crear contacto: ' +
-              (error.error?.detail || error.message),
-            'error'
-          );
+          this.handleError(error, 'contacto', 'crear contacto');
           this.loading = false;
         },
       });
     }
   }
 
-  // 👈 MÉTODO ADICIONAL PARA SINCRONIZAR DIRECCIÓN
   onDireccionChange(): void {
     if (this.esTipoComercial()) {
       this.contactoForm.datos.direccion = this.contactoForm.direccion;
@@ -594,11 +944,7 @@ export class EmpresaMeComponent implements OnInit {
           this.loadEmpresaData();
         },
         error: (error) => {
-          this.showMessage(
-            'Error al eliminar contacto: ' +
-              (error.error?.detail || error.message),
-            'error'
-          );
+          this.handleError(error, 'general', 'eliminar contacto');
         },
       });
     }
@@ -608,7 +954,7 @@ export class EmpresaMeComponent implements OnInit {
     return this.contactoForm.id_tipo_contacto === 1;
   }
 
-  // Métodos helper para servicios polo
+  // Métodos helper
   getTipoServicioPoloName(id: number): string {
     const tipo = this.tiposServicioPolo.find(
       (t) => t.id_tipo_servicio_polo === id
@@ -641,7 +987,6 @@ export class EmpresaMeComponent implements OnInit {
     }
   }
 
-  // TAMBIÉN ACTUALIZA el método formatDatos existente para que sea:
   formatDatos(datos: any, isExpanded: boolean = false): string {
     if (!datos || Object.keys(datos).length === 0) {
       return 'Sin datos adicionales';
@@ -650,12 +995,10 @@ export class EmpresaMeComponent implements OnInit {
     try {
       const dataString = JSON.stringify(datos, null, 2);
 
-      // Si está expandido, devolver todo el contenido
       if (isExpanded) {
         return dataString;
       }
 
-      // Si no está expandido, limitar a 50 caracteres
       return dataString.length > 50
         ? dataString.substring(0, 50) + '...'
         : dataString;
@@ -687,54 +1030,48 @@ export class EmpresaMeComponent implements OnInit {
     return tipo ? tipo.tipo : 'Desconocido';
   }
 
-  // Agregar este método
   loadTipos(): void {
-    // Cargar tipos de servicio del polo
+    this.loadingTipos = true;
+
     this.adminEmpresaService.getTiposServicioPolo().subscribe({
       next: (tipos) => {
         this.tiposServicioPolo = tipos;
       },
       error: (error) => {
-        console.error('Error loading tipos servicio polo:', error);
+        this.handleError(error, 'general', 'cargar tipos de servicio polo');
       },
     });
 
-    // Cargar tipos de vehículo
     this.adminEmpresaService.getTiposVehiculo().subscribe({
       next: (tipos) => {
         this.tiposVehiculo = tipos;
       },
       error: (error) => {
-        console.error('Error loading tipos vehículo:', error);
+        this.handleError(error, 'general', 'cargar tipos de vehículo');
       },
     });
 
-    // Cargar tipos de servicio
     this.adminEmpresaService.getTiposServicio().subscribe({
       next: (tipos) => {
         this.tiposServicio = tipos;
       },
       error: (error) => {
-        console.error('Error loading tipos servicio:', error);
+        this.handleError(error, 'general', 'cargar tipos de servicio');
       },
     });
 
-    // Cargar tipos de contacto
     this.adminEmpresaService.getTiposContacto().subscribe({
       next: (tipos) => {
         this.tiposContacto = tipos;
+        this.loadingTipos = false;
       },
       error: (error) => {
-        console.error('Error loading tipos contacto:', error);
+        this.handleError(error, 'general', 'cargar tipos de contacto');
+        this.loadingTipos = false;
       },
     });
   }
-  expandedRows = new Set<string>();
 
-  /**
-   * Alterna la expansión de una fila específica
-   * @param key Índice de la fila en la tabla
-   */
   toggleExpandRow(key: string): void {
     if (this.expandedRows.has(key)) {
       this.expandedRows.delete(key);
@@ -745,5 +1082,27 @@ export class EmpresaMeComponent implements OnInit {
 
   hasKeys(obj: any): boolean {
     return obj && Object.keys(obj).length > 0;
+  }
+
+  // 🔥 Toggle para mostrar/ocultar detalles de errores
+  toggleErrorDetails(): void {
+    this.showErrorDetails = !this.showErrorDetails;
+  }
+
+  // 🔥 Obtener el número total de errores
+  getTotalErrors(): number {
+    return Object.values(this.formErrors).reduce(
+      (total, errors) => total + errors.length,
+      0
+    );
+  }
+
+  // 🔥 Obtener errores por tipo
+  getErrorsByType(type: FormError['type']): FormError[] {
+    const allErrors: FormError[] = [];
+    Object.values(this.formErrors).forEach((errors) => {
+      allErrors.push(...errors.filter((error) => error.type === type));
+    });
+    return allErrors;
   }
 }
