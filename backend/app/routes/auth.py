@@ -145,23 +145,75 @@ def logout(current_user: models.Usuario = Depends(get_current_user)):
     # El JWT es stateless, solo necesitamos devolver un mensaje indicando que se ha cerrado la sesión
     return {"message": "Sesión cerrada correctamente"}
 
+
+@router.post("/password-reset/verify-token", tags=["auth"])
+def verify_reset_token(token: str, db: Session = Depends(get_db)):
+    """
+    Verificar si un token de reset es válido sin hacer cambios
+    Útil para validación en frontend antes de mostrar formulario
+    """
+    try:
+        email = services.verify_password_reset_token(token)
+        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            
+        return {
+            "valid": True,
+            "message": "Token válido",
+            "email_hint": f"{email[:3]}***@{email.split('@')[1]}"  # Email parcialmente oculto
+        }
+        
+    except HTTPException as e:
+        # Re-lanzar con la información específica del error
+        return {
+            "valid": False,
+            "error": e.detail,
+            "expired": "expirado" in e.detail.lower()
+        }
+
 @router.post("/password-reset/request", tags=["auth"])
 def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_db)):
+    """Solicitar reset de contraseña - tiempo de expiración personalizable"""
     user = db.query(models.Usuario).filter(models.Usuario.email == dto.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Email no registrado")
     
-    token = services.create_password_reset_token(user.email)
-    # Corregir la URL duplicada
+    # Puedes ajustar el tiempo de expiración aquí
+    RESET_TOKEN_EXPIRE_MINUTES = 30  # 1 hora (puedes cambiar a 30, 120, etc.)
+    
+    token = services.create_password_reset_token(
+        user.email, 
+        expires_minutes=RESET_TOKEN_EXPIRE_MINUTES
+    )
+    
     reset_link = f"http://localhost:4200/password-reset?token={token}"
     
-    # Email setup
-    msg = MIMEText(f"Click this link to reset your password: {reset_link}")
-    msg["Subject"] = "Password Reset Request"
+    # Email con información de expiración
+    expire_time = RESET_TOKEN_EXPIRE_MINUTES // 60 if RESET_TOKEN_EXPIRE_MINUTES >= 60 else RESET_TOKEN_EXPIRE_MINUTES
+    expire_unit = "horas" if RESET_TOKEN_EXPIRE_MINUTES >= 60 else "minutos"
+    
+    email_body = f"""
+    Hola {user.nombre},
+
+    Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:
+
+    {reset_link}
+
+    ⚠️ IMPORTANTE: Este enlace expirará en {expire_time} {expire_unit} por seguridad.
+
+    Si no solicitaste este cambio, puedes ignorar este email.
+
+    Saludos,
+    Equipo de Polo 52
+    """
+    
+    msg = MIMEText(email_body)
+    msg["Subject"] = "Restablecer Contraseña - Polo 52"
     msg["From"] = settings.EMAIL_USER
     msg["To"] = dto.email
     
-    # Send email
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
@@ -170,16 +222,18 @@ def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error sending email: {str(e)}")
     
-    return {"message": "Email de reset enviado correctamente"}  # No devolver el token por seguridad
+    return {
+        "message": "Email de reset enviado correctamente",
+        "expires_in_minutes": RESET_TOKEN_EXPIRE_MINUTES
+    }
 
 @router.post("/password-reset/confirm", tags=["auth"])
 def password_reset_confirm(dto: PasswordResetConfirm, db: Session = Depends(get_db)):
+    """Confirmar reset de contraseña con mejor manejo de errores"""
     try:
         # Verificar el token y obtener el email
         email = services.verify_password_reset_token(dto.token)
-        if not email:
-            raise HTTPException(status_code=400, detail="Token inválido o expirado")
-            
+        
         user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -187,12 +241,31 @@ def password_reset_confirm(dto: PasswordResetConfirm, db: Session = Depends(get_
         # Actualizar la contraseña
         user.contrasena = services.hash_password(dto.new_password)
         db.commit()
-        db.refresh(user)  # Asegurar que los cambios se reflejen
+        db.refresh(user)
         
-        return {"message": "Contraseña actualizada correctamente"}
+        return {
+            "success": True,
+            "message": "Contraseña actualizada correctamente"
+        }
+        
+    except HTTPException as e:
+        # Manejar errores específicos de token
+        db.rollback()
+        return {
+            "success": False,
+            "error": e.detail,
+            "expired": e.status_code == 400 and "expirado" in e.detail.lower()
+        }
     except Exception as e:
-        db.rollback()  # Rollback en caso de error
-        raise HTTPException(status_code=400, detail=f"Error al actualizar contraseña: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error interno al actualizar contraseña: {str(e)}"
+        )
+    
+
+
+
 
 @router.post("/password-reset/request-logged-user", tags=["auth"])
 def password_reset_request_logged_user(
