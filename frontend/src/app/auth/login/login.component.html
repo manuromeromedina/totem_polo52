@@ -1,130 +1,161 @@
-<div class="login-container">
-  <!-- Panel Izquierdo -->
-  <div class="left-panel">
-    <div class="logo-section">
-      <div class="logo-text">
-        <h1>POLO 52</h1>
-        <p>Parque Industrial de Córdoba</p>
-      </div>
-    </div>
-
-    <div class="content-section">
-      <h2>Plataforma Empresarial Integrada</h2>
-      <p>
-        Accede a todos los servicios y herramientas necesarios para optimizar
-        las operaciones de tu empresa en el parque industrial más moderno de
-        Argentina.
-      </p>
-
-      <ul class="features">
-        <li>Gestión integral de servicios</li>
-        <li>Monitoreo en tiempo real</li>
-        <li>Soporte técnico especializado</li>
-        <li>Reportes y analytics avanzados</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- Panel Derecho -->
-  <div class="right-panel">
-    <div class="login-header">
-      <div class="login-icon">
-        <img src="assets/images/polologo-blanco.png" alt="Logo Polo 52" />
-      </div>
-      <h2>Acceso Empresarial</h2>
-      <p>Ingresa con tus credenciales corporativas</p>
-    </div>
-
-    <form (ngSubmit)="onLogin()" #loginForm="ngForm">
-      <div class="form-group">
-        <label class="form-label">
-          <i class="fas fa-envelope"></i>
-          Email Corporativo
-        </label>
-        <div class="input-wrapper">
-          <input
-            type="text"
-            class="form-input"
-            id="username"
-            name="username"
-            [(ngModel)]="username"
-            placeholder="usuario@empresa.com"
-            required
-            [ngClass]="{ error: usernameError }"
-            (input)="onUsernameChange()"
-          />
+<!-- Contenedor principal con imagen de fondo -->
+<div class="main-container">
+  <!-- Modal de login centrado -->
+  <div class="login-modal">
+    <!-- Panel Izquierdo - Información -->
+    <div class="left-panel">
+      <div class="logo-section">
+        <div class="logo-icon">
+          <i class="fas fa-industry"></i>
         </div>
-        <span *ngIf="usernameError" class="field-error">{{
-          usernameErrorMessage
-        }}</span>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">
-          <i class="fas fa-lock"></i>
-          Contraseña
-        </label>
-        <div class="input-wrapper">
-          <input
-            type="password"
-            class="form-input"
-            id="password"
-            name="password"
-            [type]="showPassword ? 'text' : 'password'"
-            [(ngModel)]="password"
-            placeholder="••••••••"
-            required
-            [ngClass]="{ error: passwordError }"
-            (input)="onPasswordChange()"
-          />
-          <button
-            type="button"
-            class="password-toggle"
-            (click)="togglePassword()"
-          >
-            <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-          </button>
+        <div class="logo-text">
+          <h1>POLO 52</h1>
+          <p>Parque Industrial</p>
         </div>
-        <span *ngIf="passwordError" class="field-error">{{
-          passwordErrorMessage
-        }}</span>
       </div>
 
-      <div class="forgot-password">
-        <a href="#" (click)="openResetModal(); $event.preventDefault()"
-          >¿Olvidaste tu contraseña?</a
+      <div class="content-section">
+        <h2>
+          Plataforma Empresarial<br /><span class="highlight">Integrada</span>
+        </h2>
+        <p>
+          Accede a todos los servicios y herramientas necesarios para optimizar
+          las operaciones de tu empresa en el parque industrial más moderno de
+          Argentina.
+        </p>
+
+        <ul class="features">
+          <li>
+            <i class="fas fa-chart-line"></i> Gestión integral de servicios
+          </li>
+          <li><i class="fas fa-clock"></i> Monitoreo en tiempo real</li>
+          <li><i class="fas fa-headset"></i> Soporte técnico especializado</li>
+          <li>
+            <i class="fas fa-chart-bar"></i> Reportes y analytics avanzados
+          </li>
+        </ul>
+      </div>
+
+      <div class="location-info">
+        <i class="fas fa-map-marker-alt"></i>
+        <span>Córdoba, Argentina</span>
+      </div>
+    </div>
+
+    <!-- Panel Derecho - Formulario -->
+    <div class="right-panel">
+      <div class="login-header">
+        <div class="login-icon">
+          <img src="assets/images/polologo-blanco.png" alt="Logo Polo 52" />
+        </div>
+        <h2>Acceso Empresarial</h2>
+        <p>Ingresa con tus credenciales corporativas</p>
+      </div>
+
+      <form (ngSubmit)="onLogin()" #loginForm="ngForm">
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-envelope"></i>
+            Email Corporativo
+          </label>
+          <div class="input-wrapper">
+            <input
+              type="text"
+              class="form-input"
+              id="username"
+              name="username"
+              [(ngModel)]="username"
+              placeholder="usuario@empresa.com"
+              required
+              [ngClass]="{ error: usernameError }"
+              (input)="onUsernameChange()"
+            />
+          </div>
+          <span *ngIf="usernameError" class="field-error">{{
+            usernameErrorMessage
+          }}</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-lock"></i>
+            Contraseña
+          </label>
+          <div class="input-wrapper">
+            <input
+              class="form-input"
+              id="password"
+              name="password"
+              [type]="showPassword ? 'text' : 'password'"
+              [(ngModel)]="password"
+              placeholder="••••••••"
+              required
+              [ngClass]="{ error: passwordError }"
+              (input)="onPasswordChange()"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePassword()"
+            >
+              <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </button>
+          </div>
+          <span *ngIf="passwordError" class="field-error">{{
+            passwordErrorMessage
+          }}</span>
+        </div>
+
+        <!-- Checkbox Recordarme -->
+        <div class="remember-section">
+          <label class="remember-checkbox">
+            <input
+              type="checkbox"
+              [(ngModel)]="keepLoggedIn"
+              name="keepLoggedIn"
+            />
+            <span class="checkmark"></span>
+            Recordarme
+          </label>
+
+          <div class="forgot-password">
+            <a href="#" (click)="openResetModal(); $event.preventDefault()"
+              >¿Olvidaste tu contraseña?</a
+            >
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          class="login-button"
+          [ngClass]="{ loading: loading }"
+          [disabled]="loginForm.invalid || loading"
         >
-      </div>
+          {{ loading ? "Verificando acceso..." : "Iniciar Sesión" }}
+        </button>
 
-      <button
-        type="submit"
-        class="login-button"
-        [disabled]="loginForm.invalid || loading"
-      >
-        {{ loading ? "Verificando acceso..." : "Iniciar Sesión" }}
-      </button>
+        <div *ngIf="successMessage" class="success-message">
+          {{ successMessage }}
+        </div>
+        <div *ngIf="loginMessage" class="error-message">{{ loginMessage }}</div>
 
-      <div *ngIf="successMessage" class="success-message">
-        {{ successMessage }}
-      </div>
-      <div *ngIf="loginMessage" class="error-message">{{ loginMessage }}</div>
+        <div class="divider">
+          <span>O ACCEDE CON</span>
+        </div>
 
-      <div class="divider">
-        <span>O accede con</span>
-      </div>
+        <button type="button" class="google-button">
+          <i class="fab fa-google"></i>
+          Google Workspace
+        </button>
 
-      <button type="button" class="google-button">
-        <i class="fab fa-google"></i>
-        Google Workspace
-      </button>
-
-      <div class="footer-info">
-        <i class="fas fa-shield-alt"></i>
-        Conexión segura SSL<br />
-        © 2024 POLO - Parque Industrial de Córdoba<br />
-        <strong>UTM</strong>
-      </div>
-    </form>
+        <div class="footer-info">
+          <i class="fas fa-shield-alt"></i>
+          Conexión segura SSL<br />
+          © 2024 POLO - Parque Industrial de Córdoba<br />
+          <strong>UTM</strong>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
