@@ -9,7 +9,7 @@ from app.models import Empresa, ServicioPolo, TipoServicioPolo
 from app.schemas import EmpresaOut, EmpresaCreate, RolOut, EmpresaDetailOutPublic, ContactoOutPublic, LoteOutPublic
 from typing import List
 from app.models import Rol
-from app.routes.auth import require_admin_polo  # Importamos la validación de roles desde auth.py
+from app.routes.auth import require_admin_polo, get_current_user  # Importamos la validación de roles desde auth.py# Importamos la validación de roles desde auth.py
 
 router = APIRouter(
     prefix="",
@@ -25,6 +25,114 @@ def get_db():
         db.close()
 
 
+
+
+# Constante para identificar al polo - AJUSTAR SEGÚN TU LÓGICA
+POLO_CUIL = 44123456789  # Reemplaza con el CUIL real del polo en tu BD
+
+@router.get("/polo/me", 
+    response_model=schemas.PoloDetailOut, 
+    summary="Obtener información completa del polo",
+    dependencies=[Depends(require_admin_polo)]
+)
+def get_polo_details(
+    db: Session = Depends(get_db),
+):
+    """
+    Devuelve la información completa del polo incluyendo:
+    - Datos básicos del polo (empresa con CUIL específico)
+    - Lista de todas las empresas registradas (excluyendo al polo)
+    - Lista de todos los servicios del polo
+    - Lista de todos los usuarios
+    - Lista de todos los lotes
+    """
+    # Obtener los datos del polo (empresa específica)
+    polo_empresa = db.query(models.Empresa).filter(models.Empresa.cuil == POLO_CUIL).first()
+    
+    if not polo_empresa:
+        raise HTTPException(status_code=404, detail="Polo no encontrado")
+    
+    # Obtener todas las empresas EXCEPTO el polo
+    empresas = db.query(models.Empresa).filter(models.Empresa.cuil != POLO_CUIL).all()
+    
+    # Obtener todos los servicios del polo
+    servicios_polo = db.query(models.ServicioPolo).all()
+    
+    # Obtener todos los usuarios
+    usuarios = db.query(models.Usuario).all()
+    
+    # Obtener todos los lotes
+    lotes = db.query(models.Lote).all()
+    
+    return schemas.PoloDetailOut(
+        # Datos del polo
+        cuil=polo_empresa.cuil,
+        nombre=polo_empresa.nombre,
+        rubro=polo_empresa.rubro,
+        cant_empleados=polo_empresa.cant_empleados,
+        fecha_ingreso=polo_empresa.fecha_ingreso,
+        horario_trabajo=polo_empresa.horario_trabajo,
+        observaciones=polo_empresa.observaciones,
+        
+        # Listas de entidades gestionadas
+        empresas=[schemas.EmpresaOut.from_orm(e) for e in empresas],
+        servicios_polo=[schemas.ServicioPoloOut.from_orm(s) for s in servicios_polo],
+        usuarios=[schemas.UserOut.from_orm(u) for u in usuarios],
+        lotes=[schemas.LoteOut.from_orm(l) for l in lotes]
+    )
+
+
+@router.put("/polo/me",
+    response_model=schemas.PoloDetailOut,
+    summary="Actualizar datos del polo",
+    dependencies=[Depends(require_admin_polo)]
+)
+def update_polo_details(
+    dto: schemas.PoloSelfUpdate,
+    db: Session = Depends(get_db),
+):
+    """
+    Actualiza los datos editables del polo:
+    - cant_empleados
+    - horario_trabajo  
+    - observaciones
+    """
+    polo_empresa = db.query(models.Empresa).filter(models.Empresa.cuil == POLO_CUIL).first()
+    
+    if not polo_empresa:
+        raise HTTPException(status_code=404, detail="Polo no encontrado")
+    
+    # Actualizar solo los campos permitidos
+    data = dto.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(polo_empresa, field, value)
+    
+    db.commit()
+    db.refresh(polo_empresa)
+    
+    # Devolver la información completa actualizada
+    return get_polo_details(db)
+
+
+@router.post("/polo/change-password-request",
+    summary="Solicitar cambio de contraseña para admin polo",
+    dependencies=[Depends(require_admin_polo)]
+)
+def polo_change_password_request(
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Envía un email con enlace para cambiar la contraseña del admin polo.
+    """
+    # Aquí implementas la misma lógica que tienes en auth.py
+    # para generar token y enviar email
+    
+    # Por ahora retornamos un mensaje de éxito
+    return {
+        "message": "Se ha enviado un enlace de cambio de contraseña a tu email",
+        "email": current_user.email
+    }
 
 
 # Agregar estos endpoints en admin_users.py

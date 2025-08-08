@@ -1,11 +1,12 @@
-<!-- admin-polo.component.html MEJORADO -->
+<!-- admin-polo.component.html MEJORADO CON PERFIL DEL POLO -->
 <div class="admin-container" [class.dark-mode]="isDarkMode">
   <!-- Header -->
   <header class="admin-header">
     <div class="header-content">
       <div class="logo-section">
         <h1>Panel Administrativo - Polo 52</h1>
-        <p>Gestión integral del parque industrial</p>
+        <p *ngIf="poloData">{{ poloData.nombre }} - {{ poloData.rubro }}</p>
+        <p *ngIf="!poloData">Gestión integral del parque industrial</p>
       </div>
       <div class="header-actions">
         <button
@@ -63,6 +64,13 @@
   <nav class="tab-navigation">
     <button
       class="tab-button"
+      [class.active]="activeTab === 'perfil'"
+      (click)="setActiveTab('perfil')"
+    >
+      Perfil Polo
+    </button>
+    <button
+      class="tab-button"
       [class.active]="activeTab === 'empresas'"
       (click)="setActiveTab('empresas')"
     >
@@ -96,8 +104,188 @@
     {{ message }}
   </div>
 
+  <!-- Loading Indicator -->
+  <div
+    *ngIf="loading && !poloData && activeTab === 'perfil'"
+    class="loading-container"
+  >
+    <div class="loading-spinner"></div>
+    <p>Cargando datos del polo...</p>
+  </div>
+
   <!-- Main Content -->
   <main class="main-content">
+    <!-- PERFIL POLO TAB -->
+    <div *ngIf="activeTab === 'perfil'" class="tab-content">
+      <div class="section-header">
+        <h2>Perfil del Polo</h2>
+        <div class="header-actions">
+          <button class="btn btn-secondary" (click)="openPasswordForm()">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"
+              />
+            </svg>
+            Cambiar Contraseña
+          </button>
+          <button class="btn btn-primary" (click)="openPoloEditForm()">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3-6.5 6.5v3h3l6.5-6.5z"
+              />
+            </svg>
+            Editar Datos
+          </button>
+        </div>
+      </div>
+
+      <!-- Polo Info Card -->
+      <div class="info-card" *ngIf="poloData">
+        <div class="card-header">
+          <h3>Información General del Polo</h3>
+        </div>
+        <div class="card-content">
+          <div class="info-grid">
+            <div class="info-item">
+              <label>CUIL:</label>
+              <span>{{ poloData.cuil }}</span>
+            </div>
+            <div class="info-item">
+              <label>Nombre:</label>
+              <span>{{ poloData.nombre }}</span>
+            </div>
+            <div class="info-item">
+              <label>Rubro:</label>
+              <span>{{ poloData.rubro }}</span>
+            </div>
+            <div class="info-item">
+              <label>Cantidad de Empleados:</label>
+              <span>{{ poloData.cant_empleados }}</span>
+            </div>
+            <div class="info-item">
+              <label>Fecha de Ingreso:</label>
+              <span>{{ poloData.fecha_ingreso | date : "dd/MM/yyyy" }}</span>
+            </div>
+            <div class="info-item">
+              <label>Horario de Trabajo:</label>
+              <span>{{ poloData.horario_trabajo }}</span>
+            </div>
+            <div class="info-item full-width" *ngIf="poloData.observaciones">
+              <label>Observaciones:</label>
+              <span>{{ poloData.observaciones }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid" *ngIf="poloData">
+        <!-- Empresas -->
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
+              />
+              <path
+                fill-rule="evenodd"
+                d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"
+              />
+              <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+            </svg>
+          </div>
+          <div class="stat-info">
+            <h4>{{ poloData.empresas.length }}</h4>
+            <p>Empresas</p>
+          </div>
+        </div>
+
+        <!-- Servicios del Polo -->
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm11 1H3v10h10V4z"
+              />
+              <path d="M5 7h6v2H5V7z" />
+            </svg>
+          </div>
+          <div class="stat-info">
+            <h4>{{ poloData.servicios_polo.length }}</h4>
+            <p>Servicios del Polo</p>
+          </div>
+        </div>
+
+        <!-- Usuarios -->
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
+              />
+            </svg>
+          </div>
+          <div class="stat-info">
+            <h4>{{ poloData.usuarios.length }}</h4>
+            <p>Usuarios</p>
+          </div>
+        </div>
+
+        <!-- Lotes -->
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M2.5 3A1.5 1.5 0 0 0 1 4.5v.793c.026.009.051.02.076.032L7.674 8.51c.206.1.446.1.652 0l6.598-3.185A.755.755 0 0 1 15 5.293V4.5A1.5 1.5 0 0 0 13.5 3h-11Z"
+              />
+              <path
+                d="M15 6.954 8.978 9.86a2.25 2.25 0 0 1-1.956 0L1 6.954V11.5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5V6.954Z"
+              />
+            </svg>
+          </div>
+          <div class="stat-info">
+            <h4>{{ poloData.lotes.length }}</h4>
+            <p>Lotes</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- EMPRESAS TAB -->
     <div *ngIf="activeTab === 'empresas'" class="tab-content">
       <div class="section-header">
@@ -306,12 +494,6 @@
           </table>
         </div>
       </div>
-
-      <!-- Resto de formularios... (mantener igual) -->
-      <!-- Usuario Form -->
-      <div *ngIf="showEmpresaForm" class="form-modal">
-        <!-- Contenido del formulario de empresa (mantener igual) -->
-      </div>
     </div>
 
     <!-- USUARIOS TAB -->
@@ -412,7 +594,7 @@
                         Editar
                       </button>
                       <button
-                        class="btn btn-sm"
+                        class="btn btn-sm btn-toggle-estado"
                         [class]="usuario.estado ? 'btn-warning' : 'btn-success'"
                         (click)="toggleUsuarioEstado(usuario)"
                         [title]="
@@ -769,7 +951,202 @@
       </div>
     </div>
 
-    <!-- FORMULARIOS MODALES (mantener todos los formularios existentes) -->
+    <!-- FORMULARIOS MODALES -->
+
+    <!-- Password Form Modal -->
+    <div *ngIf="showPasswordForm" class="form-modal">
+      <div class="form-container">
+        <div class="form-header">
+          <h3>Cambiar Contraseña</h3>
+          <button class="close-btn" (click)="resetForms()">&times;</button>
+        </div>
+
+        <!-- Error Display -->
+        <div *ngIf="hasFieldError('password', 'general')" class="error-display">
+          <div
+            class="error-message"
+            *ngFor="let error of getFieldErrors('password', 'general')"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"
+              />
+            </svg>
+            {{ error.message }}
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <div class="info-box">
+              <div class="info-icon">📧</div>
+              <div class="info-content">
+                <h4>Solicitar cambio de contraseña</h4>
+                <p>
+                  Se enviará un enlace de cambio de contraseña a tu email
+                  registrado. Revisa tu bandeja de entrada y spam.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="resetForms()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="onSubmitPassword()"
+            [disabled]="loading"
+            [class.loading]="loading"
+          >
+            {{ loading ? "Enviando..." : "Enviar Email" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Polo Edit Form Modal -->
+    <div *ngIf="showPoloEditForm" class="form-modal">
+      <div class="form-container">
+        <div class="form-header">
+          <h3>Editar Datos del Polo</h3>
+          <button class="close-btn" (click)="resetForms()">&times;</button>
+        </div>
+
+        <!-- Error Display -->
+        <div *ngIf="hasFieldError('polo', 'general')" class="error-display">
+          <div
+            class="error-message"
+            *ngFor="let error of getFieldErrors('polo', 'general')"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"
+              />
+            </svg>
+            {{ error.message }}
+          </div>
+        </div>
+
+        <form (ngSubmit)="onSubmitPoloEdit()" #poloEditFormRef="ngForm">
+          <div class="form-grid">
+            <div
+              class="form-group"
+              [class.has-error]="hasFieldError('polo', 'cant_empleados')"
+            >
+              <label for="cant_empleados">Cantidad de Empleados *</label>
+              <input
+                type="number"
+                id="cant_empleados"
+                name="cant_empleados"
+                [(ngModel)]="poloEditForm.cant_empleados"
+                required
+                min="1"
+                class="form-control"
+                [class.error]="hasFieldError('polo', 'cant_empleados')"
+              />
+              <div
+                *ngIf="hasFieldError('polo', 'cant_empleados')"
+                class="field-error"
+              >
+                <span
+                  *ngFor="let error of getFieldErrors('polo', 'cant_empleados')"
+                  >{{ error.message }}</span
+                >
+              </div>
+            </div>
+
+            <div
+              class="form-group"
+              [class.has-error]="hasFieldError('polo', 'horario_trabajo')"
+            >
+              <label for="horario_trabajo">Horario de Trabajo *</label>
+              <input
+                type="text"
+                id="horario_trabajo"
+                name="horario_trabajo"
+                [(ngModel)]="poloEditForm.horario_trabajo"
+                required
+                class="form-control"
+                [class.error]="hasFieldError('polo', 'horario_trabajo')"
+              />
+              <div
+                *ngIf="hasFieldError('polo', 'horario_trabajo')"
+                class="field-error"
+              >
+                <span
+                  *ngFor="
+                    let error of getFieldErrors('polo', 'horario_trabajo')
+                  "
+                  >{{ error.message }}</span
+                >
+              </div>
+            </div>
+
+            <div
+              class="form-group full-width"
+              [class.has-error]="hasFieldError('polo', 'observaciones')"
+            >
+              <label for="observaciones">Observaciones</label>
+              <textarea
+                id="observaciones"
+                name="observaciones"
+                [(ngModel)]="poloEditForm.observaciones"
+                rows="4"
+                class="form-control"
+                [class.error]="hasFieldError('polo', 'observaciones')"
+              ></textarea>
+              <div
+                *ngIf="hasFieldError('polo', 'observaciones')"
+                class="field-error"
+              >
+                <span
+                  *ngFor="let error of getFieldErrors('polo', 'observaciones')"
+                  >{{ error.message }}</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="resetForms()"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="loading || poloEditFormRef.invalid"
+              [class.loading]="loading"
+            >
+              {{ loading ? "Guardando..." : "Actualizar Datos" }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- Empresa Form Modal -->
     <div *ngIf="showEmpresaForm" class="form-modal">

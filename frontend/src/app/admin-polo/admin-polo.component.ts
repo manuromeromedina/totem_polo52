@@ -15,8 +15,24 @@ import {
   ServicioPoloCreate,
   Lote,
   LoteCreate,
+  PoloDetail,
+  PoloSelfUpdate,
 } from './admin-polo.service';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
+
+// Interfaces para manejo de errores
+interface FormError {
+  field: string;
+  message: string;
+  type: 'required' | 'invalid' | 'duplicate' | 'server' | 'validation';
+}
+
+interface ErrorResponse {
+  detail?: string;
+  message?: string;
+  errors?: { [key: string]: string[] };
+  status?: number;
+}
 
 @Component({
   selector: 'app-empresas',
@@ -26,7 +42,26 @@ import { LogoutButtonComponent } from '../shared/logout-button/logout-button.com
   styleUrls: ['./admin-polo.component.css'],
 })
 export class AdminPoloComponent implements OnInit {
-  activeTab = 'empresas';
+  activeTab = 'perfil'; // Cambiar tab por defecto a perfil
+
+  // NUEVAS PROPIEDADES PARA EL POLO
+  poloData: PoloDetail | null = null;
+  showPasswordForm = false;
+  showPoloEditForm = false;
+
+  passwordForm = {
+    password: '',
+    confirmPassword: '',
+  };
+
+  poloEditForm: PoloSelfUpdate = {
+    cant_empleados: 0,
+    observaciones: '',
+    horario_trabajo: '',
+  };
+
+  // 🔥 Sistema de errores mejorado
+  formErrors: { [key: string]: FormError[] } = {};
 
   // Empresas
   empresas: Empresa[] = [];
@@ -115,6 +150,8 @@ export class AdminPoloComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRoles();
+    // Cargar datos del polo primero
+    this.loadPoloData();
     // Cargar datos de la pestaña activa por defecto
     this.loadData();
     const savedTheme = localStorage.getItem('theme');
@@ -126,19 +163,240 @@ export class AdminPoloComponent implements OnInit {
     localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
   }
 
-  updateTheme(): void {
-    const body = document.body;
-    if (this.isDarkMode) {
-      body.classList.add('dark-mode');
-    } else {
-      body.classList.remove('dark-mode');
-    }
-  }
-
   setActiveTab(tab: string): void {
     this.activeTab = tab;
     this.resetForms();
     this.loadData();
+  }
+
+  // 🔥 NUEVOS MÉTODOS PARA EL POLO
+  loadPoloData(): void {
+    this.loading = true;
+    this.clearFormErrors('general');
+
+    this.adminPoloService.getPoloDetails().subscribe({
+      next: (data) => {
+        this.poloData = data;
+        this.poloEditForm = {
+          cant_empleados: data.cant_empleados,
+          observaciones: data.observaciones || '',
+          horario_trabajo: data.horario_trabajo,
+        };
+        this.loading = false;
+      },
+      error: (error) => {
+        this.handleError(error, 'general', 'cargar datos del polo');
+        this.loading = false;
+      },
+    });
+  }
+
+  // PASSWORD PARA POLO
+  openPasswordForm(): void {
+    this.clearFormErrors('password');
+    this.showPasswordForm = true;
+  }
+
+  onSubmitPassword(): void {
+    this.loading = true;
+    this.clearFormErrors('password');
+
+    this.adminPoloService.changePasswordRequest().subscribe({
+      next: () => {
+        this.showMessage(
+          'Se ha enviado un enlace de cambio de contraseña a tu email',
+          'success'
+        );
+        this.resetForms();
+        this.loading = false;
+      },
+      error: (error) => {
+        this.handleError(error, 'password', 'solicitar cambio de contraseña');
+        this.loading = false;
+      },
+    });
+  }
+
+  // POLO EDIT
+  openPoloEditForm(): void {
+    this.clearFormErrors('polo');
+    this.showPoloEditForm = true;
+  }
+
+  onSubmitPoloEdit(): void {
+    this.loading = true;
+    this.clearFormErrors('polo');
+
+    this.adminPoloService.updatePolo(this.poloEditForm).subscribe({
+      next: () => {
+        this.showMessage('Datos del polo actualizados exitosamente', 'success');
+        this.loadPoloData();
+        this.resetForms();
+        this.loading = false;
+      },
+      error: (error) => {
+        this.handleError(error, 'polo', 'actualizar datos del polo');
+        this.loading = false;
+      },
+    });
+  }
+
+  // 🔥 Método para limpiar errores específicos
+  clearFormErrors(formName: string): void {
+    this.formErrors[formName] = [];
+  }
+
+  // 🔥 Método para obtener errores de un campo específico
+  getFieldErrors(formName: string, fieldName: string): FormError[] {
+    const errors = this.formErrors[formName] || [];
+    return errors.filter((error) => error.field === fieldName);
+  }
+
+  // 🔥 Método para verificar si un campo tiene errores
+  hasFieldError(formName: string, fieldName: string): boolean {
+    return this.getFieldErrors(formName, fieldName).length > 0;
+  }
+
+  // 🔥 Procesador de errores HTTP mejorado
+  private handleError(error: any, formName: string, operation: string): void {
+    console.error(`Error en ${operation}:`, error);
+
+    this.clearFormErrors(formName);
+    let errorMessages: FormError[] = [];
+
+    if (error.status === 0) {
+      errorMessages.push({
+        field: 'general',
+        message: 'Error de conexión. Verifique su conexión a internet.',
+        type: 'server',
+      });
+    } else if (error.status === 401) {
+      errorMessages.push({
+        field: 'general',
+        message: 'Sesión expirada. Por favor, inicie sesión nuevamente.',
+        type: 'server',
+      });
+    } else if (error.status === 403) {
+      errorMessages.push({
+        field: 'general',
+        message: 'No tiene permisos para realizar esta acción.',
+        type: 'server',
+      });
+    } else if (error.status === 404) {
+      errorMessages.push({
+        field: 'general',
+        message: 'El recurso solicitado no fue encontrado.',
+        type: 'server',
+      });
+    } else if (error.status === 422) {
+      // Errores de validación específicos del backend
+      const errorResponse: ErrorResponse = error.error;
+
+      if (errorResponse.errors) {
+        Object.keys(errorResponse.errors).forEach((field) => {
+          const fieldErrors = errorResponse.errors![field];
+          fieldErrors.forEach((message) => {
+            errorMessages.push({
+              field: field,
+              message: this.translateFieldError(field, message, formName),
+              type: 'validation',
+            });
+          });
+        });
+      } else if (errorResponse.detail) {
+        errorMessages.push({
+          field: 'general',
+          message: this.translateGenericError(errorResponse.detail, formName),
+          type: 'validation',
+        });
+      }
+    } else if (error.status === 400) {
+      const errorDetail = error.error?.detail || 'Datos inválidos';
+      errorMessages.push({
+        field: 'general',
+        message: this.translateGenericError(errorDetail, formName),
+        type: 'validation',
+      });
+    } else if (error.status === 500) {
+      errorMessages.push({
+        field: 'general',
+        message: 'Error interno del servidor. Intente más tarde.',
+        type: 'server',
+      });
+    } else {
+      const detail =
+        error.error?.detail || error.message || 'Error desconocido';
+      errorMessages.push({
+        field: 'general',
+        message: this.translateGenericError(detail, formName),
+        type: 'server',
+      });
+    }
+
+    this.formErrors[formName] = errorMessages;
+
+    // Mostrar mensaje general
+    const generalError = errorMessages.find((e) => e.field === 'general');
+    if (generalError) {
+      this.showMessage(generalError.message, 'error');
+    } else {
+      this.showMessage(
+        `Error en ${operation}. Revise los campos marcados.`,
+        'error'
+      );
+    }
+  }
+
+  // 🔥 Traductor de errores de campos específicos
+  private translateFieldError(
+    field: string,
+    message: string,
+    formName: string
+  ): string {
+    const translations: { [key: string]: { [key: string]: string } } = {
+      polo: {
+        cant_empleados: 'La cantidad de empleados debe ser mayor a 0',
+        horario_trabajo: 'El horario de trabajo es requerido',
+        observaciones: 'Las observaciones no pueden exceder 500 caracteres',
+      },
+      password: {
+        password: 'La contraseña debe tener al menos 6 caracteres',
+        email: 'El email no fue encontrado en el sistema',
+      },
+    };
+
+    const formTranslations = translations[formName];
+    if (formTranslations && formTranslations[field]) {
+      return formTranslations[field];
+    }
+
+    const genericTranslations: { [key: string]: string } = {
+      required: 'Este campo es requerido',
+      invalid: 'El formato de este campo es inválido',
+      min_length: 'Este campo es muy corto',
+      max_length: 'Este campo es muy largo',
+      email: 'El formato del email es inválido',
+      url: 'El formato de la URL es inválido',
+      number: 'Debe ser un número válido',
+    };
+
+    return genericTranslations[message] || message;
+  }
+
+  // 🔥 Traductor de errores genéricos
+  private translateGenericError(detail: string, formName: string): string {
+    const translations: { [key: string]: string } = {
+      'Usuario no encontrado': 'Usuario no encontrado en el sistema',
+      'Email no registrado': 'El email no está registrado en el sistema',
+      'Credenciales inválidas': 'Usuario o contraseña incorrectos',
+      'Token inválido':
+        'La sesión ha expirado, por favor inicie sesión nuevamente',
+      'Polo no encontrado': 'El polo no fue encontrado',
+      'Acceso denegado': 'No tiene permisos para realizar esta acción',
+      'Datos inválidos': 'Los datos enviados contienen errores',
+    };
+
+    return translations[detail] || detail;
   }
 
   loadRoles(): void {
@@ -156,6 +414,10 @@ export class AdminPoloComponent implements OnInit {
     this.loading = true;
 
     switch (this.activeTab) {
+      case 'perfil':
+        // Ya se carga en ngOnInit
+        this.loading = false;
+        break;
       case 'empresas':
         this.loadEmpresas();
         break;
@@ -337,11 +599,18 @@ export class AdminPoloComponent implements OnInit {
     this.showUsuarioForm = false;
     this.showServicioPoloForm = false;
     this.showLoteForm = false;
+    this.showPasswordForm = false;
+    this.showPoloEditForm = false;
     this.editingEmpresa = null;
     this.editingUsuario = null;
     this.selectedEmpresa = null;
     this.creatingForEmpresa = false;
     this.message = '';
+
+    // Limpiar errores de todos los formularios
+    this.formErrors = {};
+
+    this.passwordForm = { password: '', confirmPassword: '' };
 
     this.empresaForm = {
       cuil: 0,
