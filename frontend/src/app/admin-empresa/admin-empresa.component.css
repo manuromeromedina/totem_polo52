@@ -1,4 +1,4 @@
-/* admin-empresa.component.css COMPLETO CORREGIDO */
+/* admin-empresa.component.css COMPLETO CON FORMULARIOS ACTUALIZADOS */
 
 .admin-container {
   min-height: 100vh;
@@ -164,7 +164,7 @@
   gap: 12px;
 }
 
-/* 🔥 NUEVOS ESTILOS PARA BARRA DE BÚSQUEDA */
+/* Search Bar Styles */
 .search-bar {
   margin-bottom: 32px;
   background: white;
@@ -531,120 +531,87 @@
   gap: 6px;
 }
 
-/* ===== FORMULARIOS COMPACTOS - VERSIÓN CORREGIDA ===== */
+/* ===== FORMULARIOS COMPACTOS - IGUAL QUE ADMIN POLO ===== */
 
-/* Form Modal - BASE COMPACTA */
+/* Form Modal - BASE IGUAL QUE ADMIN POLO */
 .form-modal {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
-  animation: fadeIn 0.3s ease-out;
-  padding: 20px;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .form-container {
   background: white;
   border-radius: 12px;
-  width: 100%;
-  max-width: 420px; /* MÁS PEQUEÑO */
-  max-height: 75vh; /* MÁS PEQUEÑO */
-  display: flex;
-  flex-direction: column;
-  box-shadow: 
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
 }
 
-/* Header - MÁS COMPACTO */
+/* Header - IGUAL QUE ADMIN POLO */
 .form-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 18px; /* REDUCIDO */
-  border-bottom: 1px solid #e5e7eb;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 24px 32px;
+  border-bottom: 1px solid #dee2e6;
+  background: #f8f9fa;
   border-radius: 12px 12px 0 0;
-  flex-shrink: 0;
 }
 
 .form-header h3 {
   margin: 0;
-  color: #1f2937;
-  font-size: 16px; /* MÁS PEQUEÑO */
-  font-weight: 700;
+  color: #212529;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .close-btn {
-  background: #f3f4f6;
+  background: none;
   border: none;
-  font-size: 16px;
-  color: #6b7280;
+  font-size: 24px;
+  color: #6c757d;
   cursor: pointer;
-  padding: 4px;
-  width: 28px;
-  height: 28px;
+  padding: 0;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 4px;
   transition: all 0.2s ease;
-  font-weight: bold;
 }
 
 .close-btn:hover {
-  background: #e5e7eb;
-  color: #374151;
+  background: #e9ecef;
+  color: #495057;
 }
 
-/* Contenido con scroll funcional - CLAVE */
-.form-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  /* Scroll visible y funcional */
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f1f5f9;
-}
+/* Eliminar contenido con scroll - usar estructura original de admin-polo */
 
-.form-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.form-content::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-.form-content::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.form-content::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Grid del formulario - ULTRA COMPACTO */
+/* Grid del formulario - IGUAL QUE ADMIN POLO */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px; /* REDUCIDO */
-  padding: 14px; /* REDUCIDO */
+  gap: 20px;
+  padding: 32px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 3px; /* REDUCIDO */
+  gap: 8px;
 }
 
 .form-group.full-width {
@@ -652,13 +619,10 @@
 }
 
 .form-group label {
-  font-size: 12px; /* MÁS PEQUEÑO */
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 2px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 4px;
 }
 
 .form-group label .text-danger {
@@ -666,32 +630,27 @@
   font-weight: 700;
 }
 
-/* Campos de formulario - MÁS PEQUEÑOS */
+/* Campos de formulario - IGUAL QUE ADMIN POLO */
 .form-control {
-  padding: 6px 8px; /* MÁS PEQUEÑO */
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 12px; /* MÁS PEQUEÑO */
+  padding: 12px 16px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 14px;
   transition: all 0.2s ease;
-  background: #ffffff;
-  color: #1f2937;
-  font-family: inherit;
-  min-height: 28px; /* MÁS PEQUEÑO */
-  box-sizing: border-box;
+  background: white;
+  color: #495057;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.1);
-  background: #ffffff;
+  border-color: #6c757d;
+  box-shadow: 0 0 0 2px rgba(108, 117, 125, 0.1);
 }
 
 .form-control:disabled {
-  background: #f9fafb;
-  color: #6b7280;
+  background: #f8f9fa;
+  color: #6c757d;
   cursor: not-allowed;
-  border-color: #e5e7eb;
 }
 
 .form-control::placeholder {
@@ -702,56 +661,53 @@
 
 textarea.form-control {
   resize: vertical;
-  min-height: 48px; /* MÁS PEQUEÑO */
-  font-family: inherit;
-  line-height: 1.3;
+  min-height: 80px;
 }
 
 select.form-control {
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 6px center;
-  background-repeat: no-repeat;
-  background-size: 10px;
-  padding-right: 24px;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
 }
 
-/* Footer - MÁS COMPACTO */
+/* Footer - IGUAL QUE ADMIN POLO */
 .form-actions {
-  padding: 10px 14px; /* REDUCIDO */
-  border-top: 1px solid #e5e7eb;
-  background: #f8fafc;
+  padding: 24px 32px;
+  border-top: 1px solid #dee2e6;
+  background: #f8f9fa;
   display: flex;
   justify-content: flex-end;
-  gap: 6px; /* REDUCIDO */
+  gap: 16px;
   border-radius: 0 0 12px 12px;
-  flex-shrink: 0;
 }
 
-/* Section title - MÁS COMPACTO */
-.section-title {
-  font-size: 13px; /* REDUCIDO */
-  font-weight: 700;
-  color: #1f2937;
-  margin: 8px 0 6px 0; /* REDUCIDO */
-  padding: 6px 10px; /* REDUCIDO */
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-  border-left: 2px solid #6366f1;
-  border-radius: 3px;
-  display: flex;
+
+
+/* Checkbox styles - IGUAL QUE ADMIN POLO */
+.checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
   align-items: center;
-  gap: 4px;
+  gap: 12px;
+  cursor: pointer;
+  margin-top: 8px;
 }
 
-.section-title::before {
-  content: "⚙️";
-  font-size: 11px;
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  width: 18px;
+  height: 18px;
 }
 
-/* 🔥 NUEVOS ESTILOS PARA MANEJO DE ERRORES - COMPACTOS */
+/* Section title con espaciado izquierdo */
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #212529;
+  margin: 20px 0 16px 0;
+  padding: 12px 0 8px 20px; /* Espacio a la izquierda */
+  border-bottom: 1px solid #dee2e6;
+  background: #f8f9fa;
+  border-left: 4px solid #6c757d; /* Borde izquierdo para énfasis */
+}
 .error-display {
   margin: 6px 14px;
   padding: 6px 10px;
@@ -2026,12 +1982,6 @@ table tr:last-child td {
 }
 
 @keyframes slideUp {
-  from { 
-    opacity: 0; 
-    transform: translateY(30px) scale(0.95);
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
