@@ -22,6 +22,17 @@ interface LogoutResponse {
 
 interface PasswordResetResponse {
   message: string;
+  success?: boolean;
+  error?: string;
+  expired?: boolean;
+}
+
+interface TokenVerificationResponse {
+  valid: boolean;
+  message?: string;
+  email_hint?: string;
+  error?: string;
+  expired?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -45,6 +56,40 @@ export class AuthenticationService {
       `${environment.apiUrl}/password-reset/request-logged-user`,
       {}
     );
+  }
+
+  // 🆕 NUEVO MÉTODO - Verificar token de reset sin hacer cambios
+  verifyResetToken(token: string): Observable<TokenVerificationResponse> {
+    const params = new HttpParams().set('token', token);
+
+    console.log('🔍 Verificando token:', token.substring(0, 20) + '...');
+
+    return this.http
+      .post<TokenVerificationResponse>(
+        `${environment.apiUrl}/password-reset/verify-token`,
+        null,
+        { params }
+      )
+      .pipe(
+        tap((response) => {
+          console.log('✅ Verificación de token:', response);
+        }),
+        catchError((err) => {
+          console.error('❌ Error verificando token:', err);
+
+          // Transformar el error en una respuesta consistente
+          const errorResponse: TokenVerificationResponse = {
+            valid: false,
+            error: err.error?.detail || err.message || 'Token inválido',
+            expired:
+              err.status === 400 ||
+              (err.error?.detail && err.error.detail.includes('expirado')),
+          };
+
+          // Retornar como observable en lugar de error para manejar en el componente
+          return of(errorResponse);
+        })
+      );
   }
 
   // ✅ MÉTODO CORREGIDO - Ahora retorna el response completo para manejar errores

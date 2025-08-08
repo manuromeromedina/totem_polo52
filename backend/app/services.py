@@ -2,19 +2,18 @@ import unicodedata
 import os
 import json
 import re
-from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from pathlib import Path
 
 from dotenv import load_dotenv
 from passlib.context import CryptContext
-from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect
 from sqlalchemy.sql import text
+
+from jose import jwt, JWTError, ExpiredSignatureError
+from datetime import datetime, timedelta
 from fastapi import HTTPException
-
-
 
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
@@ -48,23 +47,91 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return token
 
 def create_password_reset_token(email: str, expires_minutes: int = 60) -> str:
+    """
+    Crear token de recuperación de contraseña con expiración personalizable
+    
+    Args:
+        email: Email del usuario
+        expires_minutes: Minutos hasta la expiración (default: 60 = 1 hora)
+    """
     now = datetime.utcnow()
     exp = now + timedelta(minutes=expires_minutes)
-    to_encode = {"sub": email, "exp": exp, "type": "password_reset"}
+    to_encode = {
+        "sub": email, 
+        "exp": exp, 
+        "type": "password_reset",
+        "iat": now  # Tiempo de emisión (issued at)
+    }
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# 2) Verificar token de recuperación y devolver el email
 def verify_password_reset_token(token: str) -> str:
+    """
+    Verificar token de recuperación y devolver el email
+    
+    Raises:
+        HTTPException(400): Token expirado específicamente
+        HTTPException(401): Token inválido por otras razones
+    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # Verificar que sea un token de reset
         if payload.get("type") != "password_reset":
-            raise HTTPException(401, "Token de tipo inválido")
+            raise HTTPException(
+                status_code=401, 
+                detail="Token de tipo inválido"
+            )
+        
         email = payload.get("sub")
         if not email:
-            raise HTTPException(401, "Token inválido")
+            raise HTTPException(
+                status_code=401, 
+                detail="Token inválido - falta información del usuario"
+            )
+            
         return email
+        
+    except ExpiredSignatureError:
+        # Token específicamente expirado
+        raise HTTPException(
+            status_code=400, 
+            detail="El enlace de recuperación ha expirado. Solicita uno nuevo.",
+            headers={"X-Error-Type": "expired"}
+        )
+    except JWTError as e:
+        # Otros errores de JWT (token malformado, firma inválida, etc.)
+        raise HTTPException(
+            status_code=401, 
+            detail="Token de recuperación inválido",
+            headers={"X-Error-Type": "invalid"}
+        )
+
+# Función adicional para verificar token sin decodificar (opcional)
+def check_token_validity(token: str) -> dict:
+    """
+    Verificar si un token es válido sin hacer operaciones críticas
+    Útil para verificación previa en el frontend
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return {
+            "valid": True,
+            "email": payload.get("sub"),
+            "expires_at": payload.get("exp"),
+            "type": payload.get("type")
+        }
+    except ExpiredSignatureError:
+        return {
+            "valid": False,
+            "error": "expired",
+            "message": "Token expirado"
+        }
     except JWTError:
-        raise HTTPException(401, "Token de recuperación inválido o expirado")
+        return {
+            "valid": False,
+            "error": "invalid",
+            "message": "Token inválido"
+        }
 # =================================================================================
 
 # === Configurar API Key ===

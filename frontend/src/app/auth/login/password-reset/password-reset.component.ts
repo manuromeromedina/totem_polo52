@@ -18,6 +18,7 @@ export class ResetPasswordComponent implements OnInit {
   message = '';
   error = '';
   loading = false;
+  tokenExpired = false; // Nueva propiedad para tokens expirados
 
   constructor(
     private route: ActivatedRoute,
@@ -36,7 +37,34 @@ export class ResetPasswordComponent implements OnInit {
 
     if (!this.token) {
       this.error = 'Token no válido o ausente. Por favor, verifica el enlace.';
+    } else {
+      // Verificar si el token ya expiró al cargar la página
+      this.verifyTokenValidity();
     }
+  }
+
+  // Método para verificar si el token es válido antes de mostrar el formulario
+  verifyTokenValidity() {
+    this.loading = true;
+
+    this.authService.verifyResetToken(this.token).subscribe({
+      next: (response) => {
+        this.loading = false;
+        console.log('✅ Token válido');
+      },
+      error: (err) => {
+        this.loading = false;
+        console.error('❌ Token inválido:', err);
+
+        if (err.error?.expired || err.error?.error?.includes('expirado')) {
+          this.tokenExpired = true;
+          this.error =
+            'Este enlace de recuperación ha expirado. Por favor, solicita uno nuevo.';
+        } else {
+          this.error = 'Enlace de recuperación inválido.';
+        }
+      },
+    });
   }
 
   onResetPassword(form: NgForm) {
@@ -57,8 +85,10 @@ export class ResetPasswordComponent implements OnInit {
       return;
     }
 
-    if (this.newPassword.length < 6) {
-      this.error = 'La contraseña debe tener al menos 6 caracteres.';
+    // Validaciones de contraseña mejoradas
+    const passwordValidation = this.validatePassword(this.newPassword);
+    if (!passwordValidation.isValid) {
+      this.error = passwordValidation.message;
       return;
     }
 
@@ -88,31 +118,89 @@ export class ResetPasswordComponent implements OnInit {
         console.error('❌ Error en reset:', err);
         this.loading = false;
 
-        // Manejar diferentes tipos de errores
-        if (err.error?.detail) {
+        // Manejar específicamente tokens expirados
+        if (err.error?.expired || err.error?.error?.includes('expirado')) {
+          this.tokenExpired = true;
+          this.error =
+            'El enlace de recuperación ha expirado. Por favor, solicita uno nuevo.';
+        }
+        // Manejar otros tipos de errores
+        else if (err.error?.detail) {
           this.error = err.error.detail;
         } else if (err.error?.message) {
           this.error = err.error.message;
+        } else if (err.error?.error) {
+          this.error = err.error.error;
         } else if (err.message) {
           this.error = err.message;
         } else {
           this.error =
-            'Error al actualizar la contraseña. El token puede haber expirado.';
-        }
-
-        // Si el token ha expirado, sugerir solicitar uno nuevo
-        if (
-          this.error.includes('expirado') ||
-          this.error.includes('inválido')
-        ) {
-          this.error += ' Por favor, solicita un nuevo enlace de recuperación.';
+            'Error al actualizar la contraseña. Inténtalo nuevamente.';
         }
       },
     });
   }
 
+  // Método para solicitar un nuevo enlace
+  requestNewLink() {
+    this.router.navigate(['/forgot-password']);
+  }
+
   // Método para volver al login
   goToLogin() {
     this.router.navigate(['/login']);
+  }
+
+  // Validación de contraseña con reglas específicas
+  validatePassword(password: string): { isValid: boolean; message: string } {
+    if (!password) {
+      return { isValid: false, message: 'La contraseña es requerida.' };
+    }
+
+    if (password.length < 8) {
+      return {
+        isValid: false,
+        message: 'La contraseña debe tener al menos 8 caracteres.',
+      };
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      return {
+        isValid: false,
+        message: 'La contraseña debe tener al menos una letra mayúscula.',
+      };
+    }
+
+    if (!/[0-9]/.test(password)) {
+      return {
+        isValid: false,
+        message: 'La contraseña debe tener al menos un número.',
+      };
+    }
+
+    return { isValid: true, message: '' };
+  }
+
+  // Verificar si la contraseña cumple con los requisitos
+  isPasswordValid(): boolean {
+    return this.validatePassword(this.newPassword).isValid;
+  }
+
+  // Verificar si las contraseñas coinciden
+  doPasswordsMatch(): boolean {
+    return (
+      this.newPassword === this.confirmPassword &&
+      this.confirmPassword.length > 0
+    );
+  }
+
+  // Obtener requisitos de contraseña para mostrar en el UI
+  getPasswordRequirements() {
+    const password = this.newPassword;
+    return {
+      minLength: password.length >= 8,
+      hasUppercase: /[A-Z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+    };
   }
 }
