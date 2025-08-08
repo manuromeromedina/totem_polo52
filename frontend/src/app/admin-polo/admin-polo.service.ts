@@ -91,13 +91,47 @@ export interface LoteCreate {
   id_servicio_polo: number;
 }
 
+// 🔥 NUEVAS INTERFACES PARA EL PERFIL DEL POLO
+export interface PoloDetail {
+  cuil: number;
+  nombre: string;
+  rubro: string;
+  cant_empleados: number;
+  fecha_ingreso: string;
+  horario_trabajo: string;
+  observaciones?: string;
+  empresas: Empresa[];
+  servicios_polo: ServicioPolo[];
+  usuarios: Usuario[];
+  lotes: Lote[];
+}
+
+export interface PoloSelfUpdate {
+  cant_empleados: number;
+  observaciones?: string;
+  horario_trabajo: string;
+}
+
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AdminPoloService {
   private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
+
+  // 🔥 NUEVOS MÉTODOS PARA EL PERFIL DEL POLO
+  getPoloDetails(): Observable<PoloDetail> {
+    return this.http.get<PoloDetail>(`${this.apiUrl}/polo/me`);
+  }
+
+  updatePolo(poloData: PoloSelfUpdate): Observable<PoloDetail> {
+    return this.http.put<PoloDetail>(`${this.apiUrl}/polo/me`, poloData);
+  }
+
+  changePasswordRequest(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/polo/change-password-request`, {});
+  }
 
   // Roles
   getRoles(): Observable<Rol[]> {
@@ -148,7 +182,10 @@ export class AdminPoloService {
   }
 
   createServicioPolo(servicio: ServicioPoloCreate): Observable<ServicioPolo> {
-    return this.http.post<ServicioPolo>(`${this.apiUrl}/serviciopolo`, servicio);
+    return this.http.post<ServicioPolo>(
+      `${this.apiUrl}/serviciopolo`,
+      servicio
+    );
   }
 
   deleteServicioPolo(id: number): Observable<any> {

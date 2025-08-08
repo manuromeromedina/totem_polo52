@@ -588,3 +588,37 @@ class UserOut(BaseModel):
 
 
 
+# ===== AGREGAR ESTOS SCHEMAS EN schemas.py =====
+
+# ──────────────────────────────────────────────────────────
+# Schemas específicos para el Polo (usando la misma tabla empresas)
+# ──────────────────────────────────────────────────────────
+
+class PoloSelfUpdate(BaseModel):
+    """Schema para actualizar datos del polo por sí mismo"""
+    cant_empleados: int
+    horario_trabajo: str
+    observaciones: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class PoloDetailOut(BaseModel):
+    """Schema para devolver información completa del polo"""
+    # Datos del polo (empresa específica)
+    cuil: int
+    nombre: str
+    rubro: str
+    cant_empleados: int
+    fecha_ingreso: date
+    horario_trabajo: str
+    observaciones: Optional[str] = None
+    
+    # Listas de entidades que gestiona el polo
+    empresas: List[EmpresaOut]              # Todas las empresas registradas
+    servicios_polo: List[ServicioPoloOut]   # Todos los servicios del polo
+    usuarios: List[UserOut]                 # Todos los usuarios del sistema
+    lotes: List[LoteOut]                    # Todos los lotes
+    
+    class Config:
+        from_attributes = True

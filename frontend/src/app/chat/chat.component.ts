@@ -1,5 +1,11 @@
 // chat.component.ts
-import { Component, OnInit, ElementRef, ViewChild, AfterViewChecked } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ElementRef,
+  ViewChild,
+  AfterViewChecked,
+} from '@angular/core';
 import { ChatService } from './chat.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -27,36 +33,90 @@ interface Message {
           </div>
           <div class="header-info">
             <h2>Asistente Virtual - Parque Industrial Polo 52</h2>
-            <p class="status-text">{{ isTyping ? 'Escribiendo...' : 'Disponible para consultas' }}</p>
+            <p class="status-text">
+              {{ isTyping ? 'Escribiendo...' : 'Disponible para consultas' }}
+            </p>
           </div>
         </div>
         <div class="header-actions">
+          <button
+            (click)="toggleTheme()"
+            aria-label="Cambiar modo claro/oscuro"
+            class="mode-toggle-btn"
+          >
+            <svg
+              *ngIf="isDarkMode"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="feather feather-sun"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+
+            <svg
+              *ngIf="!isDarkMode"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="feather feather-moon"
+              viewBox="0 0 24 24"
+            >
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+            </svg>
+          </button>
           <app-logout-button></app-logout-button>
         </div>
       </div>
 
       <div class="chat-container">
-        <div class="chat-controls">
-          <button class="theme-toggle" (click)="toggleTheme()" [attr.aria-label]="isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
-            <span *ngIf="!isDarkMode">Modo Oscuro</span>
-            <span *ngIf="isDarkMode">Modo Claro</span>
-          </button>
-        </div>
         <div class="chat-messages" #messagesContainer>
-          <div 
-            *ngFor="let message of messages; trackBy: trackByMessageId" 
+          <div
+            *ngFor="let message of messages; trackBy: trackByMessageId"
             class="message-wrapper"
             [class.user-wrapper]="message.sender === 'user'"
             [class.bot-wrapper]="message.sender === 'bot'"
           >
-            <div class="message-content" [class]="message.sender === 'user' ? 'user-message' : 'bot-message'">
-              <div class="message-text" [innerHTML]="formatMessage(message.content)"></div>
-              <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+            <div
+              class="message-content"
+              [class]="
+                message.sender === 'user' ? 'user-message' : 'bot-message'
+              "
+            >
+              <div
+                class="message-text"
+                [innerHTML]="formatMessage(message.content)"
+              ></div>
+              <div class="message-time">
+                {{ formatTime(message.timestamp) }}
+              </div>
             </div>
           </div>
-          
+
           <!-- Indicador de escritura -->
-          <div *ngIf="isTyping" class="message-wrapper bot-wrapper typing-indicator">
+          <div
+            *ngIf="isTyping"
+            class="message-wrapper bot-wrapper typing-indicator"
+          >
             <div class="bot-message typing-message">
               <div class="typing-dots">
                 <span></span>
@@ -66,29 +126,31 @@ interface Message {
             </div>
           </div>
         </div>
-        
+
         <div class="chat-input-container">
           <div class="chat-input">
-            <button 
-              class="mic-button" 
+            <button
+              class="mic-button"
               (click)="toggleSpeechRecognition()"
               [disabled]="isTyping"
               [class.listening]="isListening"
-              [attr.aria-label]="isListening ? 'Detener grabación' : 'Iniciar grabación de voz'"
+              [attr.aria-label]="
+                isListening ? 'Detener grabación' : 'Iniciar grabación de voz'
+              "
             >
               <span *ngIf="!isListening">MIC</span>
               <span *ngIf="isListening" class="mic-recording">REC</span>
             </button>
-            <input 
+            <input
               #messageInput
-              [(ngModel)]="userMessage" 
-              placeholder="Escriba su consulta sobre las empresas del parque..." 
+              [(ngModel)]="userMessage"
+              placeholder="Escriba su consulta sobre las empresas del parque..."
               (keyup.enter)="sendMessage()"
               [disabled]="isTyping"
               class="message-input"
-            >
-            <button 
-              (click)="sendMessage()" 
+            />
+            <button
+              (click)="sendMessage()"
               [disabled]="!userMessage.trim() || isTyping"
               class="send-button"
             >
@@ -98,8 +160,13 @@ interface Message {
           </div>
           <div class="input-footer">
             <small>
-              <span *ngIf="!isListening">Presione Enter para enviar su consulta o use el micrófono para hablar</span>
-              <span *ngIf="isListening" class="listening-text">Grabando... Hable ahora</span>
+              <span *ngIf="!isListening"
+                >Presione Enter para enviar su consulta o use el micrófono para
+                hablar</span
+              >
+              <span *ngIf="isListening" class="listening-text"
+                >Grabando... Hable ahora</span
+              >
             </small>
           </div>
         </div>
@@ -153,34 +220,30 @@ interface Message {
         gap: 12px;
       }
 
-      .theme-toggle {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 8px 16px;
+      /* Estilo del botón toggle de modo (igual que admin empresas) */
+      .mode-toggle-btn {
+        background-color: transparent;
+        border: none;
         cursor: pointer;
-        font-size: 14px;
-        transition: all 0.3s ease;
+        padding: 6px;
+        border-radius: 50%;
+        transition: background-color 0.3s;
+        color: #555;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 500;
-        color: #495057;
       }
 
-      .theme-toggle:hover {
-        background: #e9ecef;
-        transform: translateY(-1px);
+      .mode-toggle-btn:hover {
+        background-color: rgba(0, 0, 0, 0.1);
       }
 
-      .dark-mode .theme-toggle {
-        background: #404040;
-        border: 1px solid #555;
-        color: #e0e0e0;
+      .dark-mode .mode-toggle-btn {
+        color: #eee;
       }
 
-      .dark-mode .theme-toggle:hover {
-        background: #505050;
+      .dark-mode .mode-toggle-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
       }
 
       .bot-avatar {
@@ -275,18 +338,6 @@ interface Message {
         border: 1px solid #404040;
       }
 
-      .chat-controls {
-        display: flex;
-        justify-content: flex-end;
-        padding: 12px 0;
-        border-bottom: 1px solid #dee2e6;
-        margin-bottom: 12px;
-      }
-
-      .dark-mode .chat-controls {
-        border-bottom: 1px solid #404040;
-      }
-
       .chat-messages {
         flex: 1;
         overflow-y: auto;
@@ -322,7 +373,7 @@ interface Message {
       }
 
       .user-message {
-        background: #495057;  /* Gris oscuro en modo claro */
+        background: #495057; /* Gris oscuro en modo claro */
         color: white;
         padding: 12px 16px;
         border-radius: 16px 16px 4px 16px;
@@ -331,8 +382,8 @@ interface Message {
       }
 
       .dark-mode .user-message {
-        background: #e9ecef;  /* Gris claro en modo oscuro */
-        color: #212529;       /* Texto oscuro en modo oscuro */
+        background: #e9ecef; /* Gris claro en modo oscuro */
+        color: #212529; /* Texto oscuro en modo oscuro */
         border: 1px solid #e9ecef;
       }
 
@@ -342,7 +393,8 @@ interface Message {
         padding: 12px 16px;
         border-radius: 16px 16px 16px 4px;
         border: 1px solid #dee2e6;
-        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        transition: background-color 0.3s ease, border-color 0.3s ease,
+          color 0.3s ease;
       }
 
       .dark-mode .bot-message {
@@ -370,7 +422,12 @@ interface Message {
       }
 
       .dark-mode .user-message .message-time {
-        color: rgba(33, 37, 41, 0.8); /* Texto oscuro para el fondo gris claro */
+        color: rgba(
+          33,
+          37,
+          41,
+          0.8
+        ); /* Texto oscuro para el fondo gris claro */
       }
 
       .bot-message .message-time {
@@ -513,7 +570,7 @@ interface Message {
       }
 
       .message-input:focus {
-        border-color: #495057;  /* Cambiado de azul a gris oscuro */
+        border-color: #495057; /* Cambiado de azul a gris oscuro */
         box-shadow: 0 0 0 2px rgba(73, 80, 87, 0.1);
       }
 
@@ -545,7 +602,7 @@ interface Message {
 
       .send-button {
         padding: 12px 24px;
-        background: #495057;  /* Gris oscuro en modo claro */
+        background: #495057; /* Gris oscuro en modo claro */
         color: white;
         border: none;
         border-radius: 6px;
@@ -558,16 +615,16 @@ interface Message {
       }
 
       .send-button:hover:not(:disabled) {
-        background: #343a40;  /* Versión más oscura del gris */
+        background: #343a40; /* Versión más oscura del gris */
       }
 
       .dark-mode .send-button {
-        background: #e9ecef;  /* Gris claro en modo oscuro */
-        color: #212529;       /* Texto oscuro en modo oscuro */
+        background: #e9ecef; /* Gris claro en modo oscuro */
+        color: #212529; /* Texto oscuro en modo oscuro */
       }
 
       .dark-mode .send-button:hover:not(:disabled) {
-        background: #dee2e6;  /* Versión más oscura del gris claro */
+        background: #dee2e6; /* Versión más oscura del gris claro */
       }
 
       .send-button:disabled {
@@ -581,7 +638,8 @@ interface Message {
       }
 
       @keyframes pulse-loading {
-        0%, 100% {
+        0%,
+        100% {
           opacity: 1;
         }
         50% {
@@ -611,7 +669,8 @@ interface Message {
       }
 
       @keyframes pulse-text {
-        0%, 100% {
+        0%,
+        100% {
           opacity: 1;
         }
         50% {
@@ -632,7 +691,9 @@ interface Message {
       }
 
       @keyframes typing {
-        0%, 60%, 100% {
+        0%,
+        60%,
+        100% {
           transform: translateY(0);
           opacity: 0.4;
         }
@@ -643,7 +704,8 @@ interface Message {
       }
 
       @keyframes pulse-red {
-        0%, 100% {
+        0%,
+        100% {
           box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
         }
         50% {
@@ -652,10 +714,12 @@ interface Message {
       }
 
       @keyframes blink {
-        0%, 50% {
+        0%,
+        50% {
           opacity: 1;
         }
-        51%, 100% {
+        51%,
+        100% {
           opacity: 0.3;
         }
       }
@@ -665,15 +729,15 @@ interface Message {
         .chat-container {
           padding: 20px;
         }
-        
+
         .message-content {
           max-width: 80%;
         }
-        
+
         .header-info h2 {
           font-size: 14px;
         }
-        
+
         .chat-header {
           padding: 16px;
         }
@@ -687,32 +751,31 @@ interface Message {
         .chat-container {
           padding: 16px;
         }
-        
+
         .message-content {
           max-width: 85%;
         }
-        
+
         .header-content {
           gap: 12px;
         }
-        
+
         .bot-avatar {
           width: 40px;
           height: 40px;
           font-size: 10px;
         }
-        
+
         .header-info h2 {
           font-size: 14px;
         }
-        
+
         .status-text {
           font-size: 12px;
         }
 
-        .theme-toggle {
-          padding: 6px 12px;
-          font-size: 12px;
+        .mode-toggle-btn {
+          padding: 4px;
         }
 
         .mic-button {
@@ -806,7 +869,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   ngOnInit() {
     const savedTheme = localStorage.getItem('chatTheme');
     this.isDarkMode = savedTheme === 'dark';
-    this.addBotMessage('Bienvenido al Parque Industrial Polo 52.\n\nMi nombre es POLO y estoy aquí para ayudarle con consultas sobre las empresas y servicios disponibles en el parque. ¿En qué puedo asistirle?');
+    this.addBotMessage(
+      'Bienvenido al Parque Industrial Polo 52.\n\nMi nombre es POLO y estoy aquí para ayudarle con consultas sobre las empresas y servicios disponibles en el parque. ¿En qué puedo asistirle?'
+    );
   }
 
   ngAfterViewChecked() {
@@ -834,7 +899,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     } else {
       // Iniciar grabación
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
         this.audioContext = new AudioContext();
         this.audioChunks = [];
         this.mediaRecorder = new MediaRecorder(stream);
@@ -857,11 +924,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
             },
             error: (error) => {
               console.error('Error al enviar audio:', error);
-              this.showVoiceError('Error al procesar el audio. Intente nuevamente.');
+              this.showVoiceError(
+                'Error al procesar el audio. Intente nuevamente.'
+              );
             },
           });
 
-          stream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach((track) => track.stop());
         };
 
         this.mediaRecorder.start();
@@ -876,7 +945,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
         }, 5000);
       } catch (error) {
         console.error('Error al iniciar grabación:', error);
-        this.showVoiceError('No se pudo acceder al micrófono. Verifique los permisos.');
+        this.showVoiceError(
+          'No se pudo acceder al micrófono. Verifique los permisos.'
+        );
       }
     }
   }
@@ -902,7 +973,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       sender: 'user',
       content,
       timestamp: new Date(),
-      id: this.generateMessageId()
+      id: this.generateMessageId(),
     });
     this.shouldScrollToBottom = true;
   }
@@ -911,8 +982,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.messages.push({
       sender: 'bot',
       content,
-      timestamp: new Date(),  
-      id: this.generateMessageId()
+      timestamp: new Date(),
+      id: this.generateMessageId(),
     });
     this.shouldScrollToBottom = true;
   }
@@ -923,7 +994,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
         const element = this.messagesContainer.nativeElement;
         element.scrollTop = element.scrollHeight;
       }
-    } catch(err) {
+    } catch (err) {
       console.error('Error scrolling to bottom:', err);
     }
   }
@@ -933,9 +1004,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   }
 
   formatTime(timestamp: Date): string {
-    return timestamp.toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return timestamp.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
@@ -965,8 +1036,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.isTyping = true;
 
     // Delay antes de comenzar a "escribir" - más rápido
-    const initialDelay = Math.min(300 + (messageToSend.length * 10), 800);
-    
+    const initialDelay = Math.min(300 + messageToSend.length * 10, 800);
+
     setTimeout(() => {
       const history = this.getChatHistory();
 
@@ -975,19 +1046,24 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
           if (response && 'reply' in response) {
             this.simulateTyping(response.reply);
           } else {
-            this.simulateTyping('Lo siento, recibí una respuesta inválida del servidor. Por favor, intente reformular su consulta.');
+            this.simulateTyping(
+              'Lo siento, recibí una respuesta inválida del servidor. Por favor, intente reformular su consulta.'
+            );
           }
         },
         error: (error) => {
           console.error('Error en la solicitud:', error);
-          let errorMessage = 'Lo siento, hubo un problema técnico. Por favor, intente nuevamente.';
-          
+          let errorMessage =
+            'Lo siento, hubo un problema técnico. Por favor, intente nuevamente.';
+
           if (error.status === 0) {
-            errorMessage = 'No se pudo conectar con el servidor. Verifique la conexión.';
+            errorMessage =
+              'No se pudo conectar con el servidor. Verifique la conexión.';
           } else if (error.status >= 500) {
-            errorMessage = 'El servidor está experimentando problemas. Intente más tarde.';
+            errorMessage =
+              'El servidor está experimentando problemas. Intente más tarde.';
           }
-          
+
           this.simulateTyping(errorMessage);
         },
       });
@@ -1007,33 +1083,39 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       sender: 'bot',
       content: '',
       timestamp: new Date(),
-      id: this.generateMessageId()
+      id: this.generateMessageId(),
     };
-    
+
     this.messages.push(botMessage);
     this.shouldScrollToBottom = true;
-    
+
     // Variables para la simulación de escritura
     let currentIndex = 0;
     const characters = message.split('');
-    
+
     const typeCharacter = () => {
       if (currentIndex < characters.length) {
         // Actualizar el contenido del mensaje
         botMessage.content += characters[currentIndex];
-        
+
         // Scroll automático mientras escribe
         this.shouldScrollToBottom = true;
-        
+
         currentIndex++;
-        
+
         // Velocidad más rápida
         let delay = 25; // Velocidad base más rápida
-        
+
         // Pausas más cortas en puntos y comas
-        if (characters[currentIndex - 1] === '.' || characters[currentIndex - 1] === '!') {
+        if (
+          characters[currentIndex - 1] === '.' ||
+          characters[currentIndex - 1] === '!'
+        ) {
           delay = 100;
-        } else if (characters[currentIndex - 1] === ',' || characters[currentIndex - 1] === ':') {
+        } else if (
+          characters[currentIndex - 1] === ',' ||
+          characters[currentIndex - 1] === ':'
+        ) {
           delay = 50;
         } else if (characters[currentIndex - 1] === ' ') {
           delay = 15;
@@ -1041,14 +1123,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
           // Variación aleatoria más rápida
           delay = Math.random() * 20 + 15;
         }
-        
+
         setTimeout(typeCharacter, delay);
       } else {
         // Terminó de escribir
         this.isTyping = false;
       }
     };
-    
+
     // Comenzar a "escribir" más rápido
     setTimeout(typeCharacter, 100);
   }
