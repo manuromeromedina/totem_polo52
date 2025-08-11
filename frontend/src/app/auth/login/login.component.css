@@ -173,41 +173,6 @@
   color: #feca57;
 }
 
-.features {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.features li {
-  display: flex;
-  align-items: center;
-  margin-bottom: 15px;
-  font-size: 0.95rem;
-  opacity: 0.9;
-  font-weight: 300;
-}
-
-.features li i {
-  width: 20px;
-  margin-right: 12px;
-  color: #feca57;
-}
-
-.location-info {
-  display: flex;
-  align-items: center;
-  opacity: 0.7;
-  font-size: 0.9rem;
-  z-index: 2;
-  position: relative;
-}
-
-.location-info i {
-  margin-right: 8px;
-  color: #feca57;
-}
-
 /* Panel Derecho - Formulario */
 .right-panel {
   flex: 1;
@@ -538,123 +503,383 @@
   color: #4a5568;
 }
 
-/* Modal */
-.modal-overlay {
+/* ============================================
+   ESTILOS PARA EL MODAL DE RECUPERACIÓN
+   ============================================ */
+
+/* Overlay del modal de recuperación */
+.reset-modal-overlay {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
   z-index: 1000 !important;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(8px);
+  animation: fadeInOverlay 0.3s ease-out;
 }
 
-.modal-content {
-  background: white;
-  padding: 35px;
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal principal de recuperación */
+.reset-modal {
+  position: relative;
+  background: transparent;
   border-radius: 16px;
-  width: 400px;
-  max-width: 90vw;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-}
-
-.modal-content h3 {
-  color: #2d3748;
-  font-size: 1.4rem;
-  margin-bottom: 8px;
-  text-align: center;
-  font-weight: 600;
-}
-
-.modal-description {
-  color: #718096;
-  text-align: center;
-  margin-bottom: 20px;
-  line-height: 1.5;
-  font-size: 0.9rem;
-}
-
-.modal-buttons {
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  width: 90%;
+  max-width: 800px;
+  max-height: 85vh;
   display: flex;
-  gap: 12px;
-  margin-top: 18px;
+  animation: slideInModal 0.4s ease-out;
 }
 
-.modal-buttons button {
+@keyframes slideInModal {
+  from { 
+    opacity: 0; 
+    transform: translateY(50px) scale(0.9);
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Panel Izquierdo del Modal */
+.reset-left-panel {
   flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-  font-size: 0.9rem;
+  background: linear-gradient(135deg, #8B0000 0%, #B22222 50%, #DC143C 100%);
+  padding: 30px 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: white;
+  position: relative;
+  overflow: hidden;
 }
 
-.modal-buttons button[type="submit"] {
-  background: linear-gradient(135deg, #8B0000 0%, #B22222 50%, #DC143C 100%);
+.reset-left-panel::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></svg>');
+  opacity: 0.3;
+  animation: float 6s ease-in-out infinite;
+}
+
+.reset-logo-section {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.reset-logo-icon {
+  width: 45px;
+  height: 45px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.reset-logo-icon i {
+  font-size: 20px;
   color: white;
 }
 
-.modal-buttons button[type="submit"]:disabled {
-  background: #cbd5e0;
-  cursor: not-allowed;
+.reset-logo-text h3 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 2px;
+  line-height: 1.2;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(54, 54, 54, 0.8);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
-.modal-buttons button[type="button"] {
-  background: #f7fafc;
-  color: #4a5568;
-  border: 1px solid #e2e8f0;
+.reset-logo-text .highlight {
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(54, 54, 54, 0.8);
 }
 
-.modal-buttons button:hover:not(:disabled) {
-  transform: translateY(-1px);
+.reset-content-section {
+  position: relative;
+  flex: 1;
+  z-index: 2;
 }
 
-.modal-message {
-  margin-top: 15px;
-  padding: 12px;
-  border-radius: 8px;
-  text-align: center;
+.reset-content-section h4 {
+  font-size: 1.4rem;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.reset-content-section p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  opacity: 0.9;
+  margin-bottom: 25px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 1px 1px 2px rgba(44, 44, 44, 0.8);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.reset-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+
+.reset-features li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 0.95rem;
+  opacity: 0.9;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.reset-features li i {
+  width: 20px;
+  margin-right: 12px;
+  color: #feca57;
+}
+
+.reset-security-info {
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
   font-size: 0.9rem;
+  position: relative;
+  z-index: 2;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
-.modal-message.success {
-  background: #c6f6d5;
-  color: #2f855a;
-  border: 1px solid #9ae6b4;
+.reset-security-info i {
+  margin-right: 8px;
+  color: #feca57;
 }
 
-.modal-message.error {
-  background: #fed7d7;
-  color: #c53030;
-  border: 1px solid #feb2b2;
+/* Panel Derecho del Modal */
+.reset-right-panel {
+  flex: 1;
+  padding: 30px 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: white;
+  position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
-.close-btn {
+.reset-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.reset-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #B22222 0%, #DC143C 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  box-shadow: 0 4px 15px rgba(178, 34, 34, 0.3);
+}
+
+.reset-icon i {
+  font-size: 24px;
+  color: white;
+}
+
+.reset-header h3 {
+  font-size: 1.4rem;
+  color: #2d3748;
+  margin-bottom: 5px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.reset-header p {
+  color: #718096;
+  font-size: 0.9rem;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Info box dentro del formulario */
+.reset-info-box {
+  background: #f0f8ff;
+  border: 1px solid #bee3f8;
+  border-left: 4px solid #3182ce;
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.reset-info-box i {
+  color: #3182ce;
+  font-size: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.reset-info-box span {
+  color: #2d3748;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Botón de reset */
+.reset-button {
   width: 100%;
-  margin-top: 15px;
-  padding: 12px;
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
+  padding: 14px;
+  background: linear-gradient(135deg, #8B0000 0%, #B22222 50%, #DC143C 100%);
+  color: white;
+  border: none;
   border-radius: 8px;
-  color: #4a5568;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
-  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 15px;
   font-family: inherit;
 }
 
-.close-btn:hover {
-  background: #e5e7eb;
+.reset-button:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.reset-button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(139, 0, 0, 0.3);
+}
+
+.reset-button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* Botón de volver */
+.back-button {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: #4a5568;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+}
+
+.back-button:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
   transform: translateY(-1px);
 }
 
-/* Responsive */
+.back-button i {
+  font-size: 12px;
+}
+
+/* Botón de cerrar */
+.reset-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 35px;
+  height: 35px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: #4a5568;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.reset-close-btn:hover {
+  background: white;
+  color: #2d3748;
+  transform: scale(1.1);
+}
+
+.reset-close-btn i {
+  font-size: 14px;
+}
+
+/* Estados de carga para los botones */
+.login-button.loading:disabled::after,
+.reset-button.loading:disabled::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  margin-left: 10px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Tablet */
 @media (max-width: 768px) {
   .main-container {
     padding: 10px;
@@ -693,13 +918,42 @@
     height: 70px;
   }
 
-  .modal-content {
-    padding: 25px 20px;
-    margin: 15px;
+  /* Modal de recuperación en tablet */
+  .reset-modal {
+    flex-direction: column;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
   }
 
-  .modal-buttons {
-    flex-direction: column;
+  .reset-left-panel {
+    padding: 25px 20px;
+    min-height: auto;
+  }
+
+  .reset-right-panel {
+    padding: 25px 20px;
+  }
+
+  .reset-logo-text h3 {
+    font-size: 1.5rem;
+  }
+
+  .reset-content-section h4 {
+    font-size: 1.2rem;
+  }
+
+  .reset-header h3 {
+    font-size: 1.3rem;
+  }
+
+  .reset-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .reset-icon i {
+    font-size: 20px;
   }
 
   .remember-section {
@@ -713,6 +967,7 @@
   }
 }
 
+/* Mobile */
 @media (max-width: 480px) {
   .main-container {
     padding: 5px;
@@ -748,6 +1003,75 @@
   .login-button {
     padding: 14px;
   }
+
+  /* Modal de recuperación en mobile */
+  .reset-modal-overlay {
+    padding: 0;
+  }
+
+  .reset-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    flex-direction: column;
+  }
+
+  .reset-left-panel {
+    padding: 20px 15px;
+    min-height: auto;
+  }
+
+  .reset-right-panel {
+    padding: 20px 15px;
+    flex: 1;
+  }
+
+  .reset-logo-text h3 {
+    font-size: 1.3rem;
+  }
+
+  .reset-content-section h4 {
+    font-size: 1.1rem;
+  }
+
+  .reset-header h3 {
+    font-size: 1.2rem;
+  }
+
+  .reset-icon {
+    width: 45px;
+    height: 45px;
+  }
+
+  .reset-icon i {
+    font-size: 18px;
+  }
+
+  .reset-close-btn {
+    width: 30px;
+    height: 30px;
+    top: 10px;
+    right: 10px;
+  }
+
+  .reset-close-btn i {
+    font-size: 12px;
+  }
+
+  .reset-info-box {
+    padding: 10px 12px;
+  }
+
+  .reset-info-box span {
+    font-size: 0.75rem;
+  }
+
+  .reset-button,
+  .back-button {
+    padding: 16px;
+    font-size: 0.9rem;
+  }
 }
 
 /* Animaciones adicionales */
@@ -766,16 +1090,13 @@
   animation: fadeIn 0.5s ease-out;
 }
 
-.modal-content {
-  animation: fadeIn 0.3s ease-out;
-}
-
 /* Efectos hover para mejorar UX */
 .form-input:hover {
   border-color: #cbd5e0;
 }
 
-.logo-icon:hover {
+.logo-icon:hover,
+.reset-logo-icon:hover {
   transform: scale(1.05);
   transition: transform 0.2s ease;
 }
@@ -784,29 +1105,15 @@
 .form-input:focus,
 .login-button:focus,
 .google-button:focus,
+.reset-button:focus,
+.back-button:focus,
 .remember-checkbox:focus-within .checkmark {
   outline: 2px solid #B22222;
   outline-offset: 2px;
 }
 
 /* Estados de carga */
-.login-button:disabled:not(.loading)::after {
+.login-button:disabled:not(.loading)::after,
+.reset-button:disabled:not(.loading)::after {
   display: none;
-}
-
-.login-button.loading:disabled::after {
-  content: '';
-  width: 16px;
-  height: 16px;
-  margin-left: 10px;
-  border: 2px solid transparent;
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }

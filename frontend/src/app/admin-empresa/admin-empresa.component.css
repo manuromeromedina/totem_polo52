@@ -598,8 +598,6 @@
   color: #495057;
 }
 
-/* Eliminar contenido con scroll - usar estructura original de admin-polo */
-
 /* Grid del formulario - IGUAL QUE ADMIN POLO */
 .form-grid {
   display: grid;
@@ -630,7 +628,7 @@
   font-weight: 700;
 }
 
-/* Campos de formulario - IGUAL QUE ADMIN POLO */
+/* Campos de formulario - MEJORADOS CON SELECT */
 .form-control {
   padding: 12px 16px;
   border: 1px solid #ced4da;
@@ -664,7 +662,16 @@ textarea.form-control {
   min-height: 80px;
 }
 
+/* SELECT STYLING - CORREGIDO */
 select.form-control {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   cursor: pointer;
 }
 
@@ -678,8 +685,6 @@ select.form-control {
   gap: 16px;
   border-radius: 0 0 12px 12px;
 }
-
-
 
 /* Checkbox styles - IGUAL QUE ADMIN POLO */
 .checkbox-label {
@@ -708,6 +713,7 @@ select.form-control {
   background: #f8f9fa;
   border-left: 4px solid #6c757d; /* Borde izquierdo para énfasis */
 }
+
 .error-display {
   margin: 6px 14px;
   padding: 6px 10px;
@@ -1346,9 +1352,16 @@ table tr:last-child td {
     padding: 8px 10px;
   }
 
+  /* SELECT TABLET - CORREGIDO */
   select.form-control {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
     background-size: 12px;
     padding-right: 28px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
   }
 
   .form-actions {
@@ -1475,6 +1488,18 @@ table tr:last-child td {
     padding: 10px 8px;
     border-radius: 6px;
     border-width: 1px;
+  }
+
+  /* SELECT MOBILE - CORREGIDO */
+  select.form-control {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 10px center;
+    background-repeat: no-repeat;
+    background-size: 14px;
+    padding-right: 32px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
   }
 
   .form-actions {
@@ -1841,8 +1866,16 @@ table tr:last-child td {
   color: #6b7280;
 }
 
+/* DARK MODE SELECT - CORREGIDO */
 .admin-container.dark-mode select.form-control {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
 .admin-container.dark-mode .form-group label {

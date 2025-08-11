@@ -159,49 +159,113 @@
   </div>
 </div>
 
-<!-- Modal de recuperación de contraseña -->
+<!-- Modal de recuperación de contraseña con nuevo diseño -->
 <div
   *ngIf="showResetPassword"
-  class="modal-overlay"
+  class="reset-modal-overlay"
   (click)="closeResetModal()"
 >
-  <div class="modal-content" (click)="$event.stopPropagation()">
-    <h3>Recuperar Contraseña</h3>
-    <p class="modal-description">
-      Ingrese su correo electrónico corporativo para recibir las instrucciones
-      de recuperación
-    </p>
-    <form (ngSubmit)="requestPasswordReset()" #resetForm="ngForm">
-      <div class="form-group">
-        <input
-          type="email"
-          class="form-input"
-          name="email"
-          [(ngModel)]="resetEmail"
-          placeholder="correo@empresa.com"
-          required
-          email
-          (input)="onResetEmailChange()"
-        />
+  <div class="reset-modal" (click)="$event.stopPropagation()">
+    <!-- Panel Izquierdo - Info -->
+    <div class="reset-left-panel">
+      <div class="reset-logo-section">
+        <div class="reset-logo-icon">
+          <i class="fas fa-key"></i>
+        </div>
+        <div class="reset-logo-text">
+          <h3>Recuperación<br /><span class="highlight">Segura</span></h3>
+        </div>
       </div>
-      <div class="modal-buttons">
-        <button type="submit" [disabled]="resetForm.invalid || resetLoading">
-          {{ resetLoading ? "Enviando..." : "Enviar Enlace" }}
-        </button>
-        <button type="button" (click)="closeResetModal()">Cancelar</button>
+
+      <div class="reset-content-section">
+        <h4>Restablecer Contraseña</h4>
+        <p>
+          Ingresa tu correo electrónico corporativo y te enviaremos las
+          instrucciones para crear una nueva contraseña de forma segura.
+        </p>
+
+        <ul class="reset-features">
+          <li><i class="fas fa-shield-alt"></i> Proceso seguro y encriptado</li>
+          <li><i class="fas fa-clock"></i> Enlace válido por 30 minutos</li>
+          <li>
+            <i class="fas fa-envelope-circle-check"></i> Confirmación por email
+          </li>
+        </ul>
       </div>
-    </form>
-    <div *ngIf="resetMessage" class="modal-message success">
-      {{ resetMessage }}
+
+      <div class="reset-security-info">
+        <i class="fas fa-lock"></i>
+        <span>Conexión SSL Segura</span>
+      </div>
     </div>
-    <div *ngIf="resetError" class="modal-message error">{{ resetError }}</div>
-    <button
-      *ngIf="resetMessage"
-      type="button"
-      (click)="closeResetModal()"
-      class="close-btn"
-    >
-      Cerrar
+
+    <!-- Panel Derecho - Formulario -->
+    <div class="reset-right-panel">
+      <div class="reset-header">
+        <div class="reset-icon">
+          <i class="fas fa-envelope"></i>
+        </div>
+        <h3>Recuperar Acceso</h3>
+        <p>Ingresa tu email corporativo</p>
+      </div>
+
+      <form (ngSubmit)="requestPasswordReset()" #resetForm="ngForm">
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-at"></i>
+            Correo Electrónico
+          </label>
+          <div class="input-wrapper">
+            <input
+              type="email"
+              class="form-input"
+              name="email"
+              [(ngModel)]="resetEmail"
+              placeholder="tu-email@empresa.com"
+              required
+              email
+              (input)="onResetEmailChange()"
+              [ngClass]="{ error: resetError }"
+            />
+          </div>
+          <span *ngIf="resetError" class="field-error">{{ resetError }}</span>
+        </div>
+
+        <div class="reset-info-box">
+          <i class="fas fa-info-circle"></i>
+          <span
+            >Recibirás un enlace de recuperación en tu bandeja de entrada. Si no
+            lo encuentras, revisa la carpeta de spam.</span
+          >
+        </div>
+
+        <button
+          type="submit"
+          class="reset-button"
+          [disabled]="resetForm.invalid || resetLoading"
+          [ngClass]="{ loading: resetLoading }"
+        >
+          {{
+            resetLoading
+              ? "Enviando enlace..."
+              : "Enviar Enlace de Recuperación"
+          }}
+        </button>
+
+        <div *ngIf="resetMessage" class="success-message">
+          {{ resetMessage }}
+        </div>
+
+        <button type="button" class="back-button" (click)="closeResetModal()">
+          <i class="fas fa-arrow-left"></i>
+          Volver al inicio de sesión
+        </button>
+      </form>
+    </div>
+
+    <!-- Botón de cerrar -->
+    <button class="reset-close-btn" (click)="closeResetModal()">
+      <i class="fas fa-times"></i>
     </button>
   </div>
 </div>
