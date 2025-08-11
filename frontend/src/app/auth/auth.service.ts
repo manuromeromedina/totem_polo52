@@ -33,6 +33,7 @@ interface TokenVerificationResponse {
   email_hint?: string;
   error?: string;
   expired?: boolean;
+  used?: boolean; // ✅ Agregar campo para tokens usados
 }
 
 @Injectable({ providedIn: 'root' })
@@ -84,6 +85,9 @@ export class AuthenticationService {
             expired:
               err.status === 400 ||
               (err.error?.detail && err.error.detail.includes('expirado')),
+            used:
+              err.status === 400 ||
+              (err.error?.detail && err.error.detail.includes('utilizado')), // ✅ Detectar tokens usados
           };
 
           // Retornar como observable en lugar de error para manejar en el componente

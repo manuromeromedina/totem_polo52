@@ -145,15 +145,16 @@ def logout(current_user: models.Usuario = Depends(get_current_user)):
     # El JWT es stateless, solo necesitamos devolver un mensaje indicando que se ha cerrado la sesión
     return {"message": "Sesión cerrada correctamente"}
 
+# Actualizar solo estas rutas en tu auth.py existente
 
 @router.post("/password-reset/verify-token", tags=["auth"])
 def verify_reset_token(token: str, db: Session = Depends(get_db)):
     """
     Verificar si un token de reset es válido sin hacer cambios
-    Útil para validación en frontend antes de mostrar formulario
+    Ahora incluye verificación de uso único
     """
     try:
-        email = services.verify_password_reset_token(token)
+        email = services.verify_password_reset_token(token)  # Solo verifica, NO consume
         user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
         
         if not user:
@@ -162,16 +163,78 @@ def verify_reset_token(token: str, db: Session = Depends(get_db)):
         return {
             "valid": True,
             "message": "Token válido",
-            "email_hint": f"{email[:3]}***@{email.split('@')[1]}"  # Email parcialmente oculto
+            "email_hint": f"{email[:3]}***@{email.split('@')[1]}"
         }
         
     except HTTPException as e:
-        # Re-lanzar con la información específica del error
         return {
             "valid": False,
             "error": e.detail,
-            "expired": "expirado" in e.detail.lower()
+            "expired": "expirado" in e.detail.lower(),
+            "used": "utilizado" in e.detail.lower()  # ✅ Nuevo: detectar tokens usados
         }
+
+@router.post("/password-reset/confirm", tags=["auth"])
+def password_reset_confirm(dto: PasswordResetConfirm, db: Session = Depends(get_db)):
+    """
+    Confirmar reset de contraseña con protección de uso único
+    """
+    try:
+        # ✅ USAR consume_password_reset_token que verifica Y marca como usado
+        email = services.consume_password_reset_token(dto.token)
+        
+        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        # Actualizar la contraseña
+        user.contrasena = services.hash_password(dto.new_password)
+        db.commit()
+        db.refresh(user)
+        
+        return {
+            "success": True,
+            "message": "Contraseña actualizada correctamente. Este enlace ya no es válido."
+        }
+        
+    except HTTPException as e:
+        db.rollback()
+        return {
+            "success": False,
+            "error": e.detail,
+            "expired": e.status_code == 400 and "expirado" in e.detail.lower(),
+            "used": e.status_code == 400 and "utilizado" in e.detail.lower()  # ✅ Nuevo
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error interno al actualizar contraseña: {str(e)}"
+        )
+
+# ✅ OPCIONAL: Endpoint para limpiar cache (solo para admin o testing)
+@router.post("/password-reset/cleanup-cache", tags=["admin"])
+def cleanup_reset_tokens_cache(
+    current_user: models.Usuario = Depends(require_admin_polo)  # Solo admin
+):
+    """Limpiar cache de tokens usados"""
+    count_before = services.get_used_tokens_count()
+    services.cleanup_used_tokens()
+    return {
+        "message": f"Cache limpiado. Tokens eliminados: {count_before}",
+        "tokens_removed": count_before
+    }
+
+# ✅ OPCIONAL: Endpoint para monitorear cache
+@router.get("/password-reset/cache-status", tags=["admin"])
+def get_cache_status(
+    current_user: models.Usuario = Depends(require_admin_polo)  # Solo admin
+):
+    """Ver estado del cache de tokens"""
+    return {
+        "used_tokens_count": services.get_used_tokens_count(),
+        "memory_usage": "En memoria del servidor"
+    }
 
 @router.post("/password-reset/request", tags=["auth"])
 def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_db)):
@@ -226,44 +289,6 @@ def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_
         "message": "Email de reset enviado correctamente",
         "expires_in_minutes": RESET_TOKEN_EXPIRE_MINUTES
     }
-
-@router.post("/password-reset/confirm", tags=["auth"])
-def password_reset_confirm(dto: PasswordResetConfirm, db: Session = Depends(get_db)):
-    """Confirmar reset de contraseña con mejor manejo de errores"""
-    try:
-        # Verificar el token y obtener el email
-        email = services.verify_password_reset_token(dto.token)
-        
-        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        
-        # Actualizar la contraseña
-        user.contrasena = services.hash_password(dto.new_password)
-        db.commit()
-        db.refresh(user)
-        
-        return {
-            "success": True,
-            "message": "Contraseña actualizada correctamente"
-        }
-        
-    except HTTPException as e:
-        # Manejar errores específicos de token
-        db.rollback()
-        return {
-            "success": False,
-            "error": e.detail,
-            "expired": e.status_code == 400 and "expirado" in e.detail.lower()
-        }
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error interno al actualizar contraseña: {str(e)}"
-        )
-    
-
 
 
 

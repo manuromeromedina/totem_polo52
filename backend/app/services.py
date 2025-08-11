@@ -2,8 +2,11 @@ import unicodedata
 import os
 import json
 import re
-from typing import List, Dict, Optional
+import hashlib
+import uuid
+from typing import List, Dict, Optional, Set
 from pathlib import Path
+from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from passlib.context import CryptContext
@@ -12,7 +15,6 @@ from sqlalchemy import inspect
 from sqlalchemy.sql import text
 
 from jose import jwt, JWTError, ExpiredSignatureError
-from datetime import datetime, timedelta
 from fastapi import HTTPException
 
 import google.generativeai as genai
@@ -23,6 +25,10 @@ from app.models import Empresa
 
 import json
 from datetime import date
+
+# === Cache en memoria para tokens usados ===
+# En producción podrías usar Redis, pero para simplificar usamos memoria
+USED_RESET_TOKENS: Set[str] = set()
 
 # === Cargar el archivo .env desde /backend ===
 env_path = Path(__file__).resolve().parent.parent / ".env"
@@ -48,29 +54,41 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 
 def create_password_reset_token(email: str, expires_minutes: int = 60) -> str:
     """
-    Crear token de recuperación de contraseña con expiración personalizable
-    
-    Args:
-        email: Email del usuario
-        expires_minutes: Minutos hasta la expiración (default: 60 = 1 hora)
+    Crear token de recuperación de contraseña con ID único
     """
     now = datetime.utcnow()
     exp = now + timedelta(minutes=expires_minutes)
+    
+    # Crear ID único para este token específico
+    token_id = str(uuid.uuid4())
+    
     to_encode = {
         "sub": email, 
         "exp": exp, 
         "type": "password_reset",
-        "iat": now  # Tiempo de emisión (issued at)
+        "iat": now,
+        "jti": token_id  # JWT ID único para identificar este token específico
     }
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def is_token_already_used(token_id: str) -> bool:
+    """Verificar si el token ya fue usado"""
+    return token_id in USED_RESET_TOKENS
+
+def mark_token_as_used(token_id: str) -> None:
+    """Marcar un token como usado"""
+    USED_RESET_TOKENS.add(token_id)
+    
+    # Opcional: Limpiar tokens viejos para no llenar la memoria
+    # En un escenario real, podrías implementar TTL o limpieza periódica
+    if len(USED_RESET_TOKENS) > 1000:  # Límite arbitrario
+        # Limpiar todos (en producción sería más inteligente)
+        USED_RESET_TOKENS.clear()
 
 def verify_password_reset_token(token: str) -> str:
     """
     Verificar token de recuperación y devolver el email
-    
-    Raises:
-        HTTPException(400): Token expirado específicamente
-        HTTPException(401): Token inválido por otras razones
+    Ahora incluye verificación de uso único
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -83,23 +101,80 @@ def verify_password_reset_token(token: str) -> str:
             )
         
         email = payload.get("sub")
+        token_id = payload.get("jti")  # Obtener el ID único del token
+        
         if not email:
             raise HTTPException(
                 status_code=401, 
                 detail="Token inválido - falta información del usuario"
             )
+        
+        if not token_id:
+            raise HTTPException(
+                status_code=401, 
+                detail="Token inválido - falta identificador único"
+            )
+        
+        # ✅ VERIFICAR SI EL TOKEN YA FUE USADO
+        if is_token_already_used(token_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Este enlace de recuperación ya fue utilizado. Solicita uno nuevo.",
+                headers={"X-Error-Type": "used"}
+            )
             
         return email
         
     except ExpiredSignatureError:
-        # Token específicamente expirado
         raise HTTPException(
             status_code=400, 
             detail="El enlace de recuperación ha expirado. Solicita uno nuevo.",
             headers={"X-Error-Type": "expired"}
         )
     except JWTError as e:
-        # Otros errores de JWT (token malformado, firma inválida, etc.)
+        raise HTTPException(
+            status_code=401, 
+            detail="Token de recuperación inválido",
+            headers={"X-Error-Type": "invalid"}
+        )
+
+def consume_password_reset_token(token: str) -> str:
+    """
+    Verificar token Y marcarlo como usado en una sola operación
+    Usar esto en el endpoint de confirmación
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        if payload.get("type") != "password_reset":
+            raise HTTPException(status_code=401, detail="Token de tipo inválido")
+        
+        email = payload.get("sub")
+        token_id = payload.get("jti")
+        
+        if not email or not token_id:
+            raise HTTPException(status_code=401, detail="Token inválido")
+        
+        # Verificar si ya fue usado
+        if is_token_already_used(token_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Este enlace de recuperación ya fue utilizado. Solicita uno nuevo.",
+                headers={"X-Error-Type": "used"}
+            )
+        
+        # ✅ MARCAR COMO USADO INMEDIATAMENTE
+        mark_token_as_used(token_id)
+        
+        return email
+        
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=400, 
+            detail="El enlace de recuperación ha expirado. Solicita uno nuevo.",
+            headers={"X-Error-Type": "expired"}
+        )
+    except JWTError:
         raise HTTPException(
             status_code=401, 
             detail="Token de recuperación inválido",
@@ -110,10 +185,19 @@ def verify_password_reset_token(token: str) -> str:
 def check_token_validity(token: str) -> dict:
     """
     Verificar si un token es válido sin hacer operaciones críticas
-    Útil para verificación previa en el frontend
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        token_id = payload.get("jti")
+        
+        # Verificar si ya fue usado
+        if token_id and is_token_already_used(token_id):
+            return {
+                "valid": False,
+                "error": "used",
+                "message": "Token ya utilizado"
+            }
+        
         return {
             "valid": True,
             "email": payload.get("sub"),
@@ -132,6 +216,20 @@ def check_token_validity(token: str) -> dict:
             "error": "invalid",
             "message": "Token inválido"
         }
+
+def cleanup_used_tokens():
+    """
+    Limpiar cache de tokens usados
+    Llamar ocasionalmente para liberar memoria
+    """
+    global USED_RESET_TOKENS
+    USED_RESET_TOKENS.clear()
+    print(f"🧹 Cache de tokens usados limpiado")
+
+# Función para debug/monitoring
+def get_used_tokens_count() -> int:
+    """Obtener cantidad de tokens usados en memoria"""
+    return len(USED_RESET_TOKENS)
 # =================================================================================
 
 # === Configurar API Key ===
@@ -266,10 +364,10 @@ JSON:"""
     INSTRUCCIONES IMPORTANTES:
     - Responde de forma natural, directa y conversacional.
     - No hagas respuestas muy extensas, se mas directo
-    - Si hay más de 8 resultados, di cuántos encontraste y pide más especificidad
-    - Si es una lista extensa (mas de 8 items) deci cantidad de resultados pero no expliques cada uno, pedi mas informacion asi filtras resulatdos
+    - Si hay más de 6 resultados, di cuántos encontraste y pide más especificidad
+    - Si es una lista extensa (mas de 6 items) deci cantidad de resultados pero no expliques cada uno, pedi mas informacion asi filtras resulatdos
     - Si los resultados están vacíos [] o hay error, responde de forma amigable explicando que no encontraste información
-    - Si hay 1-8 resultados, muéstralos todos claramente
+    - Si hay 1-6 resultados, muéstralos todos claramente
     - Nunca muestres CUIL ni ID de empresas
     - Nunca uses asteriscos (*) 
 

@@ -18,7 +18,8 @@ export class ResetPasswordComponent implements OnInit {
   message = '';
   error = '';
   loading = false;
-  tokenExpired = false; // Nueva propiedad para tokens expirados
+  tokenExpired = false;
+  tokenUsed = false; // Nueva propiedad para tokens ya usados
 
   constructor(
     private route: ActivatedRoute,
@@ -50,19 +51,27 @@ export class ResetPasswordComponent implements OnInit {
     this.authService.verifyResetToken(this.token).subscribe({
       next: (response) => {
         this.loading = false;
-        console.log('✅ Token válido');
+        if (response.valid) {
+          console.log('✅ Token válido');
+        } else {
+          // Manejar diferentes tipos de errores
+          if (response.expired) {
+            this.tokenExpired = true;
+            this.error =
+              'Este enlace de recuperación ha expirado. Por favor, solicita uno nuevo.';
+          } else if (response.used) {
+            this.tokenUsed = true;
+            this.error =
+              'Este enlace de recuperación ya fue utilizado. Por favor, solicita uno nuevo.';
+          } else {
+            this.error = response.error || 'Enlace de recuperación inválido.';
+          }
+        }
       },
       error: (err) => {
         this.loading = false;
         console.error('❌ Token inválido:', err);
-
-        if (err.error?.expired || err.error?.error?.includes('expirado')) {
-          this.tokenExpired = true;
-          this.error =
-            'Este enlace de recuperación ha expirado. Por favor, solicita uno nuevo.';
-        } else {
-          this.error = 'Enlace de recuperación inválido.';
-        }
+        this.error = 'Error al verificar el enlace de recuperación.';
       },
     });
   }
@@ -118,11 +127,15 @@ export class ResetPasswordComponent implements OnInit {
         console.error('❌ Error en reset:', err);
         this.loading = false;
 
-        // Manejar específicamente tokens expirados
+        // Manejar específicamente tokens expirados y usados
         if (err.error?.expired || err.error?.error?.includes('expirado')) {
           this.tokenExpired = true;
           this.error =
             'El enlace de recuperación ha expirado. Por favor, solicita uno nuevo.';
+        } else if (err.error?.used || err.error?.error?.includes('utilizado')) {
+          this.tokenUsed = true;
+          this.error =
+            'Este enlace de recuperación ya fue utilizado. Por favor, solicita uno nuevo.';
         }
         // Manejar otros tipos de errores
         else if (err.error?.detail) {
