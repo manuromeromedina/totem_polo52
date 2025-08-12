@@ -17,8 +17,6 @@ from sqlalchemy.orm import relationship
 from app.config import Base
 
 
-
-
 # ─── Empresa y Usuario ────────────────────────────────────────────────────────
 
 class Empresa(Base):

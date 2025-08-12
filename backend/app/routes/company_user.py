@@ -1,4 +1,4 @@
-#company_user.py
+#app/routes/company_user.py
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from app.config import SessionLocal

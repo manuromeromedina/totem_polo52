@@ -1,4 +1,4 @@
-#schemas.py
+#app/schemas.py
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from uuid import UUID  # Usamos UUID
 from datetime import date
@@ -8,49 +8,9 @@ import re
 PASSWORD_REGEX = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$'
 
 
-
-
-
 # ──────────────────────────────────────────────────────────
 # DTOs de autenticación
 # ──────────────────────────────────────────────────────────
-
-class UserRegister(BaseModel):
-    nombre: str = Field(
-        ..., min_length=3, max_length=50,
-        description="Entre 3 y 50 caracteres"
-    )
-    email: EmailStr = Field(
-        ..., max_length=255,
-        description="Email válido"
-    )
-    password: str = Field(
-        ..., min_length=8, max_length=128,
-        description=(
-            "8–128 caracteres, al menos una mayúscula, "
-            "una minúscula y un dígito"
-        ),
-    )
-    cuil: int = Field(
-        ..., gt=0,
-        description="CUIL numérico positivo"
-    )
-   
-
-    @field_validator('password')
-    def password_complexity(cls, v: str) -> str:
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('La contraseña debe contener al menos una mayúscula')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('La contraseña debe contener al menos una minúscula')
-        if not re.search(r'\d', v):
-            raise ValueError('La contraseña debe contener al menos un dígito')
-        return v
-
-    class Config:
-        from_attributes = True
-
-
 
 class UserLogin(BaseModel):
     identifier: str = Field(

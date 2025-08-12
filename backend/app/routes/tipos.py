@@ -1,4 +1,4 @@
-# tipos.py - Nuevo archivo para los endpoints de tipos
+#app/routes/tipos.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.config import SessionLocal
