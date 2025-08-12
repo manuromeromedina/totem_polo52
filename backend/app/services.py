@@ -4,6 +4,11 @@ import json
 import re
 import hashlib
 import uuid
+import secrets
+import string
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import List, Dict, Optional, Set
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -115,7 +120,7 @@ def verify_password_reset_token(token: str) -> str:
                 detail="Token inválido - falta identificador único"
             )
         
-        # ✅ VERIFICAR SI EL TOKEN YA FUE USADO
+        # VERIFICAR SI EL TOKEN YA FUE USADO
         if is_token_already_used(token_id):
             raise HTTPException(
                 status_code=400,
@@ -163,7 +168,7 @@ def consume_password_reset_token(token: str) -> str:
                 headers={"X-Error-Type": "used"}
             )
         
-        # ✅ MARCAR COMO USADO INMEDIATAMENTE
+        # MARCAR COMO USADO INMEDIATAMENTE
         mark_token_as_used(token_id)
         
         return email
@@ -230,6 +235,95 @@ def cleanup_used_tokens():
 def get_used_tokens_count() -> int:
     """Obtener cantidad de tokens usados en memoria"""
     return len(USED_RESET_TOKENS)
+
+def generate_random_password(length: int = 12) -> str:
+    """
+    Genera una contraseña aleatoria segura
+    """
+    # Definir los caracteres permitidos
+    lowercase = string.ascii_lowercase
+    uppercase = string.ascii_uppercase  
+    digits = string.digits
+    special_chars = "!@#$%&*"
+    
+    # Asegurar que tenga al menos uno de cada tipo
+    password = [
+        secrets.choice(lowercase),
+        secrets.choice(uppercase),
+        secrets.choice(digits),
+        secrets.choice(special_chars)
+    ]
+    
+    # Completar el resto de la longitud
+    all_chars = lowercase + uppercase + digits + special_chars
+    for _ in range(length - 4):
+        password.append(secrets.choice(all_chars))
+    
+    # Mezclar la contraseña
+    secrets.SystemRandom().shuffle(password)
+    
+    return ''.join(password)
+
+
+def send_welcome_email(email: str, nombre: str, username: str, password: str) -> bool:
+    """
+    Envía email de bienvenida con credenciales
+    """
+    try:
+        # CAMBIAR ESTAS LÍNEAS para usar tus variables existentes:
+        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        smtp_user = os.getenv("EMAIL_USER")      # ← CAMBIO: usar EMAIL_USER
+        smtp_password = os.getenv("EMAIL_PASS")  # ← CAMBIO: usar EMAIL_PASS
+        
+        if not smtp_user or not smtp_password:
+            print(" Configuración SMTP no encontrada")
+            return False
+            
+        # Crear el mensaje
+        msg = MIMEMultipart()
+        msg['From'] = smtp_user
+        msg['To'] = email
+        msg['Subject'] = "Bienvenido al Parque Industrial Polo 52"
+        
+        # Cuerpo del email
+        body = f"""
+Hola {nombre},
+
+Se le ha creado una nueva cuenta en "Parque Industrial Polo 52".
+
+Sus credenciales de acceso son:
+
+Nombre de usuario: {username}
+Contraseña temporal: {password}
+
+(Deberá cambiar su contraseña cuando acceda por primera vez)
+
+Para comenzar a usar el sistema, ingrese en:
+http://localhost:4200/login
+
+Si necesita ayuda, puede contactar con el administrador del sitio.
+
+Saludos,
+Administración Polo 52
+        """
+        
+        msg.attach(MIMEText(body, 'plain'))
+        
+        # Enviar el email
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        text = msg.as_string()
+        server.sendmail(smtp_user, email, text)
+        server.quit()
+        
+        print(f" Email enviado exitosamente a {email}")
+        return True
+        
+    except Exception as e:
+        print(f" Error enviando email: {str(e)}")
+        return False
 # =================================================================================
 
 # === Configurar API Key ===

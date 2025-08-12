@@ -190,23 +190,34 @@ def get_user(user_id: UUID, db: Session = Depends(get_db)):
 @router.post(
     "/usuarios",
     response_model=schemas.UserOut,
-    summary="Crear un nuevo usuario y asignarle un rol",
-    dependencies=[Depends(require_admin_polo)]  # Se requiere el rol admin_polo
+    summary="Crear un nuevo usuario con contraseña automática",
+    dependencies=[Depends(require_admin_polo)]
 )
 def create_user(
     dto: schemas.UserCreate,
     db: Session = Depends(get_db),
 ):
+    # Verificar que no exista el usuario
     if db.query(models.Usuario).filter(models.Usuario.nombre == dto.nombre).first():
         raise HTTPException(status_code=400, detail="Ya existe un usuario con ese nombre")
     
     if db.query(models.Usuario).filter(models.Usuario.email == dto.email).first():
         raise HTTPException(status_code=400, detail="Ya existe un usuario con ese email")
     
+    # Verificar que el rol existe
+    rol = db.query(models.Rol).filter(models.Rol.id_rol == dto.id_rol).first()
+    if not rol:
+        raise HTTPException(status_code=400, detail="Rol inválido")
+    
+    # GENERAR CONTRASEÑA AUTOMÁTICA
+    generated_password = services.generate_random_password()
+    hashed_password = services.hash_password(generated_password)
+    
+    # Crear el usuario
     new_user = models.Usuario(
         email         = dto.email,
         nombre        = dto.nombre,
-        contrasena    = services.hash_password(dto.password),
+        contrasena    = hashed_password,  # Usar la contraseña hasheada
         estado        = dto.estado,
         fecha_registro= date.today(),
         cuil          = dto.cuil,
@@ -214,19 +225,36 @@ def create_user(
     db.add(new_user)
     db.flush()
 
-    rol = db.query(models.Rol).filter(models.Rol.id_rol == dto.id_rol).first()
-    if not rol:
-        raise HTTPException(status_code=400, detail="Rol inválido")
-
+    # Crear la relación rol-usuario
     enlace = models.RolUsuario(
         id_usuario=new_user.id_usuario,
         id_rol    = rol.id_rol
     )
     db.add(enlace)
-
+    
+    # Hacer commit para asegurar que el usuario se guarde
     db.commit()
     db.refresh(new_user)
+    
+    # ENVIAR EMAIL CON CREDENCIALES
+    email_sent = services.send_welcome_email(
+        email=dto.email,
+        nombre=dto.nombre,
+        username=dto.nombre,  # o dto.email si prefieres login por email
+        password=generated_password  # Contraseña sin hashear para el email
+    )
+    
+    if not email_sent:
+        # Si no se pudo enviar el email, podrías decidir:
+        # 1. Fallar completamente (rollback)
+        # 2. Continuar pero notificar al admin
+        # 3. Guardar la contraseña para mostrarla en la respuesta
+        
+        # Opción 2: Continuar pero advertir
+        print(f" Usuario creado pero email no enviado para: {dto.email}")
+    
     return new_user
+
 
 @router.put("/usuarios/{user_id}", response_model=schemas.UserOut, summary="Actualizar usuario", dependencies=[Depends(require_admin_polo)])  
 def update_user(user_id: UUID, dto: schemas.UserUpdate, db: Session = Depends(get_db)):  # Usamos UUID
