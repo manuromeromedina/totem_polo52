@@ -40,12 +40,11 @@ export interface Usuario {
 export interface UsuarioCreate {
   email: string;
   nombre: string;
-  password: string;
+  password?: string; // Opcional para creación automática
   estado: boolean;
   cuil: number;
   id_rol: number;
 }
-
 export interface UsuarioUpdate {
   password?: string;
   estado?: boolean;

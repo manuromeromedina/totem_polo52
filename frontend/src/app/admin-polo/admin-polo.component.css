@@ -1570,3 +1570,64 @@ table tr:last-child td {
 }
 
 /* admin o cualquier comentario que quieras */
+
+/* Agregar al final de tu admin-polo.component.css */
+
+.info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%);
+  border: 1px solid #bbdefb;
+  border-radius: 8px;
+  margin: 8px 0;
+  transition: all 0.3s ease;
+}
+
+.dark-mode .info-box {
+  background: linear-gradient(135deg, #263238 0%, #37474f 100%);
+  border: 1px solid #455a64;
+  color: #e0e0e0;
+}
+
+.info-icon {
+  font-size: 24px;
+  line-height: 1;
+  min-width: 32px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-content h4 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1976d2;
+  transition: color 0.3s ease;
+}
+
+.dark-mode .info-content h4 {
+  color: #64b5f6;
+}
+
+.info-content p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #424242;
+  transition: color 0.3s ease;
+}
+
+.dark-mode .info-content p {
+  color: #b0bec5;
+}
+
+/* Clase para full-width en form-group */
+.form-group.full-width {
+  grid-column: 1 / -1;
+}

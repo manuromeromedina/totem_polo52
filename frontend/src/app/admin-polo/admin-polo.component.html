@@ -1294,16 +1294,32 @@
               />
             </div>
 
-            <div class="form-group" *ngIf="!editingUsuario">
-              <label for="user_password">Contraseña *</label>
+            <!-- Solo mostrar campo de contraseña al EDITAR -->
+            <div class="form-group" *ngIf="editingUsuario">
+              <label for="user_password_edit">Nueva Contraseña</label>
               <input
                 type="password"
-                id="user_password"
-                name="user_password"
+                id="user_password_edit"
+                name="user_password_edit"
                 [(ngModel)]="usuarioForm.password"
-                [required]="!editingUsuario"
                 class="form-control"
+                placeholder="Dejar vacío para mantener la actual"
               />
+            </div>
+
+            <!-- Mensaje informativo para usuarios nuevos -->
+            <div class="form-group full-width" *ngIf="!editingUsuario">
+              <div class="info-box">
+                <div class="info-icon">🔐</div>
+                <div class="info-content">
+                  <h4>Contraseña Automática</h4>
+                  <p>
+                    Se generará una contraseña segura automáticamente y se
+                    enviará por email al usuario junto con sus credenciales de
+                    acceso.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div class="form-group">
@@ -1320,17 +1336,6 @@
               <small *ngIf="selectedEmpresa" class="text-muted">
                 Asociado a: {{ selectedEmpresa.nombre }}
               </small>
-            </div>
-
-            <div class="form-group" *ngIf="editingUsuario">
-              <label for="user_password_edit">Nueva Contraseña</label>
-              <input
-                type="password"
-                id="user_password_edit"
-                name="user_password_edit"
-                [(ngModel)]="usuarioForm.password"
-                class="form-control"
-              />
             </div>
 
             <div class="form-group" *ngIf="!editingUsuario">
@@ -1379,7 +1384,7 @@
                   ? "Guardando..."
                   : !!editingUsuario
                   ? "Actualizar"
-                  : "Crear"
+                  : "Crear Usuario"
               }}
             </button>
           </div>

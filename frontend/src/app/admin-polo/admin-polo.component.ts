@@ -621,10 +621,11 @@ export class AdminPoloComponent implements OnInit {
       horario_trabajo: '',
     };
 
+    // Limpiar formulario de usuario sin contraseña para nuevos usuarios
     this.usuarioForm = {
       email: '',
       nombre: '',
-      password: '',
+      password: '', // Se mantiene para edición, pero no se usa en creación
       estado: true,
       cuil: null as any,
       id_rol: null as any,
@@ -651,7 +652,6 @@ export class AdminPoloComponent implements OnInit {
       id_servicio_polo: 0,
     };
   }
-
   showMessage(message: string, type: 'success' | 'error'): void {
     this.message = message;
     this.messageType = type;
@@ -770,7 +770,7 @@ export class AdminPoloComponent implements OnInit {
     this.loading = true;
 
     if (this.editingUsuario) {
-      // Actualizar
+      // Actualizar usuario existente
       const updateData: UsuarioUpdate = {
         password: this.usuarioForm.password || undefined,
         estado: this.usuarioForm.estado,
@@ -782,7 +782,7 @@ export class AdminPoloComponent implements OnInit {
           next: (usuario) => {
             this.showMessage('Usuario actualizado exitosamente', 'success');
             this.resetForms();
-            this.loadUsuarios(); // Actualiza filtros
+            this.loadUsuarios();
             this.loading = false;
           },
           error: (error) => {
@@ -804,7 +804,9 @@ export class AdminPoloComponent implements OnInit {
           },
         });
     } else {
-      // Crear - validaciones
+      // Crear nuevo usuario - SIN validación de contraseña
+
+      // Validaciones básicas
       if (!this.usuarioForm.email) {
         this.showMessage('El email es requerido', 'error');
         this.loading = false;
@@ -829,19 +831,33 @@ export class AdminPoloComponent implements OnInit {
         return;
       }
 
-      const passwordError = this.validatePassword(this.usuarioForm.password);
-      if (passwordError) {
-        this.showMessage(passwordError, 'error');
+      // Validar formato de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(this.usuarioForm.email)) {
+        this.showMessage('El formato del email es inválido', 'error');
         this.loading = false;
         return;
       }
 
-      this.adminPoloService.createUser(this.usuarioForm).subscribe({
+      // Crear el usuario sin contraseña (se genera automáticamente en el backend)
+      const userCreateData = {
+        email: this.usuarioForm.email,
+        nombre: this.usuarioForm.nombre,
+        // NO enviamos password - se genera automáticamente
+        estado: this.usuarioForm.estado,
+        cuil: this.usuarioForm.cuil,
+        id_rol: this.usuarioForm.id_rol,
+      };
+
+      this.adminPoloService.createUser(userCreateData).subscribe({
         next: (usuario) => {
-          this.showMessage('Usuario creado exitosamente', 'success');
+          this.showMessage(
+            'Usuario creado exitosamente. Se han enviado las credenciales por email.',
+            'success'
+          );
           this.usuarios.push(usuario);
-          this.filteredUsuarios = [...this.usuarios]; // Actualizar filtros
-          this.filterUsuarios(); // Aplicar filtro actual
+          this.filteredUsuarios = [...this.usuarios];
+          this.filterUsuarios();
           this.resetForms();
           this.loading = false;
         },

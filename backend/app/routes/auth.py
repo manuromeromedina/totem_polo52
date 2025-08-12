@@ -254,8 +254,8 @@ def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_
     reset_link = f"http://localhost:4200/password-reset?token={token}"
     
     # Email con información de expiración
-    expire_time = RESET_TOKEN_EXPIRE_MINUTES // 60 if RESET_TOKEN_EXPIRE_MINUTES >= 60 else RESET_TOKEN_EXPIRE_MINUTES
-    expire_unit = "horas" if RESET_TOKEN_EXPIRE_MINUTES >= 60 else "minutos"
+    expire_time = RESET_TOKEN_EXPIRE_MINUTES // 30 if RESET_TOKEN_EXPIRE_MINUTES >= 30 else RESET_TOKEN_EXPIRE_MINUTES
+    expire_unit = "horas" if RESET_TOKEN_EXPIRE_MINUTES >= 30 else "minutos"
     
     email_body = f"""
     Hola {user.nombre},
