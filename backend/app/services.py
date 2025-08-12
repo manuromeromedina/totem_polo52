@@ -12,22 +12,17 @@ from email.mime.multipart import MIMEMultipart
 from typing import List, Dict, Optional, Set
 from pathlib import Path
 from datetime import datetime, timedelta
-
 from dotenv import load_dotenv
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect
 from sqlalchemy.sql import text
-
 from jose import jwt, JWTError, ExpiredSignatureError
 from fastapi import HTTPException
-
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
-
 from app.config import SECRET_KEY, ALGORITHM
 from app.models import Empresa
-
 import json
 from datetime import date
 
@@ -297,7 +292,7 @@ Sus credenciales de acceso son:
 Nombre de usuario: {username}
 Contraseña temporal: {password}
 
-(Deberá cambiar su contraseña cuando acceda por primera vez)
+Se le recomienda solicitar el cambio de contraseña cuando acceda por primera vez.
 
 Para comenzar a usar el sistema, ingrese en:
 http://localhost:4200/login
