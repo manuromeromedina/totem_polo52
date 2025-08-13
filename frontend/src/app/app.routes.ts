@@ -3,6 +3,9 @@ import { AuthGuard } from './auth.guard';
 import { ChatbotComponent } from './chat/chat.component';
 import { LoginComponent } from './auth/login/login.component';
 import { ResetPasswordComponent } from './auth/login/password-reset/password-reset.component';
+import { AuthSuccessComponent } from './auth/auth-success.component';
+import { AuthPendingComponent } from './auth/auth-pending.component';
+import { AuthErrorComponent } from './auth/auth-error.component';
 
 export const routes: Routes = [
   {
@@ -14,6 +17,13 @@ export const routes: Routes = [
     path: 'login',
     component: LoginComponent,
   },
+  {
+    path: 'auth/success',
+    loadComponent: () =>
+      import('./auth/auth-success.component').then(m => m.AuthSuccessComponent)
+  },
+  { path: 'auth/pending', component: AuthPendingComponent },
+  { path: 'auth/error', component: AuthErrorComponent },
 
   {
     path: 'password-reset',
@@ -46,5 +56,6 @@ export const routes: Routes = [
   {
     path: '**',
     redirectTo: '/login',
-  },
+  }
+  
 ];

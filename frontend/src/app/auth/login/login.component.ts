@@ -312,4 +312,9 @@ export class LoginComponent implements OnInit {
       this.resetError = '';
     }
   }
+
+  loginWithGoogle(): void {
+    // Redireccionar directamente al endpoint de Google OAuth
+    window.location.href = 'http://localhost:8000/auth/google/login';
+  }
 }

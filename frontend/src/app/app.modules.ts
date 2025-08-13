@@ -2,9 +2,9 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms'; // Imported for ngModel and form handling
+import { FormsModule } from '@angular/forms';
 
-import { AppComponent } from './app.component'; // Standalone component for bootstrap
+import { AppComponent } from './app.component';
 import { AuthInterceptor } from './auth/auth.interceptor';
 
 @NgModule({
@@ -18,16 +18,25 @@ import { AuthInterceptor } from './auth/auth.interceptor';
         loadComponent: () =>
           import('./auth/login/login.component').then(m => m.LoginComponent)
       },
+      
+      // ✅ AGREGAR ESTAS RUTAS PARA GOOGLE AUTH
       {
-        path: 'register',
+        path: 'auth/success',
         loadComponent: () =>
-          import('./auth/register/register.component').then(m => m.RegisterComponent)
+          import('../app/auth/auth-success.component').then(m => m.AuthSuccessComponent)
       },
       {
-        path: 'dashboard',
-        loadChildren: () =>
-          import('./dashboard/dashboard.module').then(m => m.DashboardModule)
+        path: 'auth/pending',
+        loadComponent: () =>
+          import('../app/auth/auth-pending.component').then(m => m.AuthPendingComponent)
       },
+      {
+        path: 'auth/error',
+        loadComponent: () =>
+          import('../app/auth/auth-error.component').then(m => m.AuthErrorComponent)
+      },
+      
+      
       {
         path: 'reset-password',
         loadComponent: () =>
@@ -40,6 +49,6 @@ import { AuthInterceptor } from './auth/auth.interceptor';
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
   ],
-  bootstrap: [AppComponent] // Only here, not in imports
+  bootstrap: [AppComponent]
 })
 export class AppModule {}

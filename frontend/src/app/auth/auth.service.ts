@@ -210,10 +210,17 @@ export class AuthenticationService {
   }
 
   private clearSession(): void {
+    // Limpiar tokens tradicionales
     localStorage.removeItem(this.sessionKey);
     localStorage.removeItem('rol');
     sessionStorage.removeItem(this.sessionKey);
     sessionStorage.removeItem('rol');
+    
+    // Limpiar tokens de Google OAuth
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('tipo_rol');
+    
+    console.log('🧹 Sesión completamente limpiada');
   }
 
   logoutLocal(): void {
@@ -222,17 +229,96 @@ export class AuthenticationService {
   }
 
   getUserRole(): string | null {
-    return localStorage.getItem('rol') || sessionStorage.getItem('rol');
+    // Primero buscar rol de Google OAuth
+    const googleRole = localStorage.getItem('tipo_rol');
+    if (googleRole) {
+      console.log('👤 Rol encontrado (Google OAuth):', googleRole);
+      return googleRole;
+    }
+
+    // Luego buscar rol tradicional
+    const traditionalRole = localStorage.getItem('rol') || sessionStorage.getItem('rol');
+    if (traditionalRole) {
+      console.log('👤 Rol encontrado (Login tradicional):', traditionalRole);
+      return traditionalRole;
+    }
+
+    console.log('❌ No se encontró ningún rol');
+    return null;
   }
 
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) {
+      console.log('🔍 isLoggedIn: No hay token');
+      return false;
+    }
+
+    try {
+      // Verificar si el token no está expirado
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const isExpired = Date.now() >= payload.exp * 1000;
+      
+      if (isExpired) {
+        console.log('⏰ isLoggedIn: Token expirado');
+        this.logoutLocal();
+        return false;
+      }
+      
+      console.log('✅ isLoggedIn: Usuario autenticado');
+      return true;
+    } catch (error) {
+      console.error('❌ isLoggedIn: Error al verificar token:', error);
+      this.logoutLocal();
+      return false;
+    }
   }
 
   getToken(): string | null {
-    return (
-      localStorage.getItem(this.sessionKey) ||
-      sessionStorage.getItem(this.sessionKey)
-    );
+    // Primero buscar el token de Google OAuth
+    const googleToken = localStorage.getItem('access_token');
+    if (googleToken) {
+      console.log('🔍 Token encontrado (Google OAuth):', googleToken.substring(0, 20) + '...');
+      return googleToken;
+    }
+
+    // Luego buscar el token tradicional
+    const traditionalToken = localStorage.getItem(this.sessionKey) || sessionStorage.getItem(this.sessionKey);
+    if (traditionalToken) {
+      console.log('🔍 Token encontrado (Login tradicional):', traditionalToken.substring(0, 20) + '...');
+      return traditionalToken;
+    }
+
+    console.log('❌ No se encontró ningún token');
+    return null;
   }
+  
+  
+
+  setToken(token: string): void {
+    localStorage.setItem('access_token', token);
+    console.log('💾 Token de Google OAuth guardado:', token.substring(0, 20) + '...');
+  }
+  
+  // ✅ MÉTODO MEJORADO - Guardar rol para Google OAuth
+  setUserRole(role: string): void {
+    localStorage.setItem('tipo_rol', role);
+    console.log('👤 Rol de Google OAuth guardado:', role);
+  }
+  
+
+
+  debugAuthState(): void {
+    console.log('🔍 === DEBUG AUTH STATE ===');
+    console.log('Google OAuth Token:', localStorage.getItem('access_token') ? 'EXISTS' : 'NOT_FOUND');
+    console.log('Google OAuth Role:', localStorage.getItem('tipo_rol'));
+    console.log('Traditional Token (localStorage):', localStorage.getItem(this.sessionKey) ? 'EXISTS' : 'NOT_FOUND');
+    console.log('Traditional Token (sessionStorage):', sessionStorage.getItem(this.sessionKey) ? 'EXISTS' : 'NOT_FOUND');
+    console.log('Traditional Role:', localStorage.getItem('rol') || sessionStorage.getItem('rol'));
+    console.log('Current getToken():', this.getToken() ? 'FOUND' : 'NOT_FOUND');
+    console.log('Current getUserRole():', this.getUserRole());
+    console.log('Current isLoggedIn():', this.isLoggedIn());
+    console.log('=========================');
+  }
+
 }
