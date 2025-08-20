@@ -13,19 +13,31 @@ import { AuthenticationService } from '../../auth/auth.service';
       [disabled]="loading"
       [attr.aria-label]="loading ? 'Cerrando sesión...' : 'Cerrar sesión'"
     >
-      <span *ngIf="!loading" class="logout-icon">⏻</span>
-      <span *ngIf="loading" class="logout-spinner"></span>
-      <span class="logout-text">{{ loading ? 'Saliendo...' : 'Salir' }}</span>
+      <i *ngIf="!loading" class="fas fa-sign-out-alt logout-icon"></i>
+      <i *ngIf="loading" class="fas fa-spinner logout-spinner"></i>
+      <span class="logout-text">{{
+        loading ? 'Saliendo...' : 'Cerrar sesión'
+      }}</span>
     </button>
 
     <!-- Modal de confirmación -->
     <div class="modal-overlay" *ngIf="showModal" (click)="cancelLogout()">
       <div class="modal-content" (click)="$event.stopPropagation()">
-        <h3>¿Cerrar sesión?</h3>
-        <p>¿Estás seguro de que deseas cerrar tu sesión?</p>
+        <div class="modal-header">
+          <div class="icon-container">
+            <i class="fas fa-sign-out-alt"></i>
+          </div>
+          <h3>¿Cerrar sesión?</h3>
+          <p>¿Estás seguro de que deseas cerrar tu sesión actual?</p>
+        </div>
+
         <div class="modal-buttons">
-          <button class="btn-cancel" (click)="cancelLogout()">Cancelar</button>
-          <button class="btn-confirm" (click)="confirmLogout()">
+          <button class="secondary-button" (click)="cancelLogout()">
+            <i class="fas fa-times"></i>
+            Cancelar
+          </button>
+          <button class="primary-button" (click)="confirmLogout()">
+            <i class="fas fa-sign-out-alt"></i>
             Cerrar sesión
           </button>
         </div>
@@ -38,45 +50,58 @@ import { AuthenticationService } from '../../auth/auth.service';
       .logout-btn {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        background: #dc3545;
+        gap: 10px;
+        padding: 12px 20px;
+        background: linear-gradient(
+          135deg,
+          #8b0000 0%,
+          #b22222 50%,
+          #dc143c 100%
+        );
         color: white;
         border: none;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 500;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s ease;
-        min-height: 40px;
-        font-family: inherit;
+        transition: all 0.3s ease;
+        min-height: 44px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(139, 0, 0, 0.2);
       }
 
       .logout-btn:hover:not(:disabled) {
-        background: #c82333;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(139, 0, 0, 0.3);
+      }
+
+      .logout-btn:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: 0 4px 12px rgba(139, 0, 0, 0.25);
       }
 
       .logout-btn:disabled {
-        background: #6c757d;
+        background: #cbd5e0;
         cursor: not-allowed;
         transform: none;
+        box-shadow: none;
+        color: #a0aec0;
       }
 
       .logout-icon {
         font-size: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        transition: transform 0.3s ease;
+      }
+
+      .logout-btn:hover:not(:disabled) .logout-icon {
+        transform: translateX(2px);
       }
 
       .logout-spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid transparent;
-        border-top: 2px solid currentColor;
-        border-radius: 50%;
+        font-size: 16px;
         animation: spin 1s linear infinite;
       }
 
@@ -90,12 +115,13 @@ import { AuthenticationService } from '../../auth/auth.service';
       }
 
       .logout-text {
-        font-size: 14px;
-        font-weight: 500;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
       }
 
       .logout-btn:focus {
-        outline: 2px solid #dc3545;
+        outline: 2px solid #b22222;
         outline-offset: 2px;
       }
 
@@ -103,20 +129,216 @@ import { AuthenticationService } from '../../auth/auth.service';
         outline: none;
       }
 
-      /* Responsive */
+      /* Modal Overlay */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(122, 122, 122, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: fadeIn 0.3s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* Modal Content */
+      .modal-content {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px rgba(29, 29, 29, 0.3);
+        overflow: hidden;
+        width: 90%;
+        max-width: 420px;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      /* Modal Header */
+      .modal-header {
+        text-align: center;
+        padding: 30px 30px 25px;
+        background: #f8f9fa;
+        border-bottom: 3px solid #e9ecef;
+        color: #2d3748;
+        position: relative;
+      }
+
+      .modal-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+      }
+
+      .icon-container {
+        margin-bottom: 15px;
+      }
+
+      .icon-container i {
+        font-size: 2.5rem;
+        color: #b22222;
+        filter: drop-shadow(2px 2px 4px rgba(178, 34, 34, 0.2));
+      }
+
+      .modal-header h3 {
+        margin: 0 0 10px 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2d3748;
+      }
+
+      .modal-header p {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #718096;
+        font-weight: 400;
+        line-height: 1.4;
+      }
+
+      /* Modal Buttons */
+      .modal-buttons {
+        display: flex;
+        gap: 15px;
+        padding: 25px 30px;
+        justify-content: center;
+      }
+
+      .primary-button,
+      .secondary-button {
+        flex: 1;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: inherit;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 44px;
+      }
+
+      .primary-button {
+        background: linear-gradient(
+          135deg,
+          #8b0000 0%,
+          #b22222 50%,
+          #dc143c 100%
+        );
+        color: white;
+        box-shadow: 0 2px 8px rgba(139, 0, 0, 0.2);
+      }
+
+      .primary-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(139, 0, 0, 0.3);
+      }
+
+      .secondary-button {
+        background: #f7fafc;
+        color: #4a5568;
+        border: 2px solid #e2e8f0;
+      }
+
+      .secondary-button:hover {
+        background: #e2e8f0;
+        border-color: #cbd5e0;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .primary-button:active,
+      .secondary-button:active {
+        transform: translateY(0);
+      }
+
+      .primary-button:focus,
+      .secondary-button:focus {
+        outline: 2px solid #b22222;
+        outline-offset: 2px;
+      }
+
+      /* Responsive Design */
       @media (max-width: 768px) {
         .logout-btn {
-          padding: 8px 16px;
-          font-size: 13px;
-          min-height: 36px;
+          padding: 10px 16px;
+          font-size: 0.9rem;
+          min-height: 40px;
+          gap: 8px;
+        }
+
+        .logout-icon,
+        .logout-spinner {
+          font-size: 14px;
         }
 
         .logout-text {
-          font-size: 13px;
+          font-size: 0.9rem;
         }
 
-        .logout-icon {
-          font-size: 14px;
+        .modal-content {
+          margin: 20px;
+          max-width: calc(100% - 40px);
+        }
+
+        .modal-header {
+          padding: 25px 25px 20px;
+        }
+
+        .modal-header h3 {
+          font-size: 1.3rem;
+        }
+
+        .modal-header p {
+          font-size: 0.9rem;
+        }
+
+        .icon-container i {
+          font-size: 2rem;
+        }
+
+        .modal-buttons {
+          padding: 20px 25px;
+          gap: 12px;
+        }
+
+        .primary-button,
+        .secondary-button {
+          padding: 12px 16px;
+          font-size: 0.9rem;
         }
       }
 
@@ -126,98 +348,68 @@ import { AuthenticationService } from '../../auth/auth.service';
         }
 
         .logout-btn {
-          padding: 8px 12px;
-          min-width: 40px;
+          padding: 10px 12px;
+          min-width: 44px;
           justify-content: center;
+          gap: 0;
+        }
+
+        .modal-buttons {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .modal-header {
+          padding: 20px 20px 15px;
+        }
+
+        .modal-buttons {
+          padding: 15px 20px;
         }
       }
 
-      /* Dark mode */
+      /* Dark mode support */
       @media (prefers-color-scheme: dark) {
         .logout-btn:disabled {
           background: #495057;
+          color: #6c757d;
         }
       }
 
-      /* High contrast */
+      /* High contrast support */
       @media (prefers-contrast: high) {
         .logout-btn {
           border: 2px solid currentColor;
         }
+
+        .primary-button,
+        .secondary-button {
+          border: 2px solid currentColor;
+        }
       }
 
-      .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-      }
+      /* Reduced motion support */
+      @media (prefers-reduced-motion: reduce) {
+        .logout-btn,
+        .primary-button,
+        .secondary-button,
+        .modal-overlay,
+        .modal-content,
+        .logout-icon {
+          transition: none;
+          animation: none;
+        }
 
-      .modal-content {
-        background: white;
-        padding: 2rem;
-        border-radius: 8px;
-        max-width: 360px;
-        width: 90%;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        text-align: center;
-      }
-
-      .modal-content h3 {
-        margin-bottom: 0.5rem;
-        font-size: 18px;
-        color: black;
-      }
-
-      .modal-content p {
-        margin-bottom: 1.5rem;
-        font-size: 14px;
-        color: #555;
-      }
-
-      .modal-buttons {
-        display: flex;
-        justify-content: space-around;
-        gap: 1rem;
-      }
-
-      .btn-cancel,
-      .btn-confirm {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 4px;
-        font-weight: 500;
-        cursor: pointer;
-      }
-
-      .btn-cancel {
-        background: #e0e0e0;
-        color: #333;
-      }
-
-      .btn-confirm {
-        background: #dc3545;
-        color: white;
-      }
-
-      .btn-cancel:hover {
-        background: #d5d5d5;
-      }
-
-      .btn-confirm:hover {
-        background: #c82333;
+        .logout-spinner {
+          animation: none;
+        }
       }
     `,
   ],
 })
 export class LogoutButtonComponent {
   loading = false;
+  showModal = false;
 
   constructor(private authService: AuthenticationService) {}
 
@@ -238,14 +430,12 @@ export class LogoutButtonComponent {
     });
   }
 
-  showModal = false;
-
   cancelLogout(): void {
     this.showModal = false;
   }
 
   confirmLogout(): void {
     this.showModal = false;
-    this.logout(); // llama al método existente
+    this.logout();
   }
 }

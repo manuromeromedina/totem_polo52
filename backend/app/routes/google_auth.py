@@ -26,9 +26,17 @@ oauth.register(
 
 @router.get("/login")
 async def google_login(request: Request):
-    """Iniciar login con Google"""
+    """Iniciar login con Google - SIEMPRE pregunta qué email usar"""
     redirect_uri = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:8000/auth/google/callback')
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+    
+    # ✅ FORZAR SELECCIÓN DE CUENTA
+    return await oauth.google.authorize_redirect(
+        request, 
+        redirect_uri,
+        # Estos parámetros fuerzan que Google siempre pregunte qué cuenta usar
+        prompt='select_account',  # Fuerza mostrar selector de cuentas
+        access_type='offline'     # Opcional: para refresh tokens
+    )
 
 @router.get("/callback")
 async def google_callback(request: Request, db: Session = Depends(get_db)):
@@ -135,3 +143,12 @@ async def register_pending_google_user(
     db.refresh(new_user)
     
     return {"message": "Usuario registrado exitosamente", "usuario": new_user}
+
+# ✅ OPCIONAL: Endpoint para logout que también limpia cookies de Google
+@router.post("/logout-google")
+async def logout_google():
+    """Logout que también sugiere limpiar sesión de Google"""
+    return {
+        "message": "Sesión cerrada. Para cambiar de cuenta, ve a accounts.google.com y cierra sesión.",
+        "google_logout_url": "https://accounts.google.com/logout"
+    }

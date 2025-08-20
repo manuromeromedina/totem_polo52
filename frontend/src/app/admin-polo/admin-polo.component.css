@@ -1,4 +1,4 @@
-/* admin-polo.component.css - CON ESTILOS PARA PERFIL DEL POLO */
+/* admin-polo.component.css - CON ESTILOS PARA PERFIL DEL POLO Y MODAL MEJORADO */
 
 .admin-container {
   min-height: 100vh;
@@ -821,38 +821,41 @@ select.form-control {
 .info-box {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 10px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  margin-bottom: 4px;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%);
+  border: 1px solid #bbdefb;
+  border-radius: 8px;
+  margin: 8px 0;
+  transition: all 0.3s ease;
 }
 
 .info-icon {
-  font-size: 16px;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #e9ecef;
-  border-radius: 4px;
-  flex-shrink: 0;
+  font-size: 24px;
+  line-height: 1;
+  min-width: 32px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.info-content {
+  flex: 1;
 }
 
 .info-content h4 {
-  margin: 0 0 3px 0;
-  color: #495057;
-  font-size: 12px;
+  margin: 0 0 6px 0;
+  font-size: 14px;
   font-weight: 600;
+  color: #1976d2;
+  transition: color 0.3s ease;
 }
 
 .info-content p {
   margin: 0;
-  color: #6c757d;
-  font-size: 11px;
-  line-height: 1.3;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #424242;
+  transition: color 0.3s ease;
 }
 
 /* Data Tables */
@@ -1028,6 +1031,300 @@ table tr:last-child td {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ===== MODAL DE CAMBIO DE CONTRASEÑA MEJORADO ===== */
+
+/* Overlay del modal */
+.password-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(122, 122, 122, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Contenedor principal del modal */
+.password-modal-container {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px rgba(29, 29, 29, 0.3);
+  overflow: hidden;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  animation: modalSlideIn 0.4s ease-out;
+  position: relative;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header del modal */
+.password-modal-header {
+  background: linear-gradient(135deg, #8B0000 0%, #B22222 50%, #DC143C 100%);
+  color: white;
+  padding: 30px 30px 20px;
+  text-align: center;
+  position: relative;
+}
+
+.password-modal-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+.password-modal-header h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.header-subtitle {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  margin: 0;
+  font-weight: 300;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.8;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Contenedor de errores mejorado */
+.password-error-container {
+  padding: 20px 30px;
+  background: #f8d7da;
+  border-bottom: 1px solid #f5c6cb;
+}
+
+.password-error-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #721c24;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.password-error-message:last-child {
+  margin-bottom: 0;
+}
+
+.password-error-message svg {
+  flex-shrink: 0;
+  filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+/* Contenido principal */
+.password-modal-content {
+  padding: 30px;
+}
+
+/* Card de información mejorada */
+.password-info-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 25px;
+  position: relative;
+  overflow: hidden;
+}
+
+.password-info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #8B0000, #B22222, #DC143C);
+}
+
+.info-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #8B0000 0%, #B22222 100%);
+  border-radius: 12px;
+  margin: 0 auto 20px;
+  box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
+}
+
+.info-icon-container svg {
+  color: white;
+  filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.info-text-content {
+  text-align: center;
+}
+
+.info-text-content h3 {
+  color: #212529;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+}
+
+.info-text-content p {
+  color: #495057;
+  font-size: 1rem;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+/* Detalles informativos */
+.info-details {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 20px;
+  border: 1px solid #e9ecef;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.detail-item svg {
+  color: #B22222;
+  flex-shrink: 0;
+}
+
+.detail-item span {
+  font-weight: 500;
+}
+
+/* Footer del modal */
+.password-modal-footer {
+  padding: 20px 30px;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* Botones del modal */
+.modal-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.modal-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none !important;
+}
+
+.modal-btn-primary {
+  background: linear-gradient(135deg, #8B0000 0%, #B22222 50%, #DC143C 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
+}
+
+.modal-btn-primary:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(139, 0, 0, 0.4);
+}
+
+.modal-btn-secondary {
+  background: #f7fafc;
+  color: #4a5568;
+  border: 2px solid #e2e8f0;
+}
+
+.modal-btn-secondary:not(:disabled):hover {
+  background: #e2e8f0;
+  border-color: #cbd5e0;
+  transform: translateY(-1px);
+}
+
+/* Estados de loading */
+.modal-btn.loading {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
 }
 
 /* ===== DARK MODE ===== */
@@ -1224,6 +1521,20 @@ table tr:last-child td {
   color: #a0a0a0;
 }
 
+.admin-container.dark-mode .info-box {
+  background: linear-gradient(135deg, #263238 0%, #37474f 100%);
+  border: 1px solid #455a64;
+  color: #e0e0e0;
+}
+
+.admin-container.dark-mode .info-content h4 {
+  color: #64b5f6;
+}
+
+.admin-container.dark-mode .info-content p {
+  color: #b0bec5;
+}
+
 /* ===== DARK MODE - FORMULARIOS ===== */
 .admin-container.dark-mode .form-modal {
   background: rgba(0, 0, 0, 0.8);
@@ -1320,21 +1631,113 @@ table tr:last-child td {
   background: #7f1d1d !important;
 }
 
-.admin-container.dark-mode .info-box {
-  background: #374151;
-  border-color: #4b5563;
+/* ===== DARK MODE PARA EL MODAL MEJORADO ===== */
+
+.admin-container.dark-mode .password-modal-overlay {
+  background: rgba(0, 0, 0, 0.8);
 }
 
-.admin-container.dark-mode .info-icon {
-  background: #4b5563;
+.admin-container.dark-mode .password-modal-container {
+  background: #1f2937;
+  border: 1px solid #374151;
 }
 
-.admin-container.dark-mode .info-content h4 {
+.admin-container.dark-mode .password-modal-header {
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #b91c1c 100%);
+}
+
+.admin-container.dark-mode .password-error-container {
+  background: #7f1d1d;
+  border-bottom-color: #991b1b;
+}
+
+.admin-container.dark-mode .password-error-message {
+  color: #fecaca;
+}
+
+.admin-container.dark-mode .password-info-card {
+  background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+  border-color: #6b7280;
+}
+
+.admin-container.dark-mode .info-icon-container {
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+}
+
+.admin-container.dark-mode .info-text-content h3 {
   color: #f9fafb;
 }
 
-.admin-container.dark-mode .info-content p {
+.admin-container.dark-mode .info-text-content p {
   color: #d1d5db;
+}
+
+.admin-container.dark-mode .info-details {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.admin-container.dark-mode .detail-item {
+  color: #d1d5db;
+}
+
+.admin-container.dark-mode .detail-item svg {
+  color: #fca5a5;
+}
+
+.admin-container.dark-mode .password-modal-footer {
+  background: #374151;
+  border-top-color: #4b5563;
+}
+
+.admin-container.dark-mode .modal-btn-secondary {
+  background: #4b5563;
+  color: #f9fafb;
+  border-color: #6b7280;
+}
+
+.admin-container.dark-mode .modal-btn-secondary:not(:disabled):hover {
+  background: #6b7280;
+  border-color: #9ca3af;
+}
+
+/* ===== FIX PARA SELECT - AL FINAL DEL CSS ===== */
+
+/* Estilo base para todos los select */
+select.form-control {
+  /* Remover apariencia nativa */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  
+  /* Flecha personalizada para modo claro */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 1.5em 1.5em !important;
+  
+  /* Espacio para la flecha */
+  padding-right: 2.5rem !important;
+  
+  /* Evitar zoom en iOS */
+  font-size: 16px;
+}
+
+/* Dark mode - override con flecha más clara */
+.admin-container.dark-mode select.form-control {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 1.5em 1.5em !important;
+}
+
+/* Focus states */
+select.form-control:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+}
+
+.admin-container.dark-mode select.form-control:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a0a0a0' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -1483,6 +1886,41 @@ table tr:last-child td {
     width: 40px;
     height: 40px;
   }
+
+  /* Modal mejorado responsive */
+  .password-modal-overlay {
+    padding: 15px;
+  }
+
+  .password-modal-container {
+    max-width: 95%;
+  }
+
+  .password-modal-header {
+    padding: 25px 25px 18px;
+  }
+
+  .password-modal-header h2 {
+    font-size: 1.6rem;
+  }
+
+  .password-modal-content {
+    padding: 25px;
+  }
+
+  .password-info-card {
+    padding: 20px;
+  }
+
+  .password-modal-footer {
+    padding: 18px 25px;
+    flex-direction: column;
+  }
+
+  .modal-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* Mobile */
@@ -1539,6 +1977,61 @@ table tr:last-child td {
   .stat-icon {
     margin-bottom: 8px;
   }
+
+  /* Modal mejorado mobile */
+  .password-modal-overlay {
+    padding: 10px;
+  }
+
+  .password-modal-header {
+    padding: 20px 20px 15px;
+  }
+
+  .password-modal-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .password-modal-content {
+    padding: 20px;
+  }
+
+  .password-info-card {
+    padding: 18px;
+  }
+
+  .password-modal-footer {
+    padding: 15px 20px;
+  }
+
+  .info-icon-container {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 15px;
+  }
+
+  .info-icon-container svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .info-text-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .info-text-content p {
+    font-size: 0.9rem;
+  }
+
+  .detail-item {
+    font-size: 0.85rem;
+  }
+
+  .modal-close-btn {
+    width: 36px;
+    height: 36px;
+    top: 12px;
+    right: 12px;
+  }
 }
 
 /* Print Styles */
@@ -1546,6 +2039,7 @@ table tr:last-child td {
   .admin-header,
   .tab-navigation,
   .form-modal,
+  .password-modal-overlay,
   .btn,
   .actions,
   .search-bar {
@@ -1567,67 +2061,4 @@ table tr:last-child td {
     padding: 0 !important;
     max-width: none !important;
   }
-}
-
-/* admin o cualquier comentario que quieras */
-
-/* Agregar al final de tu admin-polo.component.css */
-
-.info-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%);
-  border: 1px solid #bbdefb;
-  border-radius: 8px;
-  margin: 8px 0;
-  transition: all 0.3s ease;
-}
-
-.dark-mode .info-box {
-  background: linear-gradient(135deg, #263238 0%, #37474f 100%);
-  border: 1px solid #455a64;
-  color: #e0e0e0;
-}
-
-.info-icon {
-  font-size: 24px;
-  line-height: 1;
-  min-width: 32px;
-  text-align: center;
-  opacity: 0.8;
-}
-
-.info-content {
-  flex: 1;
-}
-
-.info-content h4 {
-  margin: 0 0 6px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1976d2;
-  transition: color 0.3s ease;
-}
-
-.dark-mode .info-content h4 {
-  color: #64b5f6;
-}
-
-.info-content p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
-  color: #424242;
-  transition: color 0.3s ease;
-}
-
-.dark-mode .info-content p {
-  color: #b0bec5;
-}
-
-/* Clase para full-width en form-group */
-.form-group.full-width {
-  grid-column: 1 / -1;
 }

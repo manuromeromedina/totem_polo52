@@ -1,4 +1,4 @@
-#app/routes/auth.py
+#auth.py
 from fastapi import Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
@@ -96,6 +96,24 @@ def require_public_role(
     return current_user
 
 # --- Rutas Auth ---
+
+@router.post("/register", tags=["auth"])
+def register(dto: schemas.UserRegister, db: Session = Depends(get_db)):
+    if db.query(models.Usuario).filter(models.Usuario.nombre == dto.nombre).first():
+        raise HTTPException(status_code=400, detail="Nombre ya existe")
+    new = models.Usuario(
+        nombre         = dto.nombre,
+        email          = dto.email,
+        contrasena     = services.hash_password(dto.password),
+        estado         = True,
+        fecha_registro = date.today(),  # Usamos la fecha actual
+        cuil           = dto.cuil,
+    )
+    db.add(new)
+    db.commit()
+    return {"message": "Usuario creado"}
+
+
  
 @router.post("/login", response_model=schemas.Token, tags=["auth"])
 def login(
@@ -246,7 +264,7 @@ def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_
 
     {reset_link}
 
-    IMPORTANTE: Este enlace expirará en {expire_time} {expire_unit} por seguridad.
+    ⚠️ IMPORTANTE: Este enlace expirará en {expire_time} {expire_unit} por seguridad.
 
     Si no solicitaste este cambio, puedes ignorar este email.
 
