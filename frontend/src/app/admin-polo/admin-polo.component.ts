@@ -20,6 +20,10 @@ import {
   PoloSelfUpdate,
 } from './admin-polo.service';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
+import {
+  PasswordChangeModalComponent,
+  FormError as ModalFormError,
+} from '../shared/password-change-modal/password-change-modal.component';
 
 // Interfaces para manejo de errores
 interface FormError {
@@ -38,7 +42,13 @@ interface ErrorResponse {
 @Component({
   selector: 'app-empresas',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LogoutButtonComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    LogoutButtonComponent,
+    PasswordChangeModalComponent,
+  ],
   templateUrl: './admin-polo.component.html',
   styleUrls: ['./admin-polo.component.css'],
 })
@@ -60,6 +70,10 @@ export class AdminPoloComponent implements OnInit {
     observaciones: '',
     horario_trabajo: '',
   };
+
+  // 🔥 NUEVAS PROPIEDADES PARA CONTROL DE CAMBIOS
+  private initialForms: { [key: string]: any } = {};
+  private hasUnsavedChanges: { [key: string]: boolean } = {};
 
   // 🔥 Sistema de errores mejorado
   formErrors: { [key: string]: FormError[] } = {};
@@ -170,6 +184,163 @@ export class AdminPoloComponent implements OnInit {
     this.loadData();
   }
 
+  // 🔥 NUEVOS MÉTODOS PARA CONTROL DE CAMBIOS
+  private saveInitialFormState(formName: string, formData: any): void {
+    this.initialForms[formName] = JSON.parse(JSON.stringify(formData));
+    this.hasUnsavedChanges[formName] = false;
+  }
+
+  private hasFormChanged(formName: string, currentFormData: any): boolean {
+    if (!this.initialForms[formName]) return false;
+
+    const initial = JSON.stringify(this.initialForms[formName]);
+    const current = JSON.stringify(currentFormData);
+
+    return initial !== current;
+  }
+
+  private checkUnsavedChanges(formName: string, currentFormData: any): boolean {
+    return this.hasFormChanged(formName, currentFormData);
+  }
+
+  // Método para detectar cambios en tiempo real
+  onFormChange(formName: string): void {
+    let currentFormData: any;
+
+    switch (formName) {
+      case 'polo':
+        currentFormData = this.poloEditForm;
+        break;
+      case 'empresa':
+        currentFormData = this.empresaForm;
+        break;
+      case 'usuario':
+        currentFormData = this.usuarioForm;
+        break;
+      case 'servicioPolo':
+        currentFormData = this.servicioPoloForm;
+        break;
+      case 'lote':
+        currentFormData = this.loteForm;
+        break;
+      default:
+        return;
+    }
+
+    this.hasUnsavedChanges[formName] = this.hasFormChanged(
+      formName,
+      currentFormData
+    );
+  }
+
+  // Método para mostrar confirmación antes de cerrar
+  private confirmCloseForm(formName: string): boolean {
+    let currentFormData: any;
+
+    switch (formName) {
+      case 'polo':
+        currentFormData = this.poloEditForm;
+        break;
+      case 'empresa':
+        currentFormData = this.empresaForm;
+        break;
+      case 'usuario':
+        currentFormData = this.usuarioForm;
+        break;
+      case 'servicioPolo':
+        currentFormData = this.servicioPoloForm;
+        break;
+      case 'lote':
+        currentFormData = this.loteForm;
+        break;
+      default:
+        return true;
+    }
+
+    if (this.checkUnsavedChanges(formName, currentFormData)) {
+      return confirm(
+        '¿Estás seguro de que quieres cerrar este formulario?\n\n' +
+          'Se perderán todos los cambios no guardados.'
+      );
+    }
+
+    return true;
+  }
+
+  // 🔥 MÉTODO PARA CERRAR FORMULARIOS ESPECÍFICOS CON CONFIRMACIÓN
+  closeForm(formName: string): void {
+    if (!this.confirmCloseForm(formName)) {
+      return;
+    }
+
+    // 🔥 RESTAURAR DATOS ORIGINALES AL CANCELAR
+    this.restoreOriginalFormData(formName);
+
+    switch (formName) {
+      case 'polo':
+        this.showPoloEditForm = false;
+        break;
+      case 'empresa':
+        this.showEmpresaForm = false;
+        this.editingEmpresa = null;
+        break;
+      case 'usuario':
+        this.showUsuarioForm = false;
+        this.editingUsuario = null;
+        break;
+      case 'servicioPolo':
+        this.showServicioPoloForm = false;
+        break;
+      case 'lote':
+        this.showLoteForm = false;
+        break;
+      case 'password':
+        this.showPasswordForm = false;
+        break;
+    }
+
+    // Limpiar errores específicos del formulario
+    this.clearFormErrors(formName);
+
+    // Limpiar estado de cambios para este formulario
+    delete this.initialForms[formName];
+    delete this.hasUnsavedChanges[formName];
+
+    // Limpiar estados específicos
+    this.selectedEmpresa = null;
+    this.creatingForEmpresa = false;
+  }
+
+  // 🔥 NUEVO MÉTODO PARA RESTAURAR DATOS ORIGINALES
+  private restoreOriginalFormData(formName: string): void {
+    if (!this.initialForms[formName]) return;
+
+    const originalData = JSON.parse(
+      JSON.stringify(this.initialForms[formName])
+    );
+
+    switch (formName) {
+      case 'polo':
+        this.poloEditForm = originalData;
+        break;
+      case 'empresa':
+        this.empresaForm = originalData;
+        break;
+      case 'usuario':
+        this.usuarioForm = originalData;
+        break;
+      case 'servicioPolo':
+        this.servicioPoloForm = originalData;
+        break;
+      case 'lote':
+        this.loteForm = originalData;
+        break;
+      case 'password':
+        this.passwordForm = originalData;
+        break;
+    }
+  }
+
   // 🔥 NUEVOS MÉTODOS PARA EL POLO
   loadPoloData(): void {
     this.loading = true;
@@ -196,6 +367,7 @@ export class AdminPoloComponent implements OnInit {
   openPasswordForm(): void {
     this.clearFormErrors('password');
     this.showPasswordForm = true;
+    this.saveInitialFormState('password', this.passwordForm);
   }
 
   onSubmitPassword(): void {
@@ -222,6 +394,7 @@ export class AdminPoloComponent implements OnInit {
   openPoloEditForm(): void {
     this.clearFormErrors('polo');
     this.showPoloEditForm = true;
+    this.saveInitialFormState('polo', this.poloEditForm);
   }
 
   onSubmitPoloEdit(): void {
@@ -595,7 +768,55 @@ export class AdminPoloComponent implements OnInit {
     this.filteredLotes = [...this.lotes];
   }
 
+  // 🔥 MÉTODO RESETFORMS ACTUALIZADO CON CONFIRMACIÓN
   resetForms(): void {
+    // Verificar si hay cambios sin guardar antes de resetear
+    const formsToCheck = ['polo', 'empresa', 'usuario', 'servicioPolo', 'lote'];
+    let hasChanges = false;
+    let formWithChanges = '';
+
+    for (const formName of formsToCheck) {
+      let currentFormData: any;
+      let isFormOpen = false;
+
+      switch (formName) {
+        case 'polo':
+          currentFormData = this.poloEditForm;
+          isFormOpen = this.showPoloEditForm;
+          break;
+        case 'empresa':
+          currentFormData = this.empresaForm;
+          isFormOpen = this.showEmpresaForm;
+          break;
+        case 'usuario':
+          currentFormData = this.usuarioForm;
+          isFormOpen = this.showUsuarioForm;
+          break;
+        case 'servicioPolo':
+          currentFormData = this.servicioPoloForm;
+          isFormOpen = this.showServicioPoloForm;
+          break;
+        case 'lote':
+          currentFormData = this.loteForm;
+          isFormOpen = this.showLoteForm;
+          break;
+        default:
+          continue;
+      }
+
+      if (isFormOpen && this.checkUnsavedChanges(formName, currentFormData)) {
+        hasChanges = true;
+        formWithChanges = formName;
+        break;
+      }
+    }
+
+    // Si hay cambios, mostrar confirmación
+    if (hasChanges && !this.confirmCloseForm(formWithChanges)) {
+      return; // No cerrar si el usuario cancela
+    }
+
+    // Proceder con el reset normal
     this.showEmpresaForm = false;
     this.showUsuarioForm = false;
     this.showServicioPoloForm = false;
@@ -652,7 +873,12 @@ export class AdminPoloComponent implements OnInit {
       manzana: 0,
       id_servicio_polo: 0,
     };
+
+    // Limpiar estados de cambios
+    this.initialForms = {};
+    this.hasUnsavedChanges = {};
   }
+
   showMessage(message: string, type: 'success' | 'error'): void {
     this.message = message;
     this.messageType = type;
@@ -663,14 +889,24 @@ export class AdminPoloComponent implements OnInit {
 
   // EMPRESAS
   openEmpresaForm(empresa?: Empresa): void {
+    this.clearFormErrors('empresa');
+
     if (empresa) {
       this.editingEmpresa = empresa;
       this.empresaForm = { ...empresa };
     } else {
       this.editingEmpresa = null;
-      this.resetForms();
+      this.empresaForm = {
+        cuil: 0,
+        nombre: '',
+        rubro: '',
+        cant_empleados: 0,
+        observaciones: '',
+        horario_trabajo: '',
+      };
     }
     this.showEmpresaForm = true;
+    this.saveInitialFormState('empresa', this.empresaForm);
   }
 
   onSubmitEmpresa(): void {
@@ -743,6 +979,8 @@ export class AdminPoloComponent implements OnInit {
 
   // USUARIOS
   openUsuarioForm(usuario?: Usuario): void {
+    this.clearFormErrors('usuario');
+
     if (usuario) {
       this.editingUsuario = usuario;
       this.usuarioForm = {
@@ -765,6 +1003,7 @@ export class AdminPoloComponent implements OnInit {
       };
     }
     this.showUsuarioForm = true;
+    this.saveInitialFormState('usuario', this.usuarioForm);
   }
 
   onSubmitUsuario(): void {
@@ -930,7 +1169,9 @@ export class AdminPoloComponent implements OnInit {
 
   // SERVICIOS DEL POLO
   openServicioPoloForm(): void {
+    this.clearFormErrors('servicioPolo');
     this.showServicioPoloForm = true;
+    this.saveInitialFormState('servicioPolo', this.servicioPoloForm);
   }
 
   isCantPuestosRequired(): boolean {
@@ -993,6 +1234,9 @@ export class AdminPoloComponent implements OnInit {
 
     this.servicioPoloForm.datos.cant_puestos = null;
     this.servicioPoloForm.datos.m2 = null;
+
+    // Actualizar detección de cambios
+    this.onFormChange('servicioPolo');
   }
 
   onPropietarioChange(): void {
@@ -1014,6 +1258,9 @@ export class AdminPoloComponent implements OnInit {
       delete this.servicioPoloForm.datos.datos_prop;
       delete this.servicioPoloForm.datos.datos_inquilino;
     }
+
+    // Actualizar detección de cambios
+    this.onFormChange('servicioPolo');
   }
 
   deleteServicioPolo(id: number): void {
@@ -1046,6 +1293,7 @@ export class AdminPoloComponent implements OnInit {
   selectedServicioPoloId: number | null = null;
 
   openLoteForm(idServicioPolo: number, nombreServicio?: string): void {
+    this.clearFormErrors('lote');
     this.selectedServicioPoloId = idServicioPolo;
     this.nombreServicioSeleccionado =
       nombreServicio || `Servicio ID: ${idServicioPolo}`;
@@ -1058,6 +1306,7 @@ export class AdminPoloComponent implements OnInit {
     };
 
     this.showLoteForm = true;
+    this.saveInitialFormState('lote', this.loteForm);
   }
 
   onSubmitLote(): void {
@@ -1150,6 +1399,7 @@ export class AdminPoloComponent implements OnInit {
     console.log('📝 Formulario configurado:', this.usuarioForm);
     console.log('🔧 Abriendo formulario...');
     this.showUsuarioForm = true;
+    this.saveInitialFormState('usuario', this.usuarioForm);
     console.log('✅ showUsuarioForm =', this.showUsuarioForm);
   }
 
@@ -1166,6 +1416,7 @@ export class AdminPoloComponent implements OnInit {
       cuil: empresa.cuil,
     };
     this.showServicioPoloForm = true;
+    this.saveInitialFormState('servicioPolo', this.servicioPoloForm);
     console.log('✅ showServicioPoloForm =', this.showServicioPoloForm);
   }
 
@@ -1180,6 +1431,7 @@ export class AdminPoloComponent implements OnInit {
       id_servicio_polo: 0,
     };
     this.showLoteForm = true;
+    this.saveInitialFormState('lote', this.loteForm);
     console.log('✅ showLoteForm =', this.showLoteForm);
   }
 
@@ -1191,6 +1443,21 @@ export class AdminPoloComponent implements OnInit {
       id_servicio_polo: 0,
     };
     this.showLoteForm = true;
+    this.saveInitialFormState('lote', this.loteForm);
+  }
+
+  getPasswordErrors(): ModalFormError[] {
+    return this.formErrors['password'] || [];
+  }
+
+  // Método para cerrar el modal
+  onPasswordModalClose(): void {
+    this.closeForm('password');
+  }
+
+  // Método para confirmar el cambio de contraseña
+  onPasswordModalConfirm(): void {
+    this.onSubmitPassword();
   }
 }
 

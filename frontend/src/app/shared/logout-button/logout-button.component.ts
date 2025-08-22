@@ -13,7 +13,6 @@ import { AuthenticationService } from '../../auth/auth.service';
       [disabled]="loading"
       [attr.aria-label]="loading ? 'Cerrando sesión...' : 'Cerrar sesión'"
     >
-      <i *ngIf="!loading" class="fas fa-sign-out-alt logout-icon"></i>
       <i *ngIf="loading" class="fas fa-spinner logout-spinner"></i>
       <span class="logout-text">{{
         loading ? 'Saliendo...' : 'Cerrar sesión'
@@ -24,9 +23,7 @@ import { AuthenticationService } from '../../auth/auth.service';
     <div class="modal-overlay" *ngIf="showModal" (click)="cancelLogout()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <div class="icon-container">
-            <i class="fas fa-sign-out-alt"></i>
-          </div>
+          <div class="icon-container"></div>
           <h3>¿Cerrar sesión?</h3>
           <p>¿Estás seguro de que deseas cerrar tu sesión actual?</p>
         </div>
@@ -37,7 +34,6 @@ import { AuthenticationService } from '../../auth/auth.service';
             Cancelar
           </button>
           <button class="primary-button" (click)="confirmLogout()">
-            <i class="fas fa-sign-out-alt"></i>
             Cerrar sesión
           </button>
         </div>
@@ -156,7 +152,7 @@ import { AuthenticationService } from '../../auth/auth.service';
       /* Modal Content */
       .modal-content {
         background: white;
-        border-radius: 20px;
+        border-radius: 10px;
         box-shadow: 0 25px 50px rgba(29, 29, 29, 0.3);
         overflow: hidden;
         width: 90%;

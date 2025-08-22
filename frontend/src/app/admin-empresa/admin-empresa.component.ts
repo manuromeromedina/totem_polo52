@@ -22,6 +22,10 @@ import {
   TipoServicioPolo,
 } from './admin-empresa.service';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
+import {
+  PasswordChangeModalComponent,
+  FormError as ModalFormError,
+} from '../shared/password-change-modal/password-change-modal.component';
 
 // Interfaces para manejo de errores
 interface FormError {
@@ -46,6 +50,7 @@ interface ErrorResponse {
     RouterModule,
     LogoutButtonComponent,
     NgxJsonViewerModule,
+    PasswordChangeModalComponent,
   ],
   templateUrl: './admin-empresa.component.html',
   styleUrls: ['./admin-empresa.component.css'],
@@ -67,6 +72,10 @@ export class EmpresaMeComponent implements OnInit {
   editingVehiculo: Vehiculo | null = null;
   editingServicio: Servicio | null = null;
   editingContacto: Contacto | null = null;
+
+  // 🔥 NUEVAS PROPIEDADES PARA CONTROL DE CAMBIOS
+  private initialForms: { [key: string]: any } = {};
+  private hasUnsavedChanges: { [key: string]: boolean } = {};
 
   // Formularios
   passwordForm = {
@@ -154,7 +163,84 @@ export class EmpresaMeComponent implements OnInit {
     this.applyFilters();
   }
 
-  // 🔥 NUEVOS MÉTODOS DE FILTRADO
+  // 🔥 NUEVOS MÉTODOS PARA CONTROL DE CAMBIOS
+  private saveInitialFormState(formName: string, formData: any): void {
+    this.initialForms[formName] = JSON.parse(JSON.stringify(formData));
+    this.hasUnsavedChanges[formName] = false;
+  }
+
+  private hasFormChanged(formName: string, currentFormData: any): boolean {
+    if (!this.initialForms[formName]) return false;
+
+    const initial = JSON.stringify(this.initialForms[formName]);
+    const current = JSON.stringify(currentFormData);
+
+    return initial !== current;
+  }
+
+  private checkUnsavedChanges(formName: string, currentFormData: any): boolean {
+    return this.hasFormChanged(formName, currentFormData);
+  }
+
+  // Método para detectar cambios en tiempo real
+  onFormChange(formName: string): void {
+    let currentFormData: any;
+
+    switch (formName) {
+      case 'vehiculo':
+        currentFormData = this.vehiculoForm;
+        break;
+      case 'servicio':
+        currentFormData = this.servicioForm;
+        break;
+      case 'contacto':
+        currentFormData = this.contactoForm;
+        break;
+      case 'empresa':
+        currentFormData = this.empresaEditForm;
+        break;
+      default:
+        return;
+    }
+
+    this.hasUnsavedChanges[formName] = this.hasFormChanged(
+      formName,
+      currentFormData
+    );
+  }
+
+  // Método para mostrar confirmación antes de cerrar
+  private confirmCloseForm(formName: string): boolean {
+    let currentFormData: any;
+
+    switch (formName) {
+      case 'vehiculo':
+        currentFormData = this.vehiculoForm;
+        break;
+      case 'servicio':
+        currentFormData = this.servicioForm;
+        break;
+      case 'contacto':
+        currentFormData = this.contactoForm;
+        break;
+      case 'empresa':
+        currentFormData = this.empresaEditForm;
+        break;
+      default:
+        return true;
+    }
+
+    if (this.checkUnsavedChanges(formName, currentFormData)) {
+      return confirm(
+        '¿Estás seguro de que quieres cerrar este formulario?\n\n' +
+          'Se perderán todos los cambios no guardados.'
+      );
+    }
+
+    return true;
+  }
+
+  // 🔥 MÉTODOS DE FILTRADO ACTUALIZADOS
   applyFilters(): void {
     switch (this.activeTab) {
       case 'vehiculos':
@@ -526,7 +612,51 @@ export class EmpresaMeComponent implements OnInit {
     });
   }
 
+  // 🔥 MÉTODO RESETFORMS ACTUALIZADO CON CONFIRMACIÓN
   resetForms(): void {
+    // Verificar si hay cambios sin guardar antes de resetear
+    const formsToCheck = ['vehiculo', 'servicio', 'contacto', 'empresa'];
+    let hasChanges = false;
+    let formWithChanges = '';
+
+    for (const formName of formsToCheck) {
+      let currentFormData: any;
+      let isFormOpen = false;
+
+      switch (formName) {
+        case 'vehiculo':
+          currentFormData = this.vehiculoForm;
+          isFormOpen = this.showVehiculoForm;
+          break;
+        case 'servicio':
+          currentFormData = this.servicioForm;
+          isFormOpen = this.showServicioForm;
+          break;
+        case 'contacto':
+          currentFormData = this.contactoForm;
+          isFormOpen = this.showContactoForm;
+          break;
+        case 'empresa':
+          currentFormData = this.empresaEditForm;
+          isFormOpen = this.showEmpresaEditForm;
+          break;
+        default:
+          continue;
+      }
+
+      if (isFormOpen && this.checkUnsavedChanges(formName, currentFormData)) {
+        hasChanges = true;
+        formWithChanges = formName;
+        break;
+      }
+    }
+
+    // Si hay cambios, mostrar confirmación
+    if (hasChanges && !this.confirmCloseForm(formWithChanges)) {
+      return; // No cerrar si el usuario cancela
+    }
+
+    // Proceder con el reset normal
     this.showPasswordForm = false;
     this.showVehiculoForm = false;
     this.showServicioForm = false;
@@ -540,6 +670,7 @@ export class EmpresaMeComponent implements OnInit {
     // Limpiar errores de todos los formularios
     this.formErrors = {};
 
+    // Resetear formularios
     this.passwordForm = { password: '', confirmPassword: '' };
     this.vehiculoForm = {
       id_tipo_vehiculo: 1,
@@ -560,6 +691,75 @@ export class EmpresaMeComponent implements OnInit {
       direccion: '',
       id_servicio_polo: 1,
     };
+
+    // Limpiar estados de cambios
+    this.initialForms = {};
+    this.hasUnsavedChanges = {};
+  }
+
+  // 🔥 MÉTODO PARA CERRAR FORMULARIOS ESPECÍFICOS CON CONFIRMACIÓN
+  closeForm(formName: string): void {
+    if (!this.confirmCloseForm(formName)) {
+      return;
+    }
+
+    // 🔥 RESTAURAR DATOS ORIGINALES AL CANCELAR
+    this.restoreOriginalFormData(formName);
+
+    switch (formName) {
+      case 'vehiculo':
+        this.showVehiculoForm = false;
+        this.editingVehiculo = null;
+        break;
+      case 'servicio':
+        this.showServicioForm = false;
+        this.editingServicio = null;
+        break;
+      case 'contacto':
+        this.showContactoForm = false;
+        this.editingContacto = null;
+        break;
+      case 'empresa':
+        this.showEmpresaEditForm = false;
+        break;
+      case 'password':
+        this.showPasswordForm = false;
+        break;
+    }
+
+    // Limpiar errores específicos del formulario
+    this.clearFormErrors(formName);
+
+    // Limpiar estado de cambios para este formulario
+    delete this.initialForms[formName];
+    delete this.hasUnsavedChanges[formName];
+  }
+
+  // 🔥 NUEVO MÉTODO PARA RESTAURAR DATOS ORIGINALES
+  private restoreOriginalFormData(formName: string): void {
+    if (!this.initialForms[formName]) return;
+
+    const originalData = JSON.parse(
+      JSON.stringify(this.initialForms[formName])
+    );
+
+    switch (formName) {
+      case 'vehiculo':
+        this.vehiculoForm = originalData;
+        break;
+      case 'servicio':
+        this.servicioForm = originalData;
+        break;
+      case 'contacto':
+        this.contactoForm = originalData;
+        break;
+      case 'empresa':
+        this.empresaEditForm = originalData;
+        break;
+      case 'password':
+        this.passwordForm = originalData;
+        break;
+    }
   }
 
   showMessage(message: string, type: 'success' | 'error'): void {
@@ -574,6 +774,7 @@ export class EmpresaMeComponent implements OnInit {
   openPasswordForm(): void {
     this.clearFormErrors('password');
     this.showPasswordForm = true;
+    this.saveInitialFormState('password', this.passwordForm);
   }
 
   onSubmitPassword(): void {
@@ -600,6 +801,7 @@ export class EmpresaMeComponent implements OnInit {
   openEmpresaEditForm(): void {
     this.clearFormErrors('empresa');
     this.showEmpresaEditForm = true;
+    this.saveInitialFormState('empresa', this.empresaEditForm);
   }
 
   onSubmitEmpresaEdit(): void {
@@ -645,6 +847,7 @@ export class EmpresaMeComponent implements OnInit {
       };
     }
     this.showVehiculoForm = true;
+    this.saveInitialFormState('vehiculo', this.vehiculoForm);
   }
 
   onSubmitVehiculo(): void {
@@ -721,6 +924,7 @@ export class EmpresaMeComponent implements OnInit {
     }
 
     this.showServicioForm = true;
+    this.saveInitialFormState('servicio', this.servicioForm);
   }
 
   onSubmitServicio(): void {
@@ -808,6 +1012,9 @@ export class EmpresaMeComponent implements OnInit {
       default:
         this.servicioForm.datos = {};
     }
+
+    // Actualizar detección de cambios
+    this.onFormChange('servicio');
   }
 
   // CONTACTOS
@@ -847,6 +1054,7 @@ export class EmpresaMeComponent implements OnInit {
     }
     this.showContactoForm = true;
     this.onTipoContactoChange();
+    this.saveInitialFormState('contacto', this.contactoForm);
   }
 
   onTipoContactoChange(): void {
@@ -865,6 +1073,9 @@ export class EmpresaMeComponent implements OnInit {
     } else {
       this.contactoForm.datos = {};
     }
+
+    // Actualizar detección de cambios
+    this.onFormChange('contacto');
   }
 
   onSubmitContacto(): void {
@@ -934,6 +1145,8 @@ export class EmpresaMeComponent implements OnInit {
     if (this.esTipoComercial()) {
       this.contactoForm.datos.direccion = this.contactoForm.direccion;
     }
+    // Actualizar detección de cambios
+    this.onFormChange('contacto');
   }
 
   deleteContacto(id: number): void {
@@ -1104,5 +1317,19 @@ export class EmpresaMeComponent implements OnInit {
       allErrors.push(...errors.filter((error) => error.type === type));
     });
     return allErrors;
+  }
+
+  getPasswordErrors(): ModalFormError[] {
+    return this.formErrors['password'] || [];
+  }
+
+  // Método para cerrar el modal
+  onPasswordModalClose(): void {
+    this.closeForm('password');
+  }
+
+  // Método para confirmar el cambio de contraseña
+  onPasswordModalConfirm(): void {
+    this.onSubmitPassword();
   }
 }
