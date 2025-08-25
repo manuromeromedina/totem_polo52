@@ -10,6 +10,10 @@ router = APIRouter(
     tags=["Admin_empresa"],
 )
 
+# ═══════════════════════════════════════════════════════════════════
+# CONFIGURACIÓN Y UTILIDADES
+# ═══════════════════════════════════════════════════════════════════
+
 def get_db():
     db = SessionLocal() 
     try: 
@@ -17,38 +21,214 @@ def get_db():
     finally: 
         db.close()
 
-# ─── Actualizar contraseña del usuario ───────────────────────────────────────
+def validar_datos_vehiculo(dto: schemas.VehiculoCreate, tipo_vehiculo: models.TipoVehiculo):
+    """Validar datos específicos según el tipo de vehículo"""
+    datos = dto.datos
+
+    if tipo_vehiculo.id_tipo_vehiculo == 1:  # Corporativo
+        if not all(k in datos for k in ("cantidad", "patente", "carga")):
+            raise HTTPException(status_code=400, detail="Para vehículos corporativos, los datos deben incluir cantidad, patente y carga")
+        if datos.get("carga") not in ("baja", "mediana", "alta"):
+            raise HTTPException(status_code=400, detail="El valor de 'carga' debe ser 'baja', 'mediana' o 'alta'")
+
+    elif tipo_vehiculo.id_tipo_vehiculo == 2:  # Personal
+        if not all(k in datos for k in ("cantidad", "patente")):
+            raise HTTPException(status_code=400, detail="Para vehículos personales, los datos deben incluir cantidad y patente")
+
+    elif tipo_vehiculo.id_tipo_vehiculo == 3:  # Terceros
+        if not all(k in datos for k in ("cantidad", "carga")):
+            raise HTTPException(status_code=400, detail="Para vehículos de terceros, los datos deben incluir cantidad y carga")
+        if datos.get("carga") not in ("baja", "mediana", "alta"):
+            raise HTTPException(status_code=400, detail="El valor de 'carga' debe ser 'baja', 'mediana' o 'alta'")
+
+def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
+    """Construir objeto detallado de empresa con todas sus relaciones"""
+    # Vehículos
+    vehs = []
+    for v in emp.vehiculos_emp:
+        veh = v.vehiculo
+        if veh.tipo_vehiculo:
+            tipo_vehiculo = schemas.TipoVehiculoOut(
+                id_tipo_vehiculo=veh.tipo_vehiculo.id_tipo_vehiculo,
+                tipo=veh.tipo_vehiculo.tipo,
+            )
+        else:
+            tipo_vehiculo = None
+
+        vehs.append(
+            schemas.VehiculoOut(
+                id_vehiculo=veh.id_vehiculo,
+                id_tipo_vehiculo=veh.id_tipo_vehiculo,
+                horarios=veh.horarios,
+                frecuencia=veh.frecuencia,
+                datos=veh.datos,
+                tipo_vehiculo=tipo_vehiculo
+            )
+        )
+
+    # Contactos
+    conts = []
+    for c in emp.contactos:
+        if c.tipo_contacto:
+            tipo_contacto = schemas.TipoContactoOut(
+                id_tipo_contacto=c.tipo_contacto.id_tipo_contacto,
+                tipo=c.tipo_contacto.tipo,
+            )
+        else:
+            tipo_contacto = None
+
+        conts.append(
+            schemas.ContactoOut(
+                id_contacto=c.id_contacto,
+                id_tipo_contacto=c.id_tipo_contacto,
+                nombre=c.nombre,
+                telefono=c.telefono,
+                datos=c.datos,
+                direccion=c.direccion,
+                id_servicio_polo=c.id_servicio_polo,
+                tipo_contacto=tipo_contacto
+            )
+        )
+
+    # Servicios propios de la empresa
+    servicios = []
+    for esp in emp.servicios:
+        svc = esp.servicio
+        tipo_servicio = svc.tipo_servicio.tipo if svc.tipo_servicio else None
+        servicios.append(
+            schemas.ServicioOut(
+                id_servicio=svc.id_servicio,
+                datos=svc.datos,
+                id_tipo_servicio=svc.id_tipo_servicio,
+                tipo_servicio=tipo_servicio
+            )
+        )
+
+    # Servicios asociados al Polo
+    servicios_polo = []
+    for esp in emp.servicios_polo:
+        svc = esp
+        tipo_servicio_polo = svc.tipo_servicio.tipo if svc.tipo_servicio else None
+        # Lotes asociados al servicio del polo
+        lotes = [schemas.LoteOut.from_orm(l) for l in svc.lotes] if svc.lotes else []
+
+        servicios_polo.append(
+            schemas.ServicioPoloOut(
+                id_servicio_polo=svc.id_servicio_polo,
+                nombre=svc.nombre,
+                horario=svc.horario,
+                datos=svc.datos,
+                propietario=svc.propietario,
+                id_tipo_servicio_polo=svc.id_tipo_servicio_polo,
+                cuil=svc.cuil,
+                tipo_servicio_polo=tipo_servicio_polo,
+                lotes=lotes
+            )
+        )
+
+    return schemas.EmpresaDetailOut(
+        cuil=emp.cuil,
+        nombre=emp.nombre,
+        rubro=emp.rubro,
+        cant_empleados=emp.cant_empleados,
+        observaciones=emp.observaciones,
+        fecha_ingreso=emp.fecha_ingreso,
+        horario_trabajo=emp.horario_trabajo,
+        vehiculos=vehs,
+        contactos=conts,
+        servicios=servicios,
+        servicios_polo=servicios_polo
+    )
+
+# ═══════════════════════════════════════════════════════════════════
+# GESTIÓN DE USUARIO Y CONTRASEÑA
+# ═══════════════════════════════════════════════════════════════════
 
 @router.put("/update_password", response_model=schemas.UserOut, summary="Actualizar la contraseña del usuario")
 def update_password(
-    dto: schemas.UserUpdateCompany,  # Recibimos los datos a actualizar
-    current_user: models.Usuario = Depends(get_current_user),  # Obtenemos al usuario logueado
+    dto: schemas.UserUpdateCompany,
+    current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Verificamos si la contraseña fue proporcionada
+    """Actualizar contraseña del usuario logueado"""
     if dto.password is None:
         raise HTTPException(status_code=400, detail="Se debe proporcionar una nueva contraseña")
 
-    # Recuperamos el usuario logueado
     user = db.query(models.Usuario).filter(models.Usuario.id_usuario == current_user.id_usuario).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    # Actualizamos la contraseña del usuario
-    user.contrasena = services.hash_password(dto.password)  # Hasheamos la nueva contraseña
+    # Validar que no reutilice contraseñas anteriores
+    if services.is_password_reused(db, user.id_usuario, dto.password):
+        raise HTTPException(
+            status_code=400, 
+            detail="No puedes usar una contraseña que ya hayas utilizado anteriormente"
+        )
+
+    # Guardar contraseña actual en historial
+    services.save_password_to_history(db, user.id_usuario, user.contrasena)
+    
+    # Actualizar contraseña
+    user.contrasena = services.hash_password(dto.password)
     db.commit()
-    db.refresh(user)  # Refrescamos al usuario para reflejar los cambios
+    db.refresh(user)
 
     return user
 
+# ═══════════════════════════════════════════════════════════════════
+# GESTIÓN DE EMPRESA
+# ═══════════════════════════════════════════════════════════════════
 
-# ─── Vehiculos ────────────────────────────────────────────────────────
+@router.get("/me", response_model=schemas.EmpresaDetailOut, summary="Mis datos completos de empresa")
+def read_me(
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Obtener información completa de mi empresa"""
+    emp = db.query(models.Empresa).filter_by(cuil=current_user.cuil).first()
+    if not emp:
+        raise HTTPException(404, "Empresa no encontrada")
+    return build_empresa_detail(emp)
+
+@router.put(
+    "/companies/me",
+    response_model=schemas.EmpresaSelfOut,
+    summary="Actualizar mis datos de empresa (cant_empleados, observaciones, horario_trabajo)"
+)
+def update_my_company(
+    dto: schemas.EmpresaSelfUpdate,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Actualizar datos editables de mi empresa"""
+    cuil = current_user.cuil
+
+    emp = db.query(models.Empresa).filter_by(cuil=cuil).first()
+    if not emp:
+        raise HTTPException(404, "Empresa no encontrada")
+
+    data = dto.model_dump(exclude_unset=True)
+
+    # Actualizar solo los campos permitidos
+    for field, value in data.items():
+        setattr(emp, field, value)
+
+    db.commit()
+    db.refresh(emp)
+
+    return emp
+
+# ═══════════════════════════════════════════════════════════════════
+# GESTIÓN DE VEHÍCULOS
+# ═══════════════════════════════════════════════════════════════════
+
 @router.post("/vehiculos", response_model=schemas.VehiculoOut, summary="Crear un vehículo")
 def create_vehiculo(
     dto: schemas.VehiculoCreate,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Crear nuevo vehículo para la empresa"""
     try:
         tipo_vehiculo = db.query(models.TipoVehiculo).filter(
             models.TipoVehiculo.id_tipo_vehiculo == dto.id_tipo_vehiculo
@@ -80,7 +260,7 @@ def create_vehiculo(
         db.commit()
         db.refresh(v)
 
-        # Construir objeto de respuesta conforme schemas.VehiculoOut
+        # Construir objeto de respuesta
         tipo_vehiculo_out = schemas.TipoVehiculoOut(
             id_tipo_vehiculo=tipo_vehiculo.id_tipo_vehiculo,
             tipo=tipo_vehiculo.tipo,
@@ -107,6 +287,7 @@ def update_vehiculo(
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Actualizar vehículo existente de la empresa"""
     v = (
         db.query(models.Vehiculo)
         .join(models.VehiculosEmpresa)
@@ -145,13 +326,13 @@ def update_vehiculo(
         tipo_vehiculo=tipo_vehiculo_out,
     )
 
-
 @router.delete("/vehiculos/{veh_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un vehículo")
 def delete_vehiculo(
     veh_id: int,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Eliminar vehículo de la empresa"""
     v = (
         db.query(models.Vehiculo)
         .join(models.VehiculosEmpresa)
@@ -166,25 +347,29 @@ def delete_vehiculo(
     db.delete(v)
     db.commit()
 
-# ─── Servicios ────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════
+# GESTIÓN DE SERVICIOS
+# ═══════════════════════════════════════════════════════════════════
+
 @router.post("/servicios", response_model=schemas.ServicioOut, summary="Crear un servicio")
 def create_servicio(
-    dto: schemas.ServicioCreate,  # DTO para la creación de servicio
-    current_user: models.Usuario = Depends(get_current_user),  # Obtener el usuario actual
+    dto: schemas.ServicioCreate,
+    current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Creamos el servicio
+    """Crear nuevo servicio para la empresa"""
+    # Crear el servicio
     servicio = models.Servicio(
-        datos=dto.datos,  # Datos adicionales en formato JSON
+        datos=dto.datos,
         id_tipo_servicio=dto.id_tipo_servicio
     )
     db.add(servicio)
     db.commit()
     db.refresh(servicio)
 
-    # Asociamos el servicio con la empresa del usuario autenticado (admin_empresa)
+    # Asociar el servicio con la empresa del usuario autenticado
     empresa_servicio = models.EmpresaServicio(
-        cuil=current_user.cuil,  # Obtenemos el cuil del usuario autenticado
+        cuil=current_user.cuil,
         id_servicio=servicio.id_servicio,
     )
     db.add(empresa_servicio)
@@ -193,18 +378,32 @@ def create_servicio(
 
     return servicio
 
-
 @router.put("/servicios/{servicio_id}", response_model=schemas.ServicioOut, summary="Actualizar un servicio")
 def update_servicio(
     servicio_id: int,
-    dto: schemas.ServicioUpdate,  # DTO para actualizar servicio
+    dto: schemas.ServicioUpdate,
+    current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """Actualizar servicio existente"""
+    # Verificar que el servicio pertenece a la empresa del usuario
+    servicio_empresa = (
+        db.query(models.EmpresaServicio)
+        .filter(
+            models.EmpresaServicio.id_servicio == servicio_id,
+            models.EmpresaServicio.cuil == current_user.cuil
+        )
+        .first()
+    )
+    
+    if not servicio_empresa:
+        raise HTTPException(status_code=404, detail="Servicio no encontrado o no pertenece a tu empresa")
+
     servicio = db.query(models.Servicio).filter(models.Servicio.id_servicio == servicio_id).first()
     if not servicio:
         raise HTTPException(status_code=404, detail="Servicio no encontrado")
     
-    for field, value in dto.model_dump(exclude_unset=True).items():  # Actualiza solo los campos no vacíos
+    for field, value in dto.model_dump(exclude_unset=True).items():
         setattr(servicio, field, value)
 
     db.commit()
@@ -214,10 +413,24 @@ def update_servicio(
 @router.delete("/servicios/{servicio_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un servicio")
 def delete_servicio(
     servicio_id: int,
+    current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    servicio = db.query(models.Servicio).filter(models.Servicio.id_servicio == servicio_id).first()
+    """Eliminar servicio de la empresa"""
+    # Verificar que el servicio pertenece a la empresa del usuario
+    servicio_empresa = (
+        db.query(models.EmpresaServicio)
+        .filter(
+            models.EmpresaServicio.id_servicio == servicio_id,
+            models.EmpresaServicio.cuil == current_user.cuil
+        )
+        .first()
+    )
     
+    if not servicio_empresa:
+        raise HTTPException(status_code=404, detail="Servicio no encontrado o no pertenece a tu empresa")
+
+    servicio = db.query(models.Servicio).filter(models.Servicio.id_servicio == servicio_id).first()
     if not servicio:
         raise HTTPException(status_code=404, detail="Servicio no encontrado")
     
@@ -228,19 +441,17 @@ def delete_servicio(
     db.delete(servicio)
     db.commit()
 
-    return 
+# ═══════════════════════════════════════════════════════════════════
+# GESTIÓN DE CONTACTOS
+# ═══════════════════════════════════════════════════════════════════
 
-
-# ─── Contacto ────────────────────────────────────────────────────────
-@router.post("/contactos",
-    response_model=schemas.ContactoOut,
-    summary="Crear un contacto para la empresa"
-)
+@router.post("/contactos", response_model=schemas.ContactoOut, summary="Crear un contacto para la empresa")
 def create_contacto(
     dto: schemas.ContactoCreate,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Crear nuevo contacto para la empresa"""
     contacto = models.Contacto(
         cuil_empresa=current_user.cuil,
         id_tipo_contacto=dto.id_tipo_contacto,
@@ -255,17 +466,14 @@ def create_contacto(
     db.refresh(contacto)
     return contacto
 
-
-@router.put("/contactos/{cid}",
-    response_model=schemas.ContactoOut,
-    summary="Actualizar un contacto para la empresa"
-)
+@router.put("/contactos/{cid}", response_model=schemas.ContactoOut, summary="Actualizar un contacto para la empresa")
 def update_contacto(
     cid: int,
     dto: schemas.ContactoCreate,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Actualizar contacto existente de la empresa"""
     contacto = db.query(models.Contacto).filter_by(id_contacto=cid, cuil_empresa=current_user.cuil).first()
     if not contacto:
         raise HTTPException(status_code=404, detail="Contacto no encontrado")
@@ -278,16 +486,13 @@ def update_contacto(
     db.refresh(contacto)
     return contacto
 
-
-@router.delete("/contactos/{cid}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar un contacto para la empresa"
-)
+@router.delete("/contactos/{cid}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un contacto para la empresa")
 def delete_contacto(
     cid: int,
     current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Eliminar contacto de la empresa"""
     contacto = db.query(models.Contacto).filter_by(id_contacto=cid, cuil_empresa=current_user.cuil).first()
     if not contacto:
         raise HTTPException(status_code=404, detail="Contacto no encontrado")
@@ -296,187 +501,21 @@ def delete_contacto(
     db.commit()
     return {"msg": "Contacto eliminado exitosamente"}
 
+# ═══════════════════════════════════════════════════════════════════
+# ENDPOINTS DE CATÁLOGOS/TIPOS
+# ═══════════════════════════════════════════════════════════════════
 
-
-# ─── Datos de mi empresa ────────────────────────────────────────────────────────
-@router.put(
-    "/companies/me",
-    response_model=schemas.EmpresaSelfOut,
-    summary="Actualizar mis datos de empresa (cant_empleados, observaciones, horario_trabajo)"
-)
-def update_my_company(
-    dto: schemas.EmpresaSelfUpdate,
-    current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    # El cuil ya está disponible en current_user, no es necesario pasarlo en la URL
-    cuil = current_user.cuil
-
-    emp = db.query(models.Empresa).filter_by(cuil=cuil).first()
-    if not emp:
-        raise HTTPException(404, "Empresa no encontrada")
-
-    data = dto.model_dump(exclude_unset=True)
-
-    # Actualizo sólo los campos permitidos
-    for field, value in data.items():
-        setattr(emp, field, value)
-
-    db.commit()
-    db.refresh(emp)
-
-    # Como response_model=EmpresaSelfOut, FastAPI sólo serializa
-    # cant_empleados, observaciones y horario_trabajo
-    return emp
-
-
-
-def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
-    vehs = []
-    for v in emp.vehiculos_emp:
-        veh = v.vehiculo
-        if veh.tipo_vehiculo:
-            tipo_vehiculo = schemas.TipoVehiculoOut(
-                id_tipo_vehiculo=veh.tipo_vehiculo.id_tipo_vehiculo,
-                tipo=veh.tipo_vehiculo.tipo,
-            )
-        else:
-            tipo_vehiculo = None
-
-        vehs.append(
-            schemas.VehiculoOut(
-                id_vehiculo=veh.id_vehiculo,
-                id_tipo_vehiculo=veh.id_tipo_vehiculo,
-                horarios=veh.horarios,
-                frecuencia=veh.frecuencia,
-                datos=veh.datos,
-                tipo_vehiculo=tipo_vehiculo  # Ahora es un objeto TipoVehiculoOut o None
-            )
-        )
-
-    # Lo mismo podés hacer con contactos, si necesitas que el campo tipo_contacto sea un objeto:
-    conts = []
-    for c in emp.contactos:
-        if c.tipo_contacto:
-            tipo_contacto = schemas.TipoContactoOut(
-                id_tipo_contacto=c.tipo_contacto.id_tipo_contacto,
-                tipo=c.tipo_contacto.tipo,
-            )
-        else:
-            tipo_contacto = None
-
-        conts.append(
-            schemas.ContactoOut(
-                id_contacto=c.id_contacto,
-                id_tipo_contacto=c.id_tipo_contacto,
-                nombre=c.nombre,
-                telefono=c.telefono,
-                datos=c.datos,
-                direccion=c.direccion,
-                id_servicio_polo=c.id_servicio_polo,
-                tipo_contacto=tipo_contacto  # Pasa objeto o None
-            )
-        )
-
-    # Completar demás relaciones (servicios_polo, servicios) similarmente
-
-
-
-
-    # Servicios propios de la empresa (servicios que no están asociados a servicios del polo)
-    servicios = []
-    for esp in emp.servicios:
-        svc = esp.servicio  # Servicios que no están asociados al polo
-        tipo_servicio = svc.tipo_servicio.tipo if svc.tipo_servicio else None  # Obtener el tipo de servicio
-        servicios.append(
-            schemas.ServicioOut(
-                id_servicio=svc.id_servicio,
-                datos=svc.datos,
-                id_tipo_servicio=svc.id_tipo_servicio,
-                tipo_servicio=tipo_servicio  # Incluir el tipo de servicio
-            )
-        )
-
-    # Servicios asociados al Polo (asegurándose de que siempre haya una lista, incluso vacía)
-    servicios_polo = []
-    for esp in emp.servicios_polo:
-        svc = esp  # Servicio Polo asociado a la empresa
-        tipo_servicio_polo = svc.tipo_servicio.tipo if svc.tipo_servicio else None  # Tipo de servicio del Polo
-        # Lotes asociados al servicio del polo
-        lotes = [schemas.LoteOut.from_orm(l) for l in svc.lotes] if svc.lotes else []
-
-        servicios_polo.append(
-            schemas.ServicioPoloOut(
-                id_servicio_polo=svc.id_servicio_polo,
-                nombre=svc.nombre,
-                horario=svc.horario,
-                datos=svc.datos,
-                propietario=svc.propietario,
-                id_tipo_servicio_polo=svc.id_tipo_servicio_polo,
-                cuil=svc.cuil,
-                tipo_servicio_polo=tipo_servicio_polo,  # Incluir el tipo de servicio del Polo
-                lotes=lotes  # Incluir los lotes relacionados
-            )
-        )
-
-    # Ahora armamos y devolvemos el objeto con los detalles completos de la empresa
-    return schemas.EmpresaDetailOut(
-        cuil=emp.cuil,
-        nombre=emp.nombre,
-        rubro=emp.rubro,
-        cant_empleados=emp.cant_empleados,
-        observaciones=emp.observaciones,
-        fecha_ingreso=emp.fecha_ingreso,
-        horario_trabajo=emp.horario_trabajo,
-        vehiculos=vehs,
-        contactos=conts,
-        servicios=servicios,
-        servicios_polo=servicios_polo  # Siempre pasa una lista, aunque esté vacía
-    )
-
-
-@router.get("/me", response_model=schemas.EmpresaDetailOut, summary="Mis datos completos de empresa")
-def read_me(
-    current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    emp = db.query(models.Empresa).filter_by(cuil=current_user.cuil).first()
-    if not emp:
-        raise HTTPException(404, "Empresa no encontrada")
-    return build_empresa_detail(emp)
-
-
-
-
-# Agregar al final de company_user.py
 @router.get("/tipos/vehiculo", response_model=list[schemas.TipoVehiculoOut], summary="Obtener tipos de vehículo")
 def get_tipos_vehiculo(db: Session = Depends(get_db)):
+    """Listar todos los tipos de vehículo disponibles"""
     return db.query(models.TipoVehiculo).all()
 
 @router.get("/tipos/servicio", response_model=list[schemas.TipoServicioOut], summary="Obtener tipos de servicio")
-def get_tipos_servicio(db: Session = Depends(get_db)):  # CAMBIA EL NOMBRE AQUÍ
+def get_tipos_servicio(db: Session = Depends(get_db)):
+    """Listar todos los tipos de servicio disponibles"""
     return db.query(models.TipoServicio).all()
 
 @router.get("/tipos/contacto", response_model=list[schemas.TipoContactoOut], summary="Obtener tipos de contacto")
-def get_tipos_contacto(db: Session = Depends(get_db)):  # CAMBIA EL NOMBRE AQUÍ
+def get_tipos_contacto(db: Session = Depends(get_db)):
+    """Listar todos los tipos de contacto disponibles"""
     return db.query(models.TipoContacto).all()
-
-
-def validar_datos_vehiculo(dto: schemas.VehiculoCreate, tipo_vehiculo: models.TipoVehiculo):
-    datos = dto.datos
-
-    if tipo_vehiculo.id_tipo_vehiculo == 1:  # Corporativo
-        if not all(k in datos for k in ("cantidad", "patente", "carga")):
-            raise HTTPException(status_code=400, detail="Para vehículos corporativos, los datos deben incluir cantidad, patente y carga")
-        if datos.get("carga") not in ("baja", "mediana", "alta"):
-            raise HTTPException(status_code=400, detail="El valor de 'carga' debe ser 'baja', 'mediana' o 'alta'")
-
-    elif tipo_vehiculo.id_tipo_vehiculo == 2:  # Personal
-        if not all(k in datos for k in ("cantidad", "patente")):
-            raise HTTPException(status_code=400, detail="Para vehículos personales, los datos deben incluir cantidad y patente")
-
-    elif tipo_vehiculo.id_tipo_vehiculo == 3:  # Terceros
-        if not all(k in datos for k in ("cantidad", "carga")):
-            raise HTTPException(status_code=400, detail="Para vehículos de terceros, los datos deben incluir cantidad y carga")
-        if datos.get("carga") not in ("baja", "mediana", "alta"):
-            raise HTTPException(status_code=400, detail="El valor de 'carga' debe ser 'baja', 'mediana' o 'alta'")
