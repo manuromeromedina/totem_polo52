@@ -104,6 +104,38 @@ class PasswordResetConfirm(BaseModel):
     class Config:
         from_attributes = True
 
+class PasswordResetConfirmSecure(BaseModel):
+    """Schema para confirmación segura de reset (requiere contraseña actual y confirmación)"""
+    token: str = Field(..., description="Token de recuperación válido")
+    current_password: str = Field(..., min_length=1, description="Contraseña actual del usuario")
+    new_password: str = Field(
+        ..., min_length=8, max_length=128,
+        description="Nueva contraseña (8-128 caracteres, mayúscula, minúscula, dígito)"
+    )
+    confirm_password: str = Field(
+        ..., min_length=8, max_length=128,
+        description="Confirmar nueva contraseña (debe coincidir con new_password)"
+    )
+
+    @field_validator('new_password')
+    def password_complexity(cls, v: str) -> str:
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un dígito')
+        return v
+
+    @field_validator('confirm_password')
+    def passwords_match(cls, v, info):
+        """Validar que las contraseñas coincidan"""
+        if 'new_password' in info.data and v != info.data['new_password']:
+            raise ValueError('Las contraseñas no coinciden')
+        return v
+
+    class Config:
+        from_attributes = True
 
 
 # ═══════════════════════════════════════════════════════════════════

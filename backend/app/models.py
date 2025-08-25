@@ -15,6 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.config import Base
+from datetime import date
 
 
 # ─── Empresa y Usuario ────────────────────────────────────────────────────────
@@ -60,6 +61,7 @@ class Empresa(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    
 
 
 class Usuario(Base):
@@ -95,6 +97,12 @@ class Usuario(Base):
         back_populates="usuarios",
     )
 
+    password_history = relationship(
+        "PasswordHistory",
+        back_populates="usuario",
+        cascade="all, delete-orphan",
+        order_by="PasswordHistory.created_at.desc()"
+    )
 
 class Rol(Base):
     __tablename__ = "rol"
@@ -111,6 +119,7 @@ class Rol(Base):
         "Usuario",
         secondary="rol_usuario",
         back_populates="roles",
+        overlaps="rol_usuario_links"  
     )
 
 
@@ -314,3 +323,17 @@ class EmpresaServicio(Base):
 
     empresa = relationship("Empresa", back_populates="servicios")
     servicio = relationship("Servicio", back_populates="empresas_servicio")
+
+class PasswordHistory(Base):
+    __tablename__ = "password_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    id_usuario = Column(
+        UUID(as_uuid=True),
+        ForeignKey("usuario.id_usuario", ondelete="CASCADE"),
+        nullable=False
+    )
+    password_hash = Column(String, nullable=False)
+    created_at = Column(Date, nullable=False, default=date.today)
+   
+    usuario = relationship("Usuario", back_populates="password_history")

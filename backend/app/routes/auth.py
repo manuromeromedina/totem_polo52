@@ -4,15 +4,23 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from jose import JWTError, jwt
-from datetime import date  # Agregada para usar la fecha actual en el registro
+from datetime import date
 from app.config import SessionLocal, SECRET_KEY, ALGORITHM
 from app import models, schemas, services
 from app.models import Usuario
-from app.schemas import PasswordResetRequest, PasswordResetConfirm
+from app.schemas import PasswordResetRequest, PasswordResetConfirm, PasswordResetConfirmSecure
 from email.mime.text import MIMEText
 import smtplib
-from app import models, services  # Ajusta los imports según tu estructura
-from app.config import settings  # Para las variables de entorno
+from app.config import settings
+from app.services import (
+    secure_password_reset_confirm, 
+    is_password_reused, 
+    save_password_to_history,
+    hash_password,
+    verify_password_reset_token,
+    consume_password_reset_token,
+    create_password_reset_token
+)
 
 router = APIRouter()
 
@@ -317,3 +325,178 @@ def password_reset_request_logged_user(
         raise HTTPException(status_code=500, detail=f"Error enviando email: {str(e)}")
     
     return {"message": "Email de cambio de contraseña enviado exitosamente"}
+
+
+@router.post("/password-reset/confirm-secure", tags=["auth"])
+def password_reset_confirm_secure(
+    dto: schemas.PasswordResetConfirmSecure,
+    db: Session = Depends(get_db)
+):
+    """
+    Confirmación segura de reset de contraseña 
+    (requiere token + contraseña actual + nueva contraseña confirmada + no reutilizada)
+    """
+    try:
+        result = services.secure_password_reset_confirm(
+            db=db,
+            token=dto.token,
+            current_password=dto.current_password,
+            new_password=dto.new_password,
+            confirm_password=dto.confirm_password
+        )
+        return result
+    except HTTPException as e:
+        return {
+            "success": False,
+            "error": e.detail,
+            "status_code": e.status_code,
+            "expired": e.status_code == 400 and "expirado" in e.detail.lower(),
+            "used": e.status_code == 400 and "utilizado" in e.detail.lower(),
+            "wrong_current": "contraseña actual" in e.detail.lower(),
+            "password_reused": "ya hayas utilizado" in e.detail.lower(),
+            "passwords_mismatch": "no coinciden" in e.detail.lower()
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno al actualizar contraseña: {str(e)}"
+        )
+
+@router.post("/password-reset/verify-token", tags=["auth"])
+def verify_reset_token(token: str, db: Session = Depends(get_db)):
+    """
+    Verificar si un token de reset es válido sin hacer cambios
+    Incluye verificación de uso único
+    """
+    try:
+        email = services.verify_password_reset_token(token)  # Solo verifica, NO consume
+        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            
+        return {
+            "valid": True,
+            "message": "Token válido",
+            "email": email,  # Devolver email completo para el formulario
+            "user_name": user.nombre
+        }
+        
+    except HTTPException as e:
+        return {
+            "valid": False,
+            "error": e.detail,
+            "expired": "expirado" in e.detail.lower(),
+            "used": "utilizado" in e.detail.lower()
+        }
+
+@router.post("/password-reset/request", tags=["auth"])
+def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_db)):
+    """Solicitar reset de contraseña con instrucciones claras"""
+    user = db.query(models.Usuario).filter(models.Usuario.email == dto.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Email no registrado")
+    
+    RESET_TOKEN_EXPIRE_MINUTES = 60  # 1 hora
+    
+    token = services.create_password_reset_token(
+        user.email, 
+        expires_minutes=RESET_TOKEN_EXPIRE_MINUTES
+    )
+    
+    reset_link = f"http://localhost:4200/password-reset?token={token}"
+    
+    # Email con instrucciones claras
+    email_body = f"""
+Hola {user.nombre},
+
+Has solicitado cambiar tu contraseña en el sistema del Parque Industrial Polo 52.
+
+Para proceder con el cambio, haz clic en el siguiente enlace:
+{reset_link}
+
+INSTRUCCIONES IMPORTANTES:
+• Necesitarás tu contraseña actual para confirmar el cambio
+• Deberás ingresar una nueva contraseña dos veces para confirmar
+• No podrás usar contraseñas que hayas utilizado anteriormente
+• Este enlace expirará en 1 hora por seguridad
+• Solo se puede usar una vez
+
+REQUISITOS PARA LA NUEVA CONTRASEÑA:
+• Mínimo 8 caracteres
+• Al menos una letra mayúscula
+• Al menos una letra minúscula  
+• Al menos un número
+
+Si no solicitaste este cambio, puedes ignorar este email de forma segura.
+
+Saludos,
+Administración Polo 52
+    """
+    
+    msg = MIMEText(email_body)
+    msg["Subject"] = "Cambio de Contraseña - Polo 52"
+    msg["From"] = settings.EMAIL_USER
+    msg["To"] = dto.email
+    
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
+            server.send_message(msg)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error enviando email: {str(e)}")
+    
+    return {
+        "message": "Se ha enviado un email con instrucciones para cambiar tu contraseña",
+        "expires_in_minutes": RESET_TOKEN_EXPIRE_MINUTES,
+        "note": "Revisa tu bandeja de entrada y sigue las instrucciones del email"
+    }
+
+@router.post("/password-reset/request-logged-user", tags=["auth"])
+def password_reset_request_logged_user(
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Solicitar reset de contraseña para el usuario logueado"""
+    token = services.create_password_reset_token(current_user.email)
+    reset_link = f"http://localhost:4200/password-reset?token={token}"
+    
+    email_body = f"""
+Hola {current_user.nombre},
+
+Has solicitado cambiar tu contraseña desde tu cuenta en el sistema.
+
+Para proceder con el cambio, haz clic en el siguiente enlace:
+{reset_link}
+
+RECUERDA:
+• Necesitarás tu contraseña actual
+• Deberás confirmar la nueva contraseña dos veces
+• No podrás reutilizar contraseñas anteriores
+• Este enlace expira en 1 hora
+
+Si no solicitaste este cambio, ignora este email.
+
+Saludos,
+Administración Polo 52
+    """
+    
+    msg = MIMEText(email_body)
+    msg["Subject"] = "Cambio de Contraseña Solicitado - Polo 52"
+    msg["From"] = settings.EMAIL_USER
+    msg["To"] = current_user.email
+    
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
+            server.send_message(msg)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error enviando email: {str(e)}")
+    
+    return {
+        "message": "Email de cambio de contraseña enviado exitosamente a tu dirección registrada",
+        "email": f"{current_user.email[:3]}***@{current_user.email.split('@')[1]}"
+    }

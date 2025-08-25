@@ -23,7 +23,8 @@ from fastapi import HTTPException
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
 from app.config import SECRET_KEY, ALGORITHM
-from app.models import Empresa
+from app import models
+from app.models import Empresa, PasswordHistory
 import json
 from datetime import date
 
@@ -181,7 +182,110 @@ def consume_password_reset_token(token: str) -> str:
             detail="Token de recuperación inválido",
             headers={"X-Error-Type": "invalid"}
         )
+def save_password_to_history(db: Session, user_id: str, password_hash: str) -> None:
+    """Guarda una contraseña en el historial del usuario"""
+    password_entry = PasswordHistory(
+        id_usuario=user_id,
+        password_hash=password_hash,
+        created_at=date.today()
+    )
+    db.add(password_entry)
+    
+    # Mantener solo las últimas 5 contraseñas para no llenar la BD
+    old_passwords = (
+        db.query(PasswordHistory)
+        .filter(PasswordHistory.id_usuario == user_id)
+        .order_by(PasswordHistory.created_at.desc())
+        .offset(5)
+        .all()
+    )
+    
+    for old_pwd in old_passwords:
+        db.delete(old_pwd)
 
+def is_password_reused(db: Session, user_id: str, new_password: str) -> bool:
+    """Verifica si la nueva contraseña ya fue utilizada anteriormente"""
+    # Obtener historial de contraseñas del usuario (últimas 5)
+    password_history = (
+        db.query(PasswordHistory)
+        .filter(PasswordHistory.id_usuario == user_id)
+        .order_by(PasswordHistory.created_at.desc())
+        .limit(5)
+        .all()
+    )
+    
+    # Verificar si alguna coincide con la nueva contraseña
+    for pwd_entry in password_history:
+        if verify_password(new_password, pwd_entry.password_hash):
+            return True
+    
+    # También verificar contra la contraseña actual del usuario
+    current_user = db.query(models.Usuario).filter(models.Usuario.id_usuario == user_id).first()
+    if current_user and verify_password(new_password, current_user.contrasena):
+        return True
+    
+    return False
+
+def secure_password_reset_confirm(
+    db: Session,
+    token: str,
+    current_password: str,
+    new_password: str,
+    confirm_password: str
+) -> dict:
+    """Confirmación segura de reset con validación completa"""
+    try:
+        # 1. Verificar que las contraseñas nuevas coincidan
+        if new_password != confirm_password:
+            raise HTTPException(
+                status_code=400,
+                detail="Las contraseñas nuevas no coinciden"
+            )
+        
+        # 2. Verificar y consumir token
+        email = consume_password_reset_token(token)
+        
+        # 3. Obtener usuario
+        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        # 4. Verificar contraseña actual
+        if not verify_password(current_password, user.contrasena):
+            raise HTTPException(
+                status_code=400,
+                detail="La contraseña actual es incorrecta"
+            )
+        
+        # 5. Verificar que no esté reutilizando contraseña
+        if is_password_reused(db, user.id_usuario, new_password):
+            raise HTTPException(
+                status_code=400,
+                detail="No puedes usar una contraseña que ya hayas utilizado anteriormente. Elige una contraseña diferente."
+            )
+        
+        # 6. Guardar contraseña actual en historial
+        save_password_to_history(db, user.id_usuario, user.contrasena)
+        
+        # 7. Actualizar contraseña
+        user.contrasena = hash_password(new_password)
+        db.commit()
+        db.refresh(user)
+        
+        return {
+            "success": True,
+            "message": "Contraseña actualizada correctamente. Este enlace ya no es válido."
+        }
+        
+    except HTTPException as e:
+        db.rollback()
+        raise e
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno al actualizar contraseña: {str(e)}"
+        )
 # Función adicional para verificar token sin decodificar (opcional)
 def check_token_validity(token: str) -> dict:
     """
