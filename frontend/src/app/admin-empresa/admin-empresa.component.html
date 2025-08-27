@@ -1238,7 +1238,9 @@
     <div class="form-container">
       <div class="form-header">
         <h3>Editar Datos de la Empresa</h3>
-        <button class="close-btn" (click)="resetForms()">&times;</button>
+        <button class="close-btn" (click)="cancelForm('empresa')">
+          &times;
+        </button>
       </div>
 
       <!-- Error Display -->
@@ -1348,7 +1350,7 @@
           <button
             type="button"
             class="btn btn-secondary"
-            (click)="resetForms()"
+            (click)="cancelForm('empresa')"
           >
             Cancelar
           </button>
@@ -1370,7 +1372,9 @@
     <div class="form-container">
       <div class="form-header">
         <h3>{{ editingVehiculo ? "Editar Vehículo" : "Nuevo Vehículo" }}</h3>
-        <button class="close-btn" (click)="resetForms()">&times;</button>
+        <button class="close-btn" (click)="cancelForm('vehiculo')">
+          &times;
+        </button>
       </div>
 
       <!-- Error Display -->
@@ -1657,7 +1661,7 @@
           <button
             type="button"
             class="btn btn-secondary"
-            (click)="resetForms()"
+            (click)="cancelForm('vehiculo')"
           >
             Cancelar
           </button>
@@ -1685,7 +1689,9 @@
     <div class="form-container">
       <div class="form-header">
         <h3>{{ editingServicio ? "Editar Servicio" : "Nuevo Servicio" }}</h3>
-        <button class="close-btn" (click)="resetForms()">&times;</button>
+        <button class="close-btn" (click)="cancelForm('servicio')">
+          &times;
+        </button>
       </div>
 
       <!-- Error Display -->
@@ -1889,7 +1895,7 @@
           <button
             type="button"
             class="btn btn-secondary"
-            (click)="resetForms()"
+            (click)="cancelForm('servicio')"
           >
             Cancelar
           </button>
@@ -1917,7 +1923,9 @@
     <div class="form-container">
       <div class="form-header">
         <h3>{{ editingContacto ? "Editar Contacto" : "Nuevo Contacto" }}</h3>
-        <button class="close-btn" (click)="resetForms()">&times;</button>
+        <button class="close-btn" (click)="cancelForm('contacto')">
+          &times;
+        </button>
       </div>
 
       <!-- Error Display -->
@@ -2202,7 +2210,7 @@
           <button
             type="button"
             class="btn btn-secondary"
-            (click)="resetForms()"
+            (click)="cancelForm('contacto')"
           >
             Cancelar
           </button>

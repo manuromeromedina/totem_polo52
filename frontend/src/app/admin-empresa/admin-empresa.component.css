@@ -3437,3 +3437,24 @@ select.form-control {
 .btn {
   transition: all 0.2s ease;
 }
+
+/* SOLUCIÓN SIMPLE PARA MODO OSCURO COMPLETO */
+.admin-container.dark-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 1;
+  background: #1a1a1a;
+}
+
+/* Compensar el ancho para contenido interno */
+.admin-container.dark-mode .admin-header,
+.admin-container.dark-mode .tab-navigation,
+.admin-container.dark-mode .main-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}

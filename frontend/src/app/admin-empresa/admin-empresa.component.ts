@@ -73,7 +73,7 @@ export class EmpresaMeComponent implements OnInit {
   editingServicio: Servicio | null = null;
   editingContacto: Contacto | null = null;
 
-  // 🔥 NUEVAS PROPIEDADES PARA CONTROL DE CAMBIOS
+  // PROPIEDADES PARA CONTROL DE CAMBIOS
   private initialForms: { [key: string]: any } = {};
   private hasUnsavedChanges: { [key: string]: boolean } = {};
 
@@ -116,7 +116,7 @@ export class EmpresaMeComponent implements OnInit {
   message = '';
   messageType: 'success' | 'error' = 'success';
 
-  // 🔥 Sistema de errores mejorado
+  // Sistema de errores mejorado
   formErrors: { [key: string]: FormError[] } = {};
   showErrorDetails = false;
 
@@ -126,7 +126,7 @@ export class EmpresaMeComponent implements OnInit {
   tiposContacto: TipoContacto[] = [];
   tiposServicioPolo: TipoServicioPolo[] = [];
 
-  // 🔥 NUEVAS PROPIEDADES PARA BÚSQUEDA
+  // PROPIEDADES PARA BÚSQUEDA
   vehiculoSearchTerm: string = '';
   servicioSearchTerm: string = '';
   contactoSearchTerm: string = '';
@@ -147,26 +147,76 @@ export class EmpresaMeComponent implements OnInit {
   ngOnInit(): void {
     this.loadTipos();
     this.loadEmpresaData();
+
     const savedTheme = localStorage.getItem('theme');
     this.isDarkMode = savedTheme === 'dark';
+
+    // Aplicar tema inicial
+    if (this.isDarkMode) {
+      document.body.style.background = '#1a1a1a';
+      document.documentElement.style.background = '#1a1a1a';
+    }
   }
 
   toggleDarkMode(): void {
     this.isDarkMode = !this.isDarkMode;
     localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
+
+    // Aplicar tema al body y html
+    const body = document.body;
+    const html = document.documentElement;
+
+    if (this.isDarkMode) {
+      body.style.background = '#1a1a1a';
+      body.style.margin = '0';
+      body.style.padding = '0';
+      html.style.background = '#1a1a1a';
+    } else {
+      body.style.background = '#f8f9fa';
+      html.style.background = '#ffffff';
+    }
   }
 
   setActiveTab(tab: string): void {
     this.activeTab = tab;
-    this.resetForms();
+    // Cerrar formularios sin confirmación al cambiar de tab
+    this.closeAllFormsWithoutConfirmation();
     // Aplicar filtros al cambiar de pestaña
     this.applyFilters();
   }
 
-  // 🔥 NUEVOS MÉTODOS PARA CONTROL DE CAMBIOS
+  // MÉTODO PARA CERRAR TODOS LOS FORMULARIOS SIN CONFIRMACIÓN
+  private closeAllFormsWithoutConfirmation(): void {
+    this.showPasswordForm = false;
+    this.showVehiculoForm = false;
+    this.showServicioForm = false;
+    this.showContactoForm = false;
+    this.showEmpresaEditForm = false;
+    this.editingVehiculo = null;
+    this.editingServicio = null;
+    this.editingContacto = null;
+
+    // Limpiar errores de todos los formularios
+    this.formErrors = {};
+
+    // Limpiar estados de cambios
+    this.initialForms = {};
+    this.hasUnsavedChanges = {};
+  }
+
+  // MÉTODOS PARA CONTROL DE CAMBIOS
+
+  // 1. MÉTODO PARA GUARDAR ESTADO INICIAL MEJORADO
   private saveInitialFormState(formName: string, formData: any): void {
+    // Crear copia profunda inmediatamente
     this.initialForms[formName] = JSON.parse(JSON.stringify(formData));
     this.hasUnsavedChanges[formName] = false;
+
+    // 🔧 DEBUG: Verificar que se guardó correctamente
+    console.log(
+      `💾 Estado inicial guardado para ${formName}:`,
+      this.initialForms[formName]
+    );
   }
 
   private hasFormChanged(formName: string, currentFormData: any): boolean {
@@ -182,10 +232,76 @@ export class EmpresaMeComponent implements OnInit {
     return this.hasFormChanged(formName, currentFormData);
   }
 
-  // Método para detectar cambios en tiempo real
-  onFormChange(formName: string): void {
+  // MÉTODO PARA RESTAURAR DATOS ORIGINALES
+  private restoreOriginalFormData(formName: string): void {
+    console.log(`🔄 Restaurando datos para ${formName}`);
+
+    if (!this.initialForms[formName]) {
+      console.error('❌ No hay datos iniciales guardados para', formName);
+      return;
+    }
+
+    // Crear copia profunda de los datos originales
+    const originalData = JSON.parse(
+      JSON.stringify(this.initialForms[formName])
+    );
+    console.log('📋 Datos originales a restaurar:', originalData);
+
+    switch (formName) {
+      case 'vehiculo':
+        this.vehiculoForm = {
+          id_tipo_vehiculo: originalData.id_tipo_vehiculo,
+          horarios: originalData.horarios,
+          frecuencia: originalData.frecuencia,
+          datos: { ...originalData.datos },
+        };
+        console.log('✅ Vehículo restaurado:', this.vehiculoForm);
+        break;
+
+      case 'servicio':
+        this.servicioForm = {
+          id_tipo_servicio: originalData.id_tipo_servicio,
+          datos: { ...originalData.datos },
+        };
+        console.log('✅ Servicio restaurado:', this.servicioForm);
+        break;
+
+      case 'contacto':
+        this.contactoForm = {
+          id_tipo_contacto: originalData.id_tipo_contacto,
+          nombre: originalData.nombre,
+          telefono: originalData.telefono,
+          direccion: originalData.direccion,
+          id_servicio_polo: originalData.id_servicio_polo,
+          datos: { ...originalData.datos },
+        };
+        console.log('✅ Contacto restaurado:', this.contactoForm);
+        break;
+
+      case 'empresa':
+        this.empresaEditForm = {
+          cant_empleados: originalData.cant_empleados,
+          observaciones: originalData.observaciones,
+          horario_trabajo: originalData.horario_trabajo,
+        };
+        console.log('✅ Empresa restaurada:', this.empresaEditForm);
+        break;
+
+      case 'password':
+        this.passwordForm = {
+          password: originalData.password,
+          confirmPassword: originalData.confirmPassword,
+        };
+        console.log('✅ Password restaurado:', this.passwordForm);
+        break;
+    }
+  }
+
+  // MÉTODO PARA CANCELAR FORMULARIOS CON CONFIRMACIÓN DE CAMBIOS
+  cancelForm(formName: string): void {
     let currentFormData: any;
 
+    // Obtener los datos actuales del formulario
     switch (formName) {
       case 'vehiculo':
         currentFormData = this.vehiculoForm;
@@ -198,49 +314,81 @@ export class EmpresaMeComponent implements OnInit {
         break;
       case 'empresa':
         currentFormData = this.empresaEditForm;
+        break;
+      case 'password':
+        currentFormData = this.passwordForm;
         break;
       default:
         return;
     }
 
-    this.hasUnsavedChanges[formName] = this.hasFormChanged(
-      formName,
-      currentFormData
-    );
+    // 🔧 DEBUG: Verificar estados
+    console.log(`🔍 Cancelando formulario ${formName}`);
+    console.log('📄 Datos actuales:', currentFormData);
+    console.log('💾 Datos iniciales guardados:', this.initialForms[formName]);
+
+    // Verificar si hay cambios sin guardar
+    const hasChanges = this.checkUnsavedChanges(formName, currentFormData);
+    console.log('🔄 ¿Hay cambios?', hasChanges);
+
+    if (hasChanges) {
+      const shouldDiscard = confirm(
+        '¿Deseas descartar los cambios?\n\n' +
+          'Se perderán todos los cambios no guardados.\n\n' +
+          'Presiona "Aceptar" para descartar o "Cancelar" para continuar editando.'
+      );
+
+      console.log('👤 Usuario eligió descartar:', shouldDiscard);
+
+      if (!shouldDiscard) {
+        return; // Usuario decide continuar editando
+      }
+
+      // Restaurar datos originales ANTES de cerrar
+      console.log('🔄 Restaurando datos originales...');
+      this.restoreOriginalFormData(formName);
+    }
+
+    // Cerrar el formulario
+    this.closeFormWithoutConfirmation(formName);
   }
-
-  // Método para mostrar confirmación antes de cerrar
-  private confirmCloseForm(formName: string): boolean {
-    let currentFormData: any;
-
+  // MÉTODO PARA CERRAR FORMULARIO SIN CONFIRMACIÓN (uso interno)
+  private closeFormWithoutConfirmation(formName: string): void {
     switch (formName) {
       case 'vehiculo':
-        currentFormData = this.vehiculoForm;
+        this.showVehiculoForm = false;
+        this.editingVehiculo = null;
         break;
       case 'servicio':
-        currentFormData = this.servicioForm;
+        this.showServicioForm = false;
+        this.editingServicio = null;
         break;
       case 'contacto':
-        currentFormData = this.contactoForm;
+        this.showContactoForm = false;
+        this.editingContacto = null;
         break;
       case 'empresa':
-        currentFormData = this.empresaEditForm;
+        this.showEmpresaEditForm = false;
         break;
-      default:
-        return true;
+      case 'password':
+        this.showPasswordForm = false;
+        break;
     }
 
-    if (this.checkUnsavedChanges(formName, currentFormData)) {
-      return confirm(
-        '¿Estás seguro de que quieres cerrar este formulario?\n\n' +
-          'Se perderán todos los cambios no guardados.'
-      );
-    }
+    // Limpiar errores específicos del formulario
+    this.clearFormErrors(formName);
 
-    return true;
+    // Limpiar estado de cambios para este formulario
+    delete this.initialForms[formName];
+    delete this.hasUnsavedChanges[formName];
   }
 
-  // 🔥 MÉTODOS DE FILTRADO ACTUALIZADOS
+  closeFormDirectly(formName: string): void {
+    // Este método se usa para el botón X y hace la misma validación
+    this.cancelForm(formName);
+  }
+
+  // MÉTODOS DE FILTRADO
   applyFilters(): void {
     switch (this.activeTab) {
       case 'vehiculos':
@@ -385,23 +533,23 @@ export class EmpresaMeComponent implements OnInit {
       : [];
   }
 
-  // 🔥 Método para limpiar errores específicos
+  // Método para limpiar errores específicos
   clearFormErrors(formName: string): void {
     this.formErrors[formName] = [];
   }
 
-  // 🔥 Método para obtener errores de un campo específico
+  // Método para obtener errores de un campo específico
   getFieldErrors(formName: string, fieldName: string): FormError[] {
     const errors = this.formErrors[formName] || [];
     return errors.filter((error) => error.field === fieldName);
   }
 
-  // 🔥 Método para verificar si un campo tiene errores
+  // Método para verificar si un campo tiene errores
   hasFieldError(formName: string, fieldName: string): boolean {
     return this.getFieldErrors(formName, fieldName).length > 0;
   }
 
-  // 🔥 Procesador de errores HTTP mejorado
+  // Procesador de errores HTTP mejorado
   private handleError(error: any, formName: string, operation: string): void {
     console.error(`Error en ${operation}:`, error);
 
@@ -491,7 +639,7 @@ export class EmpresaMeComponent implements OnInit {
     }
   }
 
-  // 🔥 Traductor de errores de campos específicos
+  // Traductor de errores de campos específicos
   private translateFieldError(
     field: string,
     message: string,
@@ -560,7 +708,7 @@ export class EmpresaMeComponent implements OnInit {
     return genericTranslations[message] || message;
   }
 
-  // 🔥 Traductor de errores genéricos
+  // Traductor de errores genéricos
   private translateGenericError(detail: string, formName: string): string {
     const translations: { [key: string]: string } = {
       'Ya existe un vehículo con esa patente':
@@ -612,51 +760,8 @@ export class EmpresaMeComponent implements OnInit {
     });
   }
 
-  // 🔥 MÉTODO RESETFORMS ACTUALIZADO CON CONFIRMACIÓN
+  // Método resetForms sin confirmación (usado al enviar exitosamente)
   resetForms(): void {
-    // Verificar si hay cambios sin guardar antes de resetear
-    const formsToCheck = ['vehiculo', 'servicio', 'contacto', 'empresa'];
-    let hasChanges = false;
-    let formWithChanges = '';
-
-    for (const formName of formsToCheck) {
-      let currentFormData: any;
-      let isFormOpen = false;
-
-      switch (formName) {
-        case 'vehiculo':
-          currentFormData = this.vehiculoForm;
-          isFormOpen = this.showVehiculoForm;
-          break;
-        case 'servicio':
-          currentFormData = this.servicioForm;
-          isFormOpen = this.showServicioForm;
-          break;
-        case 'contacto':
-          currentFormData = this.contactoForm;
-          isFormOpen = this.showContactoForm;
-          break;
-        case 'empresa':
-          currentFormData = this.empresaEditForm;
-          isFormOpen = this.showEmpresaEditForm;
-          break;
-        default:
-          continue;
-      }
-
-      if (isFormOpen && this.checkUnsavedChanges(formName, currentFormData)) {
-        hasChanges = true;
-        formWithChanges = formName;
-        break;
-      }
-    }
-
-    // Si hay cambios, mostrar confirmación
-    if (hasChanges && !this.confirmCloseForm(formWithChanges)) {
-      return; // No cerrar si el usuario cancela
-    }
-
-    // Proceder con el reset normal
     this.showPasswordForm = false;
     this.showVehiculoForm = false;
     this.showServicioForm = false;
@@ -695,71 +800,6 @@ export class EmpresaMeComponent implements OnInit {
     // Limpiar estados de cambios
     this.initialForms = {};
     this.hasUnsavedChanges = {};
-  }
-
-  // 🔥 MÉTODO PARA CERRAR FORMULARIOS ESPECÍFICOS CON CONFIRMACIÓN
-  closeForm(formName: string): void {
-    if (!this.confirmCloseForm(formName)) {
-      return;
-    }
-
-    // 🔥 RESTAURAR DATOS ORIGINALES AL CANCELAR
-    this.restoreOriginalFormData(formName);
-
-    switch (formName) {
-      case 'vehiculo':
-        this.showVehiculoForm = false;
-        this.editingVehiculo = null;
-        break;
-      case 'servicio':
-        this.showServicioForm = false;
-        this.editingServicio = null;
-        break;
-      case 'contacto':
-        this.showContactoForm = false;
-        this.editingContacto = null;
-        break;
-      case 'empresa':
-        this.showEmpresaEditForm = false;
-        break;
-      case 'password':
-        this.showPasswordForm = false;
-        break;
-    }
-
-    // Limpiar errores específicos del formulario
-    this.clearFormErrors(formName);
-
-    // Limpiar estado de cambios para este formulario
-    delete this.initialForms[formName];
-    delete this.hasUnsavedChanges[formName];
-  }
-
-  // 🔥 NUEVO MÉTODO PARA RESTAURAR DATOS ORIGINALES
-  private restoreOriginalFormData(formName: string): void {
-    if (!this.initialForms[formName]) return;
-
-    const originalData = JSON.parse(
-      JSON.stringify(this.initialForms[formName])
-    );
-
-    switch (formName) {
-      case 'vehiculo':
-        this.vehiculoForm = originalData;
-        break;
-      case 'servicio':
-        this.servicioForm = originalData;
-        break;
-      case 'contacto':
-        this.contactoForm = originalData;
-        break;
-      case 'empresa':
-        this.empresaEditForm = originalData;
-        break;
-      case 'password':
-        this.passwordForm = originalData;
-        break;
-    }
   }
 
   showMessage(message: string, type: 'success' | 'error'): void {
@@ -801,7 +841,11 @@ export class EmpresaMeComponent implements OnInit {
   openEmpresaEditForm(): void {
     this.clearFormErrors('empresa');
     this.showEmpresaEditForm = true;
-    this.saveInitialFormState('empresa', this.empresaEditForm);
+
+    // 🔧 IMPORTANTE: Guardar el estado inicial DESPUÉS de mostrar el formulario
+    setTimeout(() => {
+      this.saveInitialFormState('empresa', this.empresaEditForm);
+    }, 0);
   }
 
   onSubmitEmpresaEdit(): void {
@@ -835,7 +879,7 @@ export class EmpresaMeComponent implements OnInit {
         id_tipo_vehiculo: vehiculo.id_tipo_vehiculo,
         horarios: vehiculo.horarios,
         frecuencia: vehiculo.frecuencia,
-        datos: vehiculo.datos,
+        datos: { ...vehiculo.datos }, // Copia profunda
       };
     } else {
       this.editingVehiculo = null;
@@ -846,8 +890,13 @@ export class EmpresaMeComponent implements OnInit {
         datos: {},
       };
     }
+
     this.showVehiculoForm = true;
-    this.saveInitialFormState('vehiculo', this.vehiculoForm);
+
+    // 🔧 IMPORTANTE: Guardar estado después de configurar el formulario
+    setTimeout(() => {
+      this.saveInitialFormState('vehiculo', this.vehiculoForm);
+    }, 0);
   }
 
   onSubmitVehiculo(): void {
@@ -917,14 +966,20 @@ export class EmpresaMeComponent implements OnInit {
       };
     }
 
+    // Configurar datos según tipo
     this.onTipoServicioChange();
 
+    // Si estamos editando, restaurar los datos específicos
     if (this.editingServicio) {
-      this.servicioForm.datos = { ...servicio?.datos };
+      this.servicioForm.datos = { ...servicio!.datos };
     }
 
     this.showServicioForm = true;
-    this.saveInitialFormState('servicio', this.servicioForm);
+
+    // 🔧 IMPORTANTE: Guardar estado después de todas las configuraciones
+    setTimeout(() => {
+      this.saveInitialFormState('servicio', this.servicioForm);
+    }, 0);
   }
 
   onSubmitServicio(): void {
@@ -1012,9 +1067,6 @@ export class EmpresaMeComponent implements OnInit {
       default:
         this.servicioForm.datos = {};
     }
-
-    // Actualizar detección de cambios
-    this.onFormChange('servicio');
   }
 
   // CONTACTOS
@@ -1027,12 +1079,14 @@ export class EmpresaMeComponent implements OnInit {
         id_tipo_contacto: contacto.id_tipo_contacto,
         nombre: contacto.nombre,
         telefono: contacto.telefono || '',
-        datos: contacto.datos || {
-          pagina_web: '',
-          correo: '',
-          redes_sociales: '',
-          direccion: '',
-        },
+        datos: contacto.datos
+          ? { ...contacto.datos }
+          : {
+              pagina_web: '',
+              correo: '',
+              redes_sociales: '',
+              direccion: '',
+            },
         direccion: contacto.direccion || '',
         id_servicio_polo: contacto.id_servicio_polo,
       };
@@ -1052,9 +1106,14 @@ export class EmpresaMeComponent implements OnInit {
         id_servicio_polo: 1,
       };
     }
+
     this.showContactoForm = true;
     this.onTipoContactoChange();
-    this.saveInitialFormState('contacto', this.contactoForm);
+
+    // 🔧 IMPORTANTE: Guardar estado después de todas las configuraciones
+    setTimeout(() => {
+      this.saveInitialFormState('contacto', this.contactoForm);
+    }, 0);
   }
 
   onTipoContactoChange(): void {
@@ -1073,9 +1132,6 @@ export class EmpresaMeComponent implements OnInit {
     } else {
       this.contactoForm.datos = {};
     }
-
-    // Actualizar detección de cambios
-    this.onFormChange('contacto');
   }
 
   onSubmitContacto(): void {
@@ -1145,8 +1201,6 @@ export class EmpresaMeComponent implements OnInit {
     if (this.esTipoComercial()) {
       this.contactoForm.datos.direccion = this.contactoForm.direccion;
     }
-    // Actualizar detección de cambios
-    this.onFormChange('contacto');
   }
 
   deleteContacto(id: number): void {
@@ -1297,12 +1351,12 @@ export class EmpresaMeComponent implements OnInit {
     return obj && Object.keys(obj).length > 0;
   }
 
-  // 🔥 Toggle para mostrar/ocultar detalles de errores
+  // Toggle para mostrar/ocultar detalles de errores
   toggleErrorDetails(): void {
     this.showErrorDetails = !this.showErrorDetails;
   }
 
-  // 🔥 Obtener el número total de errores
+  // Obtener el número total de errores
   getTotalErrors(): number {
     return Object.values(this.formErrors).reduce(
       (total, errors) => total + errors.length,
@@ -1310,7 +1364,7 @@ export class EmpresaMeComponent implements OnInit {
     );
   }
 
-  // 🔥 Obtener errores por tipo
+  // Obtener errores por tipo
   getErrorsByType(type: FormError['type']): FormError[] {
     const allErrors: FormError[] = [];
     Object.values(this.formErrors).forEach((errors) => {
@@ -1325,7 +1379,7 @@ export class EmpresaMeComponent implements OnInit {
 
   // Método para cerrar el modal
   onPasswordModalClose(): void {
-    this.closeForm('password');
+    this.cancelForm('password');
   }
 
   // Método para confirmar el cambio de contraseña
