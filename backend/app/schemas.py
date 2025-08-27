@@ -1,16 +1,15 @@
 #app/schemas.py
 from pydantic import BaseModel, Field, EmailStr, field_validator
-from uuid import UUID  # Usamos UUID
+from uuid import UUID
 from datetime import date
 from typing import Optional, List, Dict
 import re
 
 PASSWORD_REGEX = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$'
 
-
-# ──────────────────────────────────────────────────────────
-# DTOs de autenticación
-# ──────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DE AUTENTICACIÓN
+# ═══════════════════════════════════════════════════════════════════
 
 class UserLogin(BaseModel):
     identifier: str = Field(
@@ -24,7 +23,6 @@ class UserLogin(BaseModel):
 
     class Config:
         from_attributes = True
-
 
 class UserRegister(BaseModel):
     nombre: str = Field(
@@ -46,7 +44,6 @@ class UserRegister(BaseModel):
         ..., gt=0,
         description="CUIL numérico positivo"
     )
-   
 
     @field_validator('password')
     def password_complexity(cls, v: str) -> str:
@@ -60,7 +57,6 @@ class UserRegister(BaseModel):
 
     class Config:
         from_attributes = True
-        
 
 class Token(BaseModel):
     access_token: str
@@ -70,14 +66,18 @@ class Token(BaseModel):
     class Config:
            from_attributes = True
 
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DE RECUPERACIÓN DE CONTRASEÑA
+# ═══════════════════════════════════════════════════════════════════
+
 class PasswordResetRequest(BaseModel):
     email: EmailStr = Field(
         ..., max_length=255,
         description="Email registrado"
     )
+    
     class Config:
         from_attributes = True
-
 
 class PasswordResetConfirm(BaseModel):
     token: str = Field(
@@ -104,10 +104,41 @@ class PasswordResetConfirm(BaseModel):
     class Config:
         from_attributes = True
 
+class PasswordResetConfirmSecure(BaseModel):
+    """Schema para confirmación segura de reset (requiere contraseña actual y confirmación)"""
+    token: str = Field(..., description="Token de recuperación válido")
+    current_password: str = Field(..., min_length=1, description="Contraseña actual del usuario")
+    new_password: str = Field(
+        ..., min_length=8, max_length=128,
+        description="Nueva contraseña (8-128 caracteres, mayúscula, minúscula, dígito)"
+    )
+    confirm_password: str = Field(
+        ..., min_length=8, max_length=128,
+        description="Confirmar nueva contraseña (debe coincidir con new_password)"
+    )
 
+    @field_validator('new_password')
+    def password_complexity(cls, v: str) -> str:
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un dígito')
+        return v
+
+    @field_validator('confirm_password')
+    def passwords_match(cls, v, info):
+        """Validar que las contraseñas coincidan"""
+        if 'new_password' in info.data and v != info.data['new_password']:
+            raise ValueError('Las contraseñas no coinciden')
+        return v
+
+    class Config:
+        from_attributes = True
 
 # ═══════════════════════════════════════════════════════════════════
-# SCHEMAS PARA TIPOS - Agregar al final de tu archivo schemas.py
+# SCHEMAS DE TIPOS/CATÁLOGOS
 # ═══════════════════════════════════════════════════════════════════
 
 class TipoVehiculoOut(BaseModel):
@@ -130,16 +161,13 @@ class TipoContactoOut(BaseModel):
 
     class Config:
         from_attributes = True
+
 class TipoServicioPoloOut(BaseModel):
     id_tipo_servicio_polo: int
     tipo: str
 
     class Config:
         from_attributes = True
-
-# ──────────────────────────────────────────────────────────
-# admin_polo DTOs
-# ──────────────────────────────────────────────────────────
 
 class RolOut(BaseModel):
     id_rol: int
@@ -148,19 +176,21 @@ class RolOut(BaseModel):
     class Config:
            from_attributes = True
 
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DE USUARIOS
+# ═══════════════════════════════════════════════════════════════════
 
 class UserOut(BaseModel):
-    id_usuario: UUID  # Cambio a UUID
+    id_usuario: UUID
     email: EmailStr
     nombre: str
-    estado: bool  # Cambio a booleano
+    estado: bool
     cuil: int
     fecha_registro: date
     roles: List[RolOut]
 
     class Config:
            from_attributes = True
-
 
 class UserCreate(BaseModel):
     nombre: str = Field(
@@ -183,9 +213,9 @@ class UserCreate(BaseModel):
         ..., gt=0,
         description="ID del rol a asignar (>0)"
     )
+    
     class Config:
         from_attributes = True
-
 
 class UserUpdate(BaseModel):
     password: Optional[str] = Field(
@@ -212,7 +242,6 @@ class UserUpdate(BaseModel):
     class Config:
         from_attributes = True
 
-
 class UserUpdateCompany(BaseModel):
     password: Optional[str] = Field(
         None, min_length=8, max_length=128,
@@ -234,22 +263,21 @@ class UserUpdateCompany(BaseModel):
     class Config:
         from_attributes = True
 
-# ──────────────────────────────────────────────────────────
-# admin_polo: Empresas
-# ──────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DE EMPRESAS
+# ═══════════════════════════════════════════════════════════════════
 
 class EmpresaOut(BaseModel):
     cuil: int
     nombre: str
     rubro: str
     cant_empleados: int
-    observaciones: Optional[str]
+    observaciones: Optional[str] = None
     fecha_ingreso: date
     horario_trabajo: str
 
     class Config:
            from_attributes = True
-
 
 class EmpresaCreate(BaseModel):
     cuil: int
@@ -263,176 +291,13 @@ class EmpresaCreate(BaseModel):
     class Config:
            from_attributes = True
 
-
 class EmpresaAdminUpdate(BaseModel):
-    """
-    Solo admin_polo puede tocar nombre y rubro
-    """
+    """Solo admin_polo puede tocar nombre y rubro"""
     nombre: Optional[str]
     rubro: Optional[str]
 
     class Config:
            from_attributes = True
-
-# ──────────────────────────────────────────────────────────
-# admin_polo: Servicios Polo
-# ──────────────────────────────────────────────────────────
-
-class ServicioPoloCreate(BaseModel):
-    nombre: str
-    horario: Optional[str]
-    datos: Optional[dict]
-    propietario: Optional[str]
-    id_tipo_servicio_polo: Optional[int]
-    cuil: int  # Este es el campo nuevo que relaciona con la empresa
-
-    class Config:
-        from_attributes = True
-
-
-class ServicioPoloOut(BaseModel):
-    id_servicio_polo: int
-    nombre: str
-    horario: Optional[str]
-    datos: Optional[dict]
-    propietario: Optional[str]
-    id_tipo_servicio_polo: Optional[int]
-    cuil: int  # Incluimos el cuil para la respuesta
-
-    class Config:
-        from_attributes = True
-
-
-class LoteCreate(BaseModel):
-    dueno: str
-    lote: int
-    manzana: int
-    id_servicio_polo: int  # Esto debe ser el ID del servicio polo al cual se le asigna el lote
-
-    class Config:
-        from_attributes = True
-
-
-class LoteOut(BaseModel):
-    id_lotes: int
-    dueno: str
-    lote: int
-    manzana: int
-    id_servicio_polo: int
-
-    class Config:
-        from_attributes = True
-
-
-# ──────────────────────────────────────────────────────────────────────────
-# Sub-entidades: Vehículos, Contactos, Servicios para ADMINS EMPRESAS
-# ──────────────────────────────────────────────────────────────────────────
-
-## Vehículos
-class VehiculoOut(BaseModel):
-    id_vehiculo: int
-    id_tipo_vehiculo: int           # QUITA Optional
-    horarios: str                   # QUITA Optional
-    frecuencia: str                 # QUITA Optional
-    datos: dict                     # QUITA Optional
-    tipo_vehiculo: Optional[TipoVehiculoOut] = None  # <- pero esto espera una relación, no un string
-
-    class Config:
-        from_attributes = True
-
-
-class VehiculoCreate(BaseModel):
-    id_tipo_vehiculo: int  # QUITA Optional
-    horarios: str          # QUITA Optional
-    frecuencia: str        # QUITA Optional
-    datos: dict = {}       # QUITA Optional, agrega valor por defecto
-
-    class Config:
-        from_attributes = True
-
-
-class VehiculoUpdate(BaseModel):
-    id_vehiculo: Optional[int]
-    id_tipo_vehiculo: Optional[int]
-    horarios: Optional[str]
-    frecuencia: Optional[str]
-    datos: Optional[Dict]
-
-    class Config:
-        from_attributes = True
-
-
-## Servicios
-
-class ServicioCreate(BaseModel):
-    datos: Optional[dict] = None  # Datos adicionales
-    id_tipo_servicio: int  # Referencia al tipo de servicio
-
-    class Config:
-        from_attributes = True
-
-
-class ServicioUpdate(BaseModel):
-    datos: Optional[dict]
-    id_tipo_servicio: Optional[int]
-
-    class Config:
-        from_attributes = True
-
-
-class ServicioOut(BaseModel):
-    id_servicio: int
-    datos: Optional[dict]
-    id_tipo_servicio: int
-
-    class Config:
-        from_attributes = True
-
-
-
-## Contactos
-
-class ContactoOut(BaseModel):
-    id_contacto: int
-    id_tipo_contacto: Optional[int]
-    nombre: Optional[str]
-    telefono: Optional[str]
-    datos: Optional[dict]
-    direccion: Optional[str]
-    id_servicio_polo: Optional[int]
-
-    class Config:
-        from_attributes = True
-
-
-class ContactoCreate(BaseModel):
-    id_tipo_contacto: Optional[int]
-    nombre: Optional[str]
-    telefono: Optional[str]
-    datos: Optional[Dict]
-    direccion: Optional[str]
-    id_servicio_polo: int
-
-    class Config:
-        from_attributes = True
-
-
-class ContactoUpdate(BaseModel):
-    id_contacto: Optional[int]
-    id_tipo_contacto: Optional[int]
-    nombre: Optional[str]
-    telefono: Optional[str]
-    datos: Optional[Dict]
-    direccion: Optional[str]
-    id_servicio_polo: Optional[int]
-
-    class Config:
-        from_attributes = True
-
-
-# ──────────────────────────────────────────────────────────
-# Esquemas para la actualización de la empresa por el admin_empresa
-# ──────────────────────────────────────────────────────────
 
 class EmpresaSelfUpdate(BaseModel):
     cant_empleados: Optional[int]
@@ -450,82 +315,17 @@ class EmpresaSelfOut(BaseModel):
     class Config:
         from_attributes = True
 
-# ──────────────────────────────────────────────────────────
-# Esquema para los detalles completos de la empresa
-# ──────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DE SERVICIOS DEL POLO
+# ═══════════════════════════════════════════════════════════════════
 
-class EmpresaDetailOut(BaseModel):
-    cuil: int
-    nombre: str
-    rubro: str
-    cant_empleados: int
-    observaciones: Optional[str]
-    fecha_ingreso: date
-    horario_trabajo: str
-
-    # Relaciones de la empresa
-    vehiculos: List[VehiculoOut]
-    contactos: List[ContactoOut]
-    servicios_polo: List[ServicioPoloOut]
-    servicios: List[ServicioOut]
-
-    class Config:
-        from_attributes = True
-
-# ──────────────────────────────────────────────────────────
-# Esquemas para la salida de detalles de la empresa para el público
-
-class ContactoOutPublic(BaseModel):
-    empresa_nombre: str # Nombre de la empresa asociada
-    nombre: Optional[str]
-    telefono: Optional[str]
-    datos: Optional[Dict]
-    direccion: Optional[str]
-    tipo_contacto: Optional[str]  # Tipo de contacto
-    class Config:
-        from_attributes = True
-
-class LoteOutPublic(BaseModel):
-    empresa_nombre: str # Nombre de la empresa asociada
-    lote: int
-    manzana: int
-    class Config:
-        from_attributes = True
-
-class ServicioPoloOutPublic(BaseModel):
+class ServicioPoloCreate(BaseModel):
     nombre: str
     horario: Optional[str]
-    tipo_servicio_polo: Optional[str]  # Tipo de servicio del Polo
-    lotes: List[LoteOut]  # Lotes asociados al servicio del polo
-
-    class Config:
-        from_attributes = True
-
-class EmpresaDetailOutPublic(BaseModel):
-    nombre: str
-    rubro: str
-    fecha_ingreso: date
-    horario_trabajo: str
-    contactos: List[ContactoOutPublic]  # Contactos de la empresa
-    servicios_polo: List[ServicioPoloOutPublic]  # Servicios Polo asociados a la empresa
-
-    class Config:
-        from_attributes = True
-
-    
-
-
-
-    # En schemas.py, asegúrate de tener estos schemas:
-
-class EmpresaOut(BaseModel):
+    datos: Optional[dict]
+    propietario: Optional[str]
+    id_tipo_servicio_polo: Optional[int]
     cuil: int
-    nombre: str
-    rubro: str
-    cant_empleados: int
-    observaciones: Optional[str] = None
-    fecha_ingreso: date
-    horario_trabajo: str
 
     class Config:
         from_attributes = True
@@ -543,35 +343,186 @@ class ServicioPoloOut(BaseModel):
     class Config:
         from_attributes = True
 
-# En schemas.py
-    class LoteCreate(BaseModel):
-        dueno: str
-        lote: int
-        manzana: int
-        id_servicio_polo: Optional[int] = None  # HACER OPCIONAL
-
-    class Config:
-        from_attributes = True
-
-# UserOut probablemente ya lo tienes, pero si no:
-class UserOut(BaseModel):
-    id_usuario: UUID
-    email: str
+class ServicioPoloOutPublic(BaseModel):
     nombre: str
-    estado: bool
-    fecha_registro: date
-    cuil: int
+    horario: Optional[str]
+    tipo_servicio_polo: Optional[str]
+    lotes: List["LoteOut"]
 
     class Config:
         from_attributes = True
 
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DE LOTES
+# ═══════════════════════════════════════════════════════════════════
 
+class LoteCreate(BaseModel):
+    dueno: str
+    lote: int
+    manzana: int
+    id_servicio_polo: Optional[int] = None
 
-# ===== AGREGAR ESTOS SCHEMAS EN schemas.py =====
+    class Config:
+        from_attributes = True
 
-# ──────────────────────────────────────────────────────────
-# Schemas específicos para el Polo (usando la misma tabla empresas)
-# ──────────────────────────────────────────────────────────
+class LoteOut(BaseModel):
+    id_lotes: int
+    dueno: str
+    lote: int
+    manzana: int
+    id_servicio_polo: int
+
+    class Config:
+        from_attributes = True
+
+class LoteOutPublic(BaseModel):
+    empresa_nombre: str
+    lote: int
+    manzana: int
+    
+    class Config:
+        from_attributes = True
+
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DE VEHÍCULOS
+# ═══════════════════════════════════════════════════════════════════
+
+class VehiculoOut(BaseModel):
+    id_vehiculo: int
+    id_tipo_vehiculo: int
+    horarios: str
+    frecuencia: str
+    datos: dict
+    tipo_vehiculo: Optional[TipoVehiculoOut] = None
+
+    class Config:
+        from_attributes = True
+
+class VehiculoCreate(BaseModel):
+    id_tipo_vehiculo: int
+    horarios: str
+    frecuencia: str
+    datos: dict = {}
+
+    class Config:
+        from_attributes = True
+
+class VehiculoUpdate(BaseModel):
+    id_vehiculo: Optional[int]
+    id_tipo_vehiculo: Optional[int]
+    horarios: Optional[str]
+    frecuencia: Optional[str]
+    datos: Optional[Dict]
+
+    class Config:
+        from_attributes = True
+
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DE SERVICIOS (EMPRESARIALES)
+# ═══════════════════════════════════════════════════════════════════
+
+class ServicioCreate(BaseModel):
+    datos: Optional[dict] = None
+    id_tipo_servicio: int
+
+    class Config:
+        from_attributes = True
+
+class ServicioUpdate(BaseModel):
+    datos: Optional[dict]
+    id_tipo_servicio: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+class ServicioOut(BaseModel):
+    id_servicio: int
+    datos: Optional[dict]
+    id_tipo_servicio: int
+
+    class Config:
+        from_attributes = True
+
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DE CONTACTOS
+# ═══════════════════════════════════════════════════════════════════
+
+class ContactoOut(BaseModel):
+    id_contacto: int
+    id_tipo_contacto: Optional[int]
+    nombre: Optional[str]
+    telefono: Optional[str]
+    datos: Optional[dict]
+    direccion: Optional[str]
+    id_servicio_polo: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+class ContactoCreate(BaseModel):
+    id_tipo_contacto: Optional[int]
+    nombre: Optional[str]
+    telefono: Optional[str]
+    datos: Optional[Dict]
+    direccion: Optional[str]
+    id_servicio_polo: int
+
+    class Config:
+        from_attributes = True
+
+class ContactoUpdate(BaseModel):
+    id_contacto: Optional[int]
+    id_tipo_contacto: Optional[int]
+    nombre: Optional[str]
+    telefono: Optional[str]
+    datos: Optional[Dict]
+    direccion: Optional[str]
+    id_servicio_polo: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+class ContactoOutPublic(BaseModel):
+    empresa_nombre: str
+    nombre: Optional[str]
+    telefono: Optional[str]
+    datos: Optional[Dict]
+    direccion: Optional[str]
+    tipo_contacto: Optional[str]
+    
+    class Config:
+        from_attributes = True
+
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DETALLADOS Y COMPLEJOS
+# ═══════════════════════════════════════════════════════════════════
+
+class EmpresaDetailOut(BaseModel):
+    cuil: int
+    nombre: str
+    rubro: str
+    cant_empleados: int
+    observaciones: Optional[str]
+    fecha_ingreso: date
+    horario_trabajo: str
+    vehiculos: List[VehiculoOut]
+    contactos: List[ContactoOut]
+    servicios_polo: List[ServicioPoloOut]
+    servicios: List[ServicioOut]
+
+    class Config:
+        from_attributes = True
+
+class EmpresaDetailOutPublic(BaseModel):
+    nombre: str
+    rubro: str
+    fecha_ingreso: date
+    horario_trabajo: str
+    contactos: List[ContactoOutPublic]
+    servicios_polo: List[ServicioPoloOutPublic]
+
+    class Config:
+        from_attributes = True
 
 class PoloSelfUpdate(BaseModel):
     """Schema para actualizar datos del polo por sí mismo"""
@@ -594,10 +545,10 @@ class PoloDetailOut(BaseModel):
     observaciones: Optional[str] = None
     
     # Listas de entidades que gestiona el polo
-    empresas: List[EmpresaOut]              # Todas las empresas registradas
-    servicios_polo: List[ServicioPoloOut]   # Todos los servicios del polo
-    usuarios: List[UserOut]                 # Todos los usuarios del sistema
-    lotes: List[LoteOut]                    # Todos los lotes
+    empresas: List[EmpresaOut]
+    servicios_polo: List[ServicioPoloOut]
+    usuarios: List[UserOut]
+    lotes: List[LoteOut]
     
     class Config:
         from_attributes = True

@@ -12,7 +12,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import List, Dict, Optional, Set
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from dotenv import load_dotenv
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -23,40 +23,92 @@ from fastapi import HTTPException
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
 from app.config import SECRET_KEY, ALGORITHM
-from app.models import Empresa
-import json
-from datetime import date
+from app import models
+from app.models import Empresa, PasswordHistory
 
-# === Cache en memoria para tokens usados ===
-# En producción podrías usar Redis, pero para simplificar usamos memoria
+# ═══════════════════════════════════════════════════════════════════
+# CONFIGURACIÓN Y CONSTANTES
+# ═══════════════════════════════════════════════════════════════════
+
+# Cache en memoria para tokens usados (en producción usar Redis)
 USED_RESET_TOKENS: Set[str] = set()
 
-# === Cargar el archivo .env desde /backend ===
+# Cargar variables de entorno
 env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-# === Utilidades de autenticación =============================================
-
+# Configuración de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# Configurar API Key de Google Gemini
+api_key = os.getenv("GOOGLE_API_KEY")
+genai.configure(api_key=api_key)
+
+# Configuración del modelo Gemini
+model = genai.GenerativeModel(
+    model_name='gemini-1.5-flash',
+    generation_config=GenerationConfig(
+        temperature=0.3,
+        top_p=0.9,
+        max_output_tokens=1024,
+        stop_sequences=None,
+        candidate_count=1
+    )
+)
+
+# ═══════════════════════════════════════════════════════════════════
+# UTILIDADES DE AUTENTICACIÓN Y CONTRASEÑAS
+# ═══════════════════════════════════════════════════════════════════
+
 def hash_password(password: str) -> str:
+    """Hashear contraseña usando bcrypt"""
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verificar contraseña contra su hash"""
     return pwd_context.verify(plain_password, hashed_password)
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """Crear token JWT de acceso"""
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
+def generate_random_password(length: int = 12) -> str:
+    """Generar contraseña aleatoria segura"""
+    # Definir los caracteres permitidos
+    lowercase = string.ascii_lowercase
+    uppercase = string.ascii_uppercase  
+    digits = string.digits
+    special_chars = "!@#$%&*"
+    
+    # Asegurar que tenga al menos uno de cada tipo
+    password = [
+        secrets.choice(lowercase),
+        secrets.choice(uppercase),
+        secrets.choice(digits),
+        secrets.choice(special_chars)
+    ]
+    
+    # Completar el resto de la longitud
+    all_chars = lowercase + uppercase + digits + special_chars
+    for _ in range(length - 4):
+        password.append(secrets.choice(all_chars))
+    
+    # Mezclar la contraseña
+    secrets.SystemRandom().shuffle(password)
+    
+    return ''.join(password)
+
+# ═══════════════════════════════════════════════════════════════════
+# GESTIÓN DE TOKENS DE RECUPERACIÓN
+# ═══════════════════════════════════════════════════════════════════
+
 def create_password_reset_token(email: str, expires_minutes: int = 60) -> str:
-    """
-    Crear token de recuperación de contraseña con ID único
-    """
+    """Crear token de recuperación de contraseña con ID único"""
     now = datetime.utcnow()
     exp = now + timedelta(minutes=expires_minutes)
     
@@ -80,17 +132,12 @@ def mark_token_as_used(token_id: str) -> None:
     """Marcar un token como usado"""
     USED_RESET_TOKENS.add(token_id)
     
-    # Opcional: Limpiar tokens viejos para no llenar la memoria
-    # En un escenario real, podrías implementar TTL o limpieza periódica
+    # Limpiar tokens viejos para no llenar la memoria
     if len(USED_RESET_TOKENS) > 1000:  # Límite arbitrario
-        # Limpiar todos (en producción sería más inteligente)
         USED_RESET_TOKENS.clear()
 
 def verify_password_reset_token(token: str) -> str:
-    """
-    Verificar token de recuperación y devolver el email
-    Ahora incluye verificación de uso único
-    """
+    """Verificar token de recuperación y devolver el email (sin consumir)"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         
@@ -102,7 +149,7 @@ def verify_password_reset_token(token: str) -> str:
             )
         
         email = payload.get("sub")
-        token_id = payload.get("jti")  # Obtener el ID único del token
+        token_id = payload.get("jti")
         
         if not email:
             raise HTTPException(
@@ -116,7 +163,7 @@ def verify_password_reset_token(token: str) -> str:
                 detail="Token inválido - falta identificador único"
             )
         
-        # VERIFICAR SI EL TOKEN YA FUE USADO
+        # Verificar si el token ya fue usado
         if is_token_already_used(token_id):
             raise HTTPException(
                 status_code=400,
@@ -140,10 +187,7 @@ def verify_password_reset_token(token: str) -> str:
         )
 
 def consume_password_reset_token(token: str) -> str:
-    """
-    Verificar token Y marcarlo como usado en una sola operación
-    Usar esto en el endpoint de confirmación
-    """
+    """Verificar token Y marcarlo como usado en una sola operación"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         
@@ -164,7 +208,7 @@ def consume_password_reset_token(token: str) -> str:
                 headers={"X-Error-Type": "used"}
             )
         
-        # MARCAR COMO USADO INMEDIATAMENTE
+        # Marcar como usado inmediatamente
         mark_token_as_used(token_id)
         
         return email
@@ -182,11 +226,8 @@ def consume_password_reset_token(token: str) -> str:
             headers={"X-Error-Type": "invalid"}
         )
 
-# Función adicional para verificar token sin decodificar (opcional)
 def check_token_validity(token: str) -> dict:
-    """
-    Verificar si un token es válido sin hacer operaciones críticas
-    """
+    """Verificar si un token es válido sin hacer operaciones críticas"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         token_id = payload.get("jti")
@@ -219,61 +260,138 @@ def check_token_validity(token: str) -> dict:
         }
 
 def cleanup_used_tokens():
-    """
-    Limpiar cache de tokens usados
-    Llamar ocasionalmente para liberar memoria
-    """
+    """Limpiar cache de tokens usados"""
     global USED_RESET_TOKENS
     USED_RESET_TOKENS.clear()
-    print(f"🧹 Cache de tokens usados limpiado")
+    print("Cache de tokens usados limpiado")
 
-# Función para debug/monitoring
 def get_used_tokens_count() -> int:
     """Obtener cantidad de tokens usados en memoria"""
     return len(USED_RESET_TOKENS)
 
-def generate_random_password(length: int = 12) -> str:
-    """
-    Genera una contraseña aleatoria segura
-    """
-    # Definir los caracteres permitidos
-    lowercase = string.ascii_lowercase
-    uppercase = string.ascii_uppercase  
-    digits = string.digits
-    special_chars = "!@#$%&*"
-    
-    # Asegurar que tenga al menos uno de cada tipo
-    password = [
-        secrets.choice(lowercase),
-        secrets.choice(uppercase),
-        secrets.choice(digits),
-        secrets.choice(special_chars)
-    ]
-    
-    # Completar el resto de la longitud
-    all_chars = lowercase + uppercase + digits + special_chars
-    for _ in range(length - 4):
-        password.append(secrets.choice(all_chars))
-    
-    # Mezclar la contraseña
-    secrets.SystemRandom().shuffle(password)
-    
-    return ''.join(password)
+# ═══════════════════════════════════════════════════════════════════
+# HISTORIAL DE CONTRASEÑAS
+# ═══════════════════════════════════════════════════════════════════
 
+def save_password_to_history(db: Session, user_id: str, password_hash: str) -> None:
+    """Guarda una contraseña en el historial del usuario"""
+    password_entry = PasswordHistory(
+        id_usuario=user_id,
+        password_hash=password_hash,
+        created_at=date.today()
+    )
+    db.add(password_entry)
+    
+    # Mantener solo las últimas 5 contraseñas para no llenar la BD
+    old_passwords = (
+        db.query(PasswordHistory)
+        .filter(PasswordHistory.id_usuario == user_id)
+        .order_by(PasswordHistory.created_at.desc())
+        .offset(5)
+        .all()
+    )
+    
+    for old_pwd in old_passwords:
+        db.delete(old_pwd)
+
+def is_password_reused(db: Session, user_id: str, new_password: str) -> bool:
+    """Verifica si la nueva contraseña ya fue utilizada anteriormente"""
+    # Obtener historial de contraseñas del usuario (últimas 5)
+    password_history = (
+        db.query(PasswordHistory)
+        .filter(PasswordHistory.id_usuario == user_id)
+        .order_by(PasswordHistory.created_at.desc())
+        .limit(5)
+        .all()
+    )
+    
+    # Verificar si alguna coincide con la nueva contraseña
+    for pwd_entry in password_history:
+        if verify_password(new_password, pwd_entry.password_hash):
+            return True
+    
+    # También verificar contra la contraseña actual del usuario
+    current_user = db.query(models.Usuario).filter(models.Usuario.id_usuario == user_id).first()
+    if current_user and verify_password(new_password, current_user.contrasena):
+        return True
+    
+    return False
+
+def secure_password_reset_confirm(
+    db: Session,
+    token: str,
+    current_password: str,
+    new_password: str,
+    confirm_password: str
+) -> dict:
+    """Confirmación segura de reset con validación completa"""
+    try:
+        # 1. Verificar que las contraseñas nuevas coincidan
+        if new_password != confirm_password:
+            raise HTTPException(
+                status_code=400,
+                detail="Las contraseñas nuevas no coinciden"
+            )
+        
+        # 2. Verificar y consumir token
+        email = consume_password_reset_token(token)
+        
+        # 3. Obtener usuario
+        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        # 4. Verificar contraseña actual
+        if not verify_password(current_password, user.contrasena):
+            raise HTTPException(
+                status_code=400,
+                detail="La contraseña actual es incorrecta"
+            )
+        
+        # 5. Verificar que no esté reutilizando contraseña
+        if is_password_reused(db, user.id_usuario, new_password):
+            raise HTTPException(
+                status_code=400,
+                detail="No puedes usar una contraseña que ya hayas utilizado anteriormente. Elige una contraseña diferente."
+            )
+        
+        # 6. Guardar contraseña actual en historial
+        save_password_to_history(db, user.id_usuario, user.contrasena)
+        
+        # 7. Actualizar contraseña
+        user.contrasena = hash_password(new_password)
+        db.commit()
+        db.refresh(user)
+        
+        return {
+            "success": True,
+            "message": "Contraseña actualizada correctamente. Este enlace ya no es válido."
+        }
+        
+    except HTTPException as e:
+        db.rollback()
+        raise e
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno al actualizar contraseña: {str(e)}"
+        )
+
+# ═══════════════════════════════════════════════════════════════════
+# ENVÍO DE EMAILS
+# ═══════════════════════════════════════════════════════════════════
 
 def send_welcome_email(email: str, nombre: str, username: str, password: str) -> bool:
-    """
-    Envía email de bienvenida con credenciales
-    """
+    """Envía email de bienvenida con credenciales"""
     try:
-        # CAMBIAR ESTAS LÍNEAS para usar tus variables existentes:
         smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        smtp_user = os.getenv("EMAIL_USER")      # ← CAMBIO: usar EMAIL_USER
-        smtp_password = os.getenv("EMAIL_PASS")  # ← CAMBIO: usar EMAIL_PASS
+        smtp_user = os.getenv("EMAIL_USER")
+        smtp_password = os.getenv("EMAIL_PASS")
         
         if not smtp_user or not smtp_password:
-            print(" Configuración SMTP no encontrada")
+            print("Configuración SMTP no encontrada")
             return False
             
         # Crear el mensaje
@@ -314,35 +432,24 @@ Administración Polo 52
         server.sendmail(smtp_user, email, text)
         server.quit()
         
-        print(f" Email enviado exitosamente a {email}")
+        print(f"Email enviado exitosamente a {email}")
         return True
         
     except Exception as e:
-        print(f" Error enviando email: {str(e)}")
+        print(f"Error enviando email: {str(e)}")
         return False
-# =================================================================================
 
-# === Configurar API Key ===
-api_key = os.getenv("GOOGLE_API_KEY")
-genai.configure(api_key=api_key)
-
-# === CONFIGURACIÓN SIMPLE Y ROBUSTA ===
-model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash',
-    generation_config=GenerationConfig(
-        temperature=0.3,
-        top_p=0.9,
-        max_output_tokens=1024,
-        stop_sequences=None,
-        candidate_count=1
-    )
-)
+# ═══════════════════════════════════════════════════════════════════
+# UTILIDADES DEL CHATBOT CON GEMINI
+# ═══════════════════════════════════════════════════════════════════
 
 def normalize_text(text: str) -> str:
+    """Normalizar texto eliminando acentos y convirtiendo a minúsculas"""
     normalized = ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
     return normalized.lower().strip()
 
 def execute_sql_query(db: Session, query: str) -> List[Dict]:
+    """Ejecutar consulta SQL de forma segura (solo SELECT)"""
     try:
         if not query.strip().lower().startswith("select"):
             print(f"Consulta no permitida: {query}")
@@ -357,6 +464,7 @@ def execute_sql_query(db: Session, query: str) -> List[Dict]:
         return [{"error": f"Error al ejecutar la consulta: {str(e)}"}]
 
 def get_database_schema(db: Session) -> str:
+    """Obtener esquema de la base de datos para el chatbot"""
     inspector = inspect(db.bind)
     schema = "La base de datos tiene las siguientes tablas, columnas y relaciones:\n"
     for table_name in inspector.get_table_names():
@@ -376,11 +484,13 @@ def get_database_schema(db: Session) -> str:
     return schema
 
 def custom_json_serializer(obj):
+    """Serializar objetos date para JSON"""
     if isinstance(obj, date):
         return obj.isoformat()
     raise TypeError(f"Type {type(obj)} not serializable")
 
 def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] = None):
+    """Generar respuesta del chatbot usando Gemini AI"""
     try:
         user_input = normalize_text(message)
         chat_history = ""
@@ -393,7 +503,7 @@ def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] =
 
         db_schema = get_database_schema(db)
 
-        # === PROMPT 100% IA - AGRESIVO EN INTERPRETACIÓN ===
+        # Prompt para interpretación de la consulta
         intent_prompt = f"""
 Eres POLO, asistente del Parque Industrial Polo 52. 
 
@@ -419,7 +529,6 @@ Tu IA debe entender consultas informales, vagas o con errores de escritura. Inte
 JSON:"""
 
         intent_response = model.generate_content(intent_prompt)
-
         
         try:
             clean_response = intent_response.text.strip()
@@ -441,28 +550,27 @@ JSON:"""
         results_text = json.dumps(db_results, ensure_ascii=False, default=custom_json_serializer)
         input_text = f"Resultados de la consulta:\n{results_text}\nPregunta:\n{message}"
 
-        # === RESPUESTA NATURAL Y DIRECTA ===
+        # Prompt para respuesta natural
         final_prompt = f"""
-    Eres POLO, asistente conversacional del Parque Industrial Polo 52.
+Eres POLO, asistente conversacional del Parque Industrial Polo 52.
 
-    Información disponible:
-    {input_text}
+Información disponible:
+{input_text}
 
-    Historial:
-    {chat_history}
+Historial:
+{chat_history}
 
-    INSTRUCCIONES IMPORTANTES:
-    - Responde de forma natural, directa y conversacional.
-    - No hagas respuestas muy extensas, se mas directo
-    - Si hay más de 6 resultados, di cuántos encontraste y pide más especificidad
-    - Si es una lista extensa (mas de 6 items) deci cantidad de resultados pero no expliques cada uno, pedi mas informacion asi filtras resulatdos
-    - Si los resultados están vacíos [] o hay error, responde de forma amigable explicando que no encontraste información
-    - Si hay 1-6 resultados, muéstralos todos claramente
-    - Nunca muestres CUIL ni ID de empresas
-    - Nunca uses asteriscos (*) 
+INSTRUCCIONES IMPORTANTES:
+- Responde de forma natural, directa y conversacional.
+- No hagas respuestas muy extensas, se más directo
+- Si hay más de 6 resultados, di cuántos encontraste y pide más especificidad
+- Si es una lista extensa (más de 6 items) deci cantidad de resultados pero no expliques cada uno, pedi más información así filtras resultados
+- Si los resultados están vacíos [] o hay error, responde de forma amigable explicando que no encontraste información
+- Si hay 1-6 resultados, muéstralos todos claramente
+- Nunca muestres CUIL ni ID de empresas
+- Nunca uses asteriscos (*) 
 
-
-    Responde naturalmente:"""
+Responde naturalmente:"""
 
         final_response = model.generate_content(final_prompt)
 
