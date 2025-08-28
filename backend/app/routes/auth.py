@@ -8,7 +8,7 @@ from datetime import date
 from app.config import SessionLocal, SECRET_KEY, ALGORITHM
 from app import models, schemas, services
 from app.models import Usuario
-from app.schemas import PasswordResetRequest, PasswordResetConfirm, PasswordResetConfirmSecure
+from app.schemas import PasswordResetRequest, PasswordResetConfirm, PasswordResetConfirmSecure, ChangePasswordDirect
 from email.mime.text import MIMEText
 import smtplib
 from app.config import settings
@@ -156,12 +156,76 @@ def logout(current_user: models.Usuario = Depends(get_current_user)):
     return {"message": "Sesión cerrada correctamente"}
 
 # ═══════════════════════════════════════════════════════════════════
-# RECUPERACIÓN DE CONTRASEÑA - SOLICITAR
+# CAMBIO DE CONTRASEÑA DIRECTO (USUARIO LOGUEADO)
 # ═══════════════════════════════════════════════════════════════════
 
-@router.post("/password-reset/request", tags=["auth"])
-def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_db)):
-    """Solicitar reset de contraseña con instrucciones claras"""
+@router.post("/change-password-direct", tags=["auth"])
+def change_password_direct(
+    dto: schemas.ChangePasswordDirect,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Cambio directo de contraseña (sin email, requiere estar logueado)
+    """
+    try:
+        # 1. Verificar contraseña actual
+        if not services.verify_password(dto.current_password, current_user.contrasena):
+            raise HTTPException(
+                status_code=400,
+                detail="La contraseña actual es incorrecta"
+            )
+        
+        # 2. Verificar que las contraseñas nuevas coincidan
+        if dto.new_password != dto.confirm_password:
+            raise HTTPException(
+                status_code=400,
+                detail="Las contraseñas nuevas no coinciden"
+            )
+        
+        # 3. Verificar que no esté reutilizando contraseña
+        if services.is_password_reused(db, current_user.id_usuario, dto.new_password):
+            raise HTTPException(
+                status_code=400,
+                detail="No puedes usar una contraseña que ya hayas utilizado anteriormente"
+            )
+        
+        # 4. Guardar contraseña actual en historial
+        services.save_password_to_history(db, current_user.id_usuario, current_user.contrasena)
+        
+        # 5. Actualizar contraseña
+        current_user.contrasena = services.hash_password(dto.new_password)
+        db.commit()
+        db.refresh(current_user)
+        
+        return {
+            "success": True,
+            "message": "Contraseña actualizada correctamente"
+        }
+        
+    except HTTPException as e:
+        db.rollback()
+        return {
+            "success": False,
+            "error": e.detail,
+            "wrong_current": "contraseña actual" in e.detail.lower(),
+            "password_reused": "ya hayas utilizado" in e.detail.lower(),
+            "passwords_mismatch": "no coinciden" in e.detail.lower()
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno al actualizar contraseña: {str(e)}"
+        )
+
+# ═══════════════════════════════════════════════════════════════════
+# RECUPERACIÓN DE CONTRASEÑA VIA EMAIL (USUARIO NO LOGUEADO)
+# ═══════════════════════════════════════════════════════════════════
+
+@router.post("/forgot-password", tags=["auth"])
+def forgot_password(dto: PasswordResetRequest, db: Session = Depends(get_db)):
+    """Solicitar reset de contraseña via email (para usuarios no logueados)"""
     user = db.query(models.Usuario).filter(models.Usuario.email == dto.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Email no registrado")
@@ -173,19 +237,18 @@ def password_reset_request(dto: PasswordResetRequest, db: Session = Depends(get_
         expires_minutes=RESET_TOKEN_EXPIRE_MINUTES
     )
     
-    reset_link = f"http://localhost:4200/password-reset?token={token}"
+    reset_link = f"http://localhost:4200/reset-password?token={token}"
     
     # Email con instrucciones claras
     email_body = f"""
 Hola {user.nombre},
 
-Has solicitado cambiar tu contraseña en el sistema del Parque Industrial Polo 52.
+Has solicitado restablecer tu contraseña en el sistema del Parque Industrial Polo 52.
 
 Para proceder con el cambio, haz clic en el siguiente enlace:
 {reset_link}
 
 INSTRUCCIONES IMPORTANTES:
-• Necesitarás tu contraseña actual para confirmar el cambio
 • Deberás ingresar una nueva contraseña dos veces para confirmar
 • No podrás usar contraseñas que hayas utilizado anteriormente
 • Este enlace expirará en 1 hora por seguridad
@@ -204,7 +267,7 @@ Administración Polo 52
     """
     
     msg = MIMEText(email_body)
-    msg["Subject"] = "Cambio de Contraseña - Polo 52"
+    msg["Subject"] = "Recuperar Contraseña - Polo 52"
     msg["From"] = settings.EMAIL_USER
     msg["To"] = dto.email
     
@@ -217,68 +280,14 @@ Administración Polo 52
         raise HTTPException(status_code=500, detail=f"Error enviando email: {str(e)}")
     
     return {
-        "message": "Se ha enviado un email con instrucciones para cambiar tu contraseña",
+        "message": "Se ha enviado un email con instrucciones para restablecer tu contraseña",
         "expires_in_minutes": RESET_TOKEN_EXPIRE_MINUTES,
         "note": "Revisa tu bandeja de entrada y sigue las instrucciones del email"
     }
 
-@router.post("/password-reset/request-logged-user", tags=["auth"])
-def password_reset_request_logged_user(
-    current_user: models.Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Solicitar reset de contraseña para el usuario logueado"""
-    token = services.create_password_reset_token(current_user.email)
-    reset_link = f"http://localhost:4200/password-reset?token={token}"
-    
-    email_body = f"""
-Hola {current_user.nombre},
-
-Has solicitado cambiar tu contraseña desde tu cuenta en el sistema.
-
-Para proceder con el cambio, haz clic en el siguiente enlace:
-{reset_link}
-
-RECUERDA:
-• Necesitarás tu contraseña actual
-• Deberás confirmar la nueva contraseña dos veces
-• No podrás reutilizar contraseñas anteriores
-• Este enlace expira en 1 hora
-
-Si no solicitaste este cambio, ignora este email.
-
-Saludos,
-Administración Polo 52
-    """
-    
-    msg = MIMEText(email_body)
-    msg["Subject"] = "Cambio de Contraseña Solicitado - Polo 52"
-    msg["From"] = settings.EMAIL_USER
-    msg["To"] = current_user.email
-    
-    try:
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
-            server.send_message(msg)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error enviando email: {str(e)}")
-    
-    return {
-        "message": "Email de cambio de contraseña enviado exitosamente a tu dirección registrada",
-        "email": f"{current_user.email[:3]}***@{current_user.email.split('@')[1]}"
-    }
-
-# ═══════════════════════════════════════════════════════════════════
-# RECUPERACIÓN DE CONTRASEÑA - VERIFICAR Y CONFIRMAR
-# ═══════════════════════════════════════════════════════════════════
-
 @router.post("/password-reset/verify-token", tags=["auth"])
 def verify_reset_token(token: str, db: Session = Depends(get_db)):
-    """
-    Verificar si un token de reset es válido sin hacer cambios
-    Incluye verificación de uso único
-    """
+    """Verificar si un token de reset es válido sin hacer cambios"""
     try:
         email = services.verify_password_reset_token(token)  # Solo verifica, NO consume
         user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
@@ -289,7 +298,7 @@ def verify_reset_token(token: str, db: Session = Depends(get_db)):
         return {
             "valid": True,
             "message": "Token válido",
-            "email": email,  # Devolver email completo para el formulario
+            "email": email,
             "user_name": user.nombre
         }
         
@@ -306,15 +315,11 @@ def password_reset_confirm_secure(
     dto: schemas.PasswordResetConfirmSecure,
     db: Session = Depends(get_db)
 ):
-    """
-    Confirmación segura de reset de contraseña 
-    (requiere token + contraseña actual + nueva contraseña confirmada + no reutilizada)
-    """
+    """Confirmación segura de reset de contraseña via token de email"""
     try:
         result = services.secure_password_reset_confirm(
             db=db,
             token=dto.token,
-            current_password=dto.current_password,
             new_password=dto.new_password,
             confirm_password=dto.confirm_password
         )
@@ -334,55 +339,6 @@ def password_reset_confirm_secure(
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Error interno al actualizar contraseña: {str(e)}"
-        )
-
-@router.post("/password-reset/confirm", tags=["auth"])
-def password_reset_confirm_basic(dto: PasswordResetConfirm, db: Session = Depends(get_db)):
-    """
-    Confirmación básica de reset (solo con token) - LEGACY
-    Mantener para compatibilidad pero se recomienda usar confirm-secure
-    """
-    try:
-        email = services.consume_password_reset_token(dto.token)
-        
-        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        
-        # Verificar que no esté reutilizando contraseña
-        if services.is_password_reused(db, user.id_usuario, dto.new_password):
-            return {
-                "success": False,
-                "error": "No puedes usar una contraseña que ya hayas utilizado anteriormente",
-                "password_reused": True
-            }
-        
-        # Guardar contraseña actual en historial
-        services.save_password_to_history(db, user.id_usuario, user.contrasena)
-        
-        # Actualizar la contraseña
-        user.contrasena = services.hash_password(dto.new_password)
-        db.commit()
-        db.refresh(user)
-        
-        return {
-            "success": True,
-            "message": "Contraseña actualizada correctamente. Este enlace ya no es válido."
-        }
-        
-    except HTTPException as e:
-        db.rollback()
-        return {
-            "success": False,
-            "error": e.detail,
-            "expired": e.status_code == 400 and "expirado" in e.detail.lower(),
-            "used": e.status_code == 400 and "utilizado" in e.detail.lower()
-        }
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=500, 
             detail=f"Error interno al actualizar contraseña: {str(e)}"
         )
 

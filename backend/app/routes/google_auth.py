@@ -144,7 +144,6 @@ async def register_pending_google_user(
     
     return {"message": "Usuario registrado exitosamente", "usuario": new_user}
 
-# ✅ OPCIONAL: Endpoint para logout que también limpia cookies de Google
 @router.post("/logout-google")
 async def logout_google():
     """Logout que también sugiere limpiar sesión de Google"""
