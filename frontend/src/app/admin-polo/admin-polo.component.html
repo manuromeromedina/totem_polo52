@@ -1238,19 +1238,6 @@
               />
             </div>
 
-            <!-- Solo mostrar campo de contraseña al EDITAR -->
-            <div class="form-group" *ngIf="editingUsuario">
-              <label for="user_password_edit">Nueva Contraseña</label>
-              <input
-                type="password"
-                id="user_password_edit"
-                name="user_password_edit"
-                [(ngModel)]="usuarioForm.password"
-                class="form-control"
-                placeholder="Dejar vacío para mantener la actual"
-              />
-            </div>
-
             <!-- Mensaje informativo para usuarios nuevos -->
             <div class="form-group full-width" *ngIf="!editingUsuario">
               <div class="info-box">

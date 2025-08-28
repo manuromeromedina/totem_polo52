@@ -33,7 +33,9 @@ interface TokenVerificationResponse {
   email_hint?: string;
   error?: string;
   expired?: boolean;
-  used?: boolean; // ✅ Agregar campo para tokens usados
+  used?: boolean;
+  email?: string; // ← Agregar este campo
+  user_name?: string; // ← Agregar este campo
 }
 
 @Injectable({ providedIn: 'root' })
@@ -96,7 +98,7 @@ export class AuthenticationService {
       );
   }
 
-  // ✅ MÉTODO CORREGIDO - Ahora retorna el response completo para manejar errores
+  // - Ahora retorna el response completo para manejar errores
   resetPassword(
     token: string,
     newPassword: string
@@ -215,11 +217,11 @@ export class AuthenticationService {
     localStorage.removeItem('rol');
     sessionStorage.removeItem(this.sessionKey);
     sessionStorage.removeItem('rol');
-    
+
     // Limpiar tokens de Google OAuth
     localStorage.removeItem('access_token');
     localStorage.removeItem('tipo_rol');
-    
+
     console.log('🧹 Sesión completamente limpiada');
   }
 
@@ -237,7 +239,8 @@ export class AuthenticationService {
     }
 
     // Luego buscar rol tradicional
-    const traditionalRole = localStorage.getItem('rol') || sessionStorage.getItem('rol');
+    const traditionalRole =
+      localStorage.getItem('rol') || sessionStorage.getItem('rol');
     if (traditionalRole) {
       console.log('👤 Rol encontrado (Login tradicional):', traditionalRole);
       return traditionalRole;
@@ -258,13 +261,13 @@ export class AuthenticationService {
       // Verificar si el token no está expirado
       const payload = JSON.parse(atob(token.split('.')[1]));
       const isExpired = Date.now() >= payload.exp * 1000;
-      
+
       if (isExpired) {
         console.log('⏰ isLoggedIn: Token expirado');
         this.logoutLocal();
         return false;
       }
-      
+
       console.log('✅ isLoggedIn: Usuario autenticado');
       return true;
     } catch (error) {
@@ -278,47 +281,117 @@ export class AuthenticationService {
     // Primero buscar el token de Google OAuth
     const googleToken = localStorage.getItem('access_token');
     if (googleToken) {
-      console.log('🔍 Token encontrado (Google OAuth):', googleToken.substring(0, 20) + '...');
+      console.log(
+        '🔍 Token encontrado (Google OAuth):',
+        googleToken.substring(0, 20) + '...'
+      );
       return googleToken;
     }
 
     // Luego buscar el token tradicional
-    const traditionalToken = localStorage.getItem(this.sessionKey) || sessionStorage.getItem(this.sessionKey);
+    const traditionalToken =
+      localStorage.getItem(this.sessionKey) ||
+      sessionStorage.getItem(this.sessionKey);
     if (traditionalToken) {
-      console.log('🔍 Token encontrado (Login tradicional):', traditionalToken.substring(0, 20) + '...');
+      console.log(
+        '🔍 Token encontrado (Login tradicional):',
+        traditionalToken.substring(0, 20) + '...'
+      );
       return traditionalToken;
     }
 
     console.log('❌ No se encontró ningún token');
     return null;
   }
-  
-  
 
   setToken(token: string): void {
     localStorage.setItem('access_token', token);
-    console.log('💾 Token de Google OAuth guardado:', token.substring(0, 20) + '...');
+    console.log(
+      '💾 Token de Google OAuth guardado:',
+      token.substring(0, 20) + '...'
+    );
   }
-  
+
   // ✅ MÉTODO MEJORADO - Guardar rol para Google OAuth
   setUserRole(role: string): void {
     localStorage.setItem('tipo_rol', role);
     console.log('👤 Rol de Google OAuth guardado:', role);
   }
-  
-
 
   debugAuthState(): void {
     console.log('🔍 === DEBUG AUTH STATE ===');
-    console.log('Google OAuth Token:', localStorage.getItem('access_token') ? 'EXISTS' : 'NOT_FOUND');
+    console.log(
+      'Google OAuth Token:',
+      localStorage.getItem('access_token') ? 'EXISTS' : 'NOT_FOUND'
+    );
     console.log('Google OAuth Role:', localStorage.getItem('tipo_rol'));
-    console.log('Traditional Token (localStorage):', localStorage.getItem(this.sessionKey) ? 'EXISTS' : 'NOT_FOUND');
-    console.log('Traditional Token (sessionStorage):', sessionStorage.getItem(this.sessionKey) ? 'EXISTS' : 'NOT_FOUND');
-    console.log('Traditional Role:', localStorage.getItem('rol') || sessionStorage.getItem('rol'));
+    console.log(
+      'Traditional Token (localStorage):',
+      localStorage.getItem(this.sessionKey) ? 'EXISTS' : 'NOT_FOUND'
+    );
+    console.log(
+      'Traditional Token (sessionStorage):',
+      sessionStorage.getItem(this.sessionKey) ? 'EXISTS' : 'NOT_FOUND'
+    );
+    console.log(
+      'Traditional Role:',
+      localStorage.getItem('rol') || sessionStorage.getItem('rol')
+    );
     console.log('Current getToken():', this.getToken() ? 'FOUND' : 'NOT_FOUND');
     console.log('Current getUserRole():', this.getUserRole());
     console.log('Current isLoggedIn():', this.isLoggedIn());
     console.log('=========================');
   }
 
+  /**
+   * Validar si una contraseña fue utilizada anteriormente (validación en tiempo real)
+   */
+  validatePasswordReset(data: {
+    token: string;
+    current_password: string;
+    new_password: string;
+    confirm_password: string;
+    validate_only?: boolean;
+  }): Observable<any> {
+    return this.http
+      .post(`${environment.apiUrl}/password-reset/validate`, data)
+      .pipe(
+        tap((response) => {
+          console.log('🔍 Validación de contraseña:', response);
+        }),
+        catchError((err) => {
+          console.error('❌ Error validando contraseña:', err);
+          return throwError(() => err);
+        })
+      );
+  }
+
+  /**
+   * Reset de contraseña con validación completa (método seguro)
+   */
+  resetPasswordSecure(data: {
+    token: string;
+    current_password: string;
+    new_password: string;
+    confirm_password: string;
+  }): Observable<any> {
+    console.log('🔒 Enviando reset password seguro:', {
+      token: data.token.substring(0, 20) + '...',
+      current_password: '***',
+      new_password: '***',
+      confirm_password: '***',
+    });
+
+    return this.http
+      .post(`${environment.apiUrl}/password-reset/confirm-secure`, data)
+      .pipe(
+        tap((response) => {
+          console.log('✅ Reset password seguro exitoso:', response);
+        }),
+        catchError((err) => {
+          console.error('❌ Error en reset password seguro:', err);
+          return throwError(() => err);
+        })
+      );
+  }
 }
