@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
+import { AuthenticationService } from '../auth/auth.service'; // Agregar esta línea
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import {
@@ -24,7 +26,7 @@ import {
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
 import {
   PasswordChangeModalComponent,
-  FormError as ModalFormError,
+  PasswordErrors, // Solo importar PasswordErrors
 } from '../shared/password-change-modal/password-change-modal.component';
 
 // Interfaces para manejo de errores
@@ -141,7 +143,10 @@ export class EmpresaMeComponent implements OnInit {
   // Expanded rows
   expandedRows = new Set<string>();
 
-  constructor(private adminEmpresaService: AdminEmpresaService) {}
+  constructor(
+    private adminEmpresaService: AdminEmpresaService,
+    private authService: AuthenticationService
+  ) {}
   public isDarkMode: boolean = false;
 
   ngOnInit(): void {
@@ -810,31 +815,13 @@ export class EmpresaMeComponent implements OnInit {
     }, 5000);
   }
 
-  // PASSWORD
   openPasswordForm(): void {
+    console.log(
+      '🔐 Abriendo modal de cambio de contraseña para usuario logueado'
+    );
     this.clearFormErrors('password');
     this.showPasswordForm = true;
-    this.saveInitialFormState('password', this.passwordForm);
-  }
-
-  onSubmitPassword(): void {
-    this.loading = true;
-    this.clearFormErrors('password');
-
-    this.adminEmpresaService.changePasswordRequest().subscribe({
-      next: () => {
-        this.showMessage(
-          'Se ha enviado un enlace de cambio de contraseña a tu email',
-          'success'
-        );
-        this.resetForms();
-        this.loading = false;
-      },
-      error: (error) => {
-        this.handleError(error, 'password', 'solicitar cambio de contraseña');
-        this.loading = false;
-      },
-    });
+    // No necesitamos saveInitialFormState aquí porque el modal maneja su propio estado
   }
 
   // EMPRESA EDIT
@@ -1373,17 +1360,153 @@ export class EmpresaMeComponent implements OnInit {
     return allErrors;
   }
 
-  getPasswordErrors(): ModalFormError[] {
-    return this.formErrors['password'] || [];
+  getPasswordErrors(): PasswordErrors {
+    // Cambiar ModalFormError por PasswordErrors
+    const errors = this.formErrors['password'] || [];
+
+    // Convertir FormError[] a PasswordErrors (objeto con propiedades específicas)
+    const modalErrors: PasswordErrors = {};
+
+    errors.forEach((error) => {
+      if (error.field === 'general') {
+        modalErrors.general = error.message;
+      } else if (error.field === 'currentPassword') {
+        modalErrors.currentPassword = error.message;
+        modalErrors.wrongCurrent = true;
+      } else if (error.field === 'newPassword') {
+        modalErrors.newPassword = error.message;
+        modalErrors.passwordReused = true;
+      } else if (error.field === 'confirmPassword') {
+        modalErrors.confirmPassword = error.message;
+        modalErrors.passwordMismatch = true;
+      }
+    });
+
+    return modalErrors;
   }
 
   // Método para cerrar el modal
   onPasswordModalClose(): void {
-    this.cancelForm('password');
+    console.log('❌ Cerrando modal de contraseña');
+    this.showPasswordForm = false;
+    this.clearFormErrors('password');
   }
 
   // Método para confirmar el cambio de contraseña
-  onPasswordModalConfirm(): void {
-    this.onSubmitPassword();
+  onPasswordModalConfirm(formData: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): void {
+    console.log('🚀 Iniciando cambio de contraseña para usuario logueado');
+
+    this.loading = true;
+    this.clearFormErrors('password');
+
+    // Construir payload para usuarios logueados (CON contraseña actual)
+    const changePasswordData = {
+      current_password: formData.currentPassword,
+      new_password: formData.newPassword,
+      confirm_password: formData.confirmPassword,
+    };
+
+    // Llamar al servicio de cambio directo (usuarios logueados)
+    this.authService.changePasswordDirect(changePasswordData).subscribe({
+      next: (response) => {
+        console.log('✅ Cambio de contraseña exitoso:', response);
+        this.loading = false;
+
+        if (response.success) {
+          // Mostrar mensaje de éxito
+          this.showMessage('Contraseña actualizada correctamente', 'success');
+
+          // Cerrar modal después de un breve delay
+          setTimeout(() => {
+            this.onPasswordModalClose();
+          }, 1500);
+        } else {
+          // Manejar respuesta de error desde el backend
+          this.handlePasswordError(response);
+        }
+      },
+      error: (err) => {
+        console.error('❌ Error en cambio de contraseña:', err);
+        this.loading = false;
+        this.handlePasswordError(err.error || err);
+      },
+    });
+  }
+
+  private handlePasswordError(errorResponse: any): void {
+    this.clearFormErrors('password');
+    let passwordErrors: FormError[] = []; // Usar la interfaz FormError que ya tienes definida localmente
+
+    // Error de contraseña actual incorrecta
+    if (
+      errorResponse.wrong_current ||
+      errorResponse.error?.includes('contraseña actual') ||
+      errorResponse.detail?.includes('incorrecta')
+    ) {
+      passwordErrors.push({
+        field: 'currentPassword',
+        message: 'La contraseña actual es incorrecta',
+        type: 'validation',
+      });
+      this.showMessage('La contraseña actual es incorrecta', 'error');
+    }
+    // Error de contraseña reutilizada
+    else if (
+      errorResponse.password_reused ||
+      errorResponse.error?.includes('utilizado anteriormente')
+    ) {
+      passwordErrors.push({
+        field: 'newPassword',
+        message:
+          'No puedes usar una contraseña que ya hayas utilizado anteriormente',
+        type: 'validation',
+      });
+      this.showMessage(
+        'No puedes usar una contraseña que ya hayas utilizado anteriormente',
+        'error'
+      );
+    }
+    // Error de contraseñas que no coinciden
+    else if (
+      errorResponse.passwords_mismatch ||
+      errorResponse.error?.includes('no coinciden')
+    ) {
+      passwordErrors.push({
+        field: 'confirmPassword',
+        message: 'Las contraseñas no coinciden',
+        type: 'validation',
+      });
+      this.showMessage('Las contraseñas no coinciden', 'error');
+    }
+    // Errores generales
+    else if (errorResponse.detail) {
+      passwordErrors.push({
+        field: 'general',
+        message: errorResponse.detail,
+        type: 'server',
+      });
+      this.showMessage(errorResponse.detail, 'error');
+    } else if (errorResponse.error) {
+      passwordErrors.push({
+        field: 'general',
+        message: errorResponse.error,
+        type: 'server',
+      });
+      this.showMessage(errorResponse.error, 'error');
+    } else {
+      passwordErrors.push({
+        field: 'general',
+        message: 'Error al cambiar la contraseña. Inténtalo nuevamente.',
+        type: 'server',
+      });
+      this.showMessage('Error al cambiar la contraseña', 'error');
+    }
+
+    // Asignar errores específicos para el modal de contraseña
+    this.formErrors['password'] = passwordErrors;
   }
 }

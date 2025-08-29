@@ -22,7 +22,7 @@ import {
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
 import {
   PasswordChangeModalComponent,
-  FormError as ModalFormError,
+  PasswordErrors, // Cambiar FormError por PasswordErrors
 } from '../shared/password-change-modal/password-change-modal.component';
 
 // Interfaces para manejo de errores
@@ -1446,10 +1446,27 @@ export class AdminPoloComponent implements OnInit {
     this.saveInitialFormState('lote', this.loteForm);
   }
 
-  getPasswordErrors(): ModalFormError[] {
-    return this.formErrors['password'] || [];
-  }
+  getPasswordErrors(): PasswordErrors {
+    const errors = this.formErrors['password'] || [];
+    const modalErrors: PasswordErrors = {};
 
+    errors.forEach((error) => {
+      if (error.field === 'general') {
+        modalErrors.general = error.message;
+      } else if (error.field === 'currentPassword') {
+        modalErrors.currentPassword = error.message;
+        modalErrors.wrongCurrent = true;
+      } else if (error.field === 'newPassword') {
+        modalErrors.newPassword = error.message;
+        modalErrors.passwordReused = true;
+      } else if (error.field === 'confirmPassword') {
+        modalErrors.confirmPassword = error.message;
+        modalErrors.passwordMismatch = true;
+      }
+    });
+
+    return modalErrors;
+  }
   // Método para cerrar el modal
   onPasswordModalClose(): void {
     this.closeForm('password');

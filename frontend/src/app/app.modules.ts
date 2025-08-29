@@ -16,39 +16,46 @@ import { AuthInterceptor } from './auth/auth.interceptor';
       {
         path: 'login',
         loadComponent: () =>
-          import('./auth/login/login.component').then(m => m.LoginComponent)
+          import('./auth/login/login.component').then((m) => m.LoginComponent),
       },
-      
+
       // ✅ AGREGAR ESTAS RUTAS PARA GOOGLE AUTH
       {
         path: 'auth/success',
         loadComponent: () =>
-          import('../app/auth/auth-success.component').then(m => m.AuthSuccessComponent)
+          import('../app/auth/auth-success.component').then(
+            (m) => m.AuthSuccessComponent
+          ),
       },
       {
         path: 'auth/pending',
         loadComponent: () =>
-          import('../app/auth/auth-pending.component').then(m => m.AuthPendingComponent)
+          import('../app/auth/auth-pending.component').then(
+            (m) => m.AuthPendingComponent
+          ),
       },
       {
         path: 'auth/error',
         loadComponent: () =>
-          import('../app/auth/auth-error.component').then(m => m.AuthErrorComponent)
+          import('../app/auth/auth-error.component').then(
+            (m) => m.AuthErrorComponent
+          ),
       },
-      
-      
+
       {
         path: 'reset-password',
         loadComponent: () =>
-          import('./auth/login/password-reset/password-reset.component').then(m => m.ResetPasswordComponent)
+          import('./shared/password-reset/password-reset.component').then(
+            (m) => m.ResetPasswordComponent
+          ),
       },
       { path: '', redirectTo: 'login', pathMatch: 'full' },
-      { path: '**', redirectTo: 'login' }
-    ])
+      { path: '**', redirectTo: 'login' },
+    ]),
   ],
   providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
   ],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
 export class AppModule {}

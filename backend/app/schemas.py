@@ -107,7 +107,6 @@ class PasswordResetConfirm(BaseModel):
 class PasswordResetConfirmSecure(BaseModel):
     """Schema para confirmación segura de reset (requiere contraseña actual y confirmación)"""
     token: str = Field(..., description="Token de recuperación válido")
-    current_password: str = Field(..., min_length=1, description="Contraseña actual del usuario")
     new_password: str = Field(
         ..., min_length=8, max_length=128,
         description="Nueva contraseña (8-128 caracteres, mayúscula, minúscula, dígito)"
@@ -139,6 +138,8 @@ class PasswordResetConfirmSecure(BaseModel):
 
 class ChangePasswordDirect(BaseModel):
     """Schema para cambio directo de contraseña (sin email, usuario logueado)"""
+    current_password: str = Field(..., min_length=1, description="Contraseña actual del usuario")
+
     new_password: str = Field(
         ..., min_length=8, max_length=128,
         description="Nueva contraseña (8-128 caracteres, mayúscula, minúscula, dígito)"

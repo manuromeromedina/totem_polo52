@@ -169,6 +169,7 @@ def change_password_direct(
     Cambio directo de contraseña (sin email, requiere estar logueado)
     """
     try:
+        
         # 1. Verificar contraseña actual
         if not services.verify_password(dto.current_password, current_user.contrasena):
             raise HTTPException(

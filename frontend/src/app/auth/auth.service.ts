@@ -48,7 +48,7 @@ export class AuthenticationService {
   constructor(private http: HttpClient, private router: Router) {}
 
   passwordResetRequest(email: string): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/password-reset/request`, {
+    return this.http.post(`${environment.apiUrl}/forgot-password`, {
       email,
     });
   }
@@ -369,27 +369,101 @@ export class AuthenticationService {
   /**
    * Reset de contraseña con validación completa (método seguro)
    */
-  resetPasswordSecure(data: {
-    token: string;
+  /**
+   * Cambio directo de contraseña para usuarios YA logueados
+   * Requiere contraseña actual para validación
+   */
+  changePasswordDirect(data: {
     current_password: string;
     new_password: string;
     confirm_password: string;
   }): Observable<any> {
-    console.log('🔒 Enviando reset password seguro:', {
-      token: data.token.substring(0, 20) + '...',
+    const token = this.getToken();
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    });
+
+    console.log('🔐 Enviando cambio de contraseña directo:', {
       current_password: '***',
       new_password: '***',
       confirm_password: '***',
     });
 
     return this.http
+      .post(`${environment.apiUrl}/change-password-direct`, data, { headers })
+      .pipe(
+        tap((response) => {
+          console.log('✅ Cambio de contraseña directo exitoso:', response);
+        }),
+        catchError((err) => {
+          console.error('❌ Error en cambio de contraseña directo:', err);
+          return throwError(() => err);
+        })
+      );
+  }
+
+  /**
+   * ACTUALIZAR TU MÉTODO EXISTENTE resetPasswordSecure para que sea flexible:
+   * - Con current_password: Para usuarios logueados
+   * - Sin current_password: Para usuarios NO logueados (via email token)
+   */
+  // Reemplazar tu resetPasswordSecure existente con esta versión mejorada:
+  resetPasswordSecure(data: {
+    token: string;
+    current_password?: string; // <- Opcional para usuarios NO logueados
+    new_password: string;
+    confirm_password: string;
+  }): Observable<any> {
+    const isLoggedUser = !!data.current_password;
+
+    console.log(
+      `🔒 Enviando reset password ${
+        isLoggedUser ? '(usuario logueado)' : '(usuario público)'
+      }:`,
+      {
+        token: data.token.substring(0, 20) + '...',
+        current_password: data.current_password ? '***' : 'N/A',
+        new_password: '***',
+        confirm_password: '***',
+      }
+    );
+
+    return this.http
       .post(`${environment.apiUrl}/password-reset/confirm-secure`, data)
       .pipe(
         tap((response) => {
-          console.log('✅ Reset password seguro exitoso:', response);
+          console.log(
+            `✅ Reset password ${
+              isLoggedUser ? 'logueado' : 'público'
+            } exitoso:`,
+            response
+          );
         }),
         catchError((err) => {
-          console.error('❌ Error en reset password seguro:', err);
+          console.error(
+            `❌ Error en reset password ${
+              isLoggedUser ? 'logueado' : 'público'
+            }:`,
+            err
+          );
+          return throwError(() => err);
+        })
+      );
+  }
+
+  /**
+   * Solicitar reset de contraseña via email (usuarios NO logueados)
+   */
+  forgotPassword(email: string): Observable<any> {
+    return this.http
+      .post(`${environment.apiUrl}/forgot-password`, { email })
+      .pipe(
+        tap((response) => {
+          console.log('📧 Solicitud de reset enviada:', response);
+        }),
+        catchError((err) => {
+          console.error('❌ Error enviando solicitud de reset:', err);
           return throwError(() => err);
         })
       );

@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { AuthGuard } from './auth.guard';
 import { ChatbotComponent } from './chat/chat.component';
 import { LoginComponent } from './auth/login/login.component';
-import { ResetPasswordComponent } from './auth/login/password-reset/password-reset.component';
+import { ResetPasswordPublicComponent } from './shared/password-reset/password-reset.component';
 import { AuthSuccessComponent } from './auth/auth-success.component';
 import { AuthPendingComponent } from './auth/auth-pending.component';
 import { AuthErrorComponent } from './auth/auth-error.component';
@@ -20,14 +20,16 @@ export const routes: Routes = [
   {
     path: 'auth/success',
     loadComponent: () =>
-      import('./auth/auth-success.component').then(m => m.AuthSuccessComponent)
+      import('./auth/auth-success.component').then(
+        (m) => m.AuthSuccessComponent
+      ),
   },
   { path: 'auth/pending', component: AuthPendingComponent },
   { path: 'auth/error', component: AuthErrorComponent },
 
   {
-    path: 'password-reset',
-    component: ResetPasswordComponent,
+    path: 'reset-password',
+    component: ResetPasswordPublicComponent,
   },
   {
     path: 'chat',
@@ -56,6 +58,5 @@ export const routes: Routes = [
   {
     path: '**',
     redirectTo: '/login',
-  }
-  
+  },
 ];
