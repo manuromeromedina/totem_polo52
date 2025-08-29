@@ -8,12 +8,13 @@ from datetime import date
 from app.config import SessionLocal, SECRET_KEY, ALGORITHM
 from app import models, schemas, services
 from app.models import Usuario
-from app.schemas import PasswordResetRequest, PasswordResetConfirm, PasswordResetConfirmSecure, ChangePasswordDirect
+from app.schemas import PasswordResetRequest, PasswordResetConfirm, PasswordResetConfirmSecure, ChangePasswordDirect, ForgotPasswordReset
 from email.mime.text import MIMEText
 import smtplib
 from app.config import settings
 from app.services import (
     secure_password_reset_confirm, 
+    forgot_password_reset_confirm,
     is_password_reused, 
     save_password_to_history,
     hash_password,
@@ -169,7 +170,6 @@ def change_password_direct(
     Cambio directo de contraseña (sin email, requiere estar logueado)
     """
     try:
-        
         # 1. Verificar contraseña actual
         if not services.verify_password(dto.current_password, current_user.contrasena):
             raise HTTPException(
@@ -311,16 +311,48 @@ def verify_reset_token(token: str, db: Session = Depends(get_db)):
             "used": "utilizado" in e.detail.lower()
         }
 
+@router.post("/forgot-password/confirm", tags=["auth"])
+def forgot_password_confirm(
+    dto: schemas.ForgotPasswordReset,
+    db: Session = Depends(get_db)
+):
+    """Confirmación de reset para contraseña olvidada (sin contraseña actual)"""
+    try:
+        result = services.forgot_password_reset_confirm(
+            db=db,
+            token=dto.token,
+            new_password=dto.new_password,
+            confirm_password=dto.confirm_password
+        )
+        return result
+    except HTTPException as e:
+        return {
+            "success": False,
+            "error": e.detail,
+            "status_code": e.status_code,
+            "expired": e.status_code == 400 and "expirado" in e.detail.lower(),
+            "used": e.status_code == 400 and "utilizado" in e.detail.lower(),
+            "password_reused": "ya hayas utilizado" in e.detail.lower(),
+            "passwords_mismatch": "no coinciden" in e.detail.lower()
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno al actualizar contraseña: {str(e)}"
+        )
+
 @router.post("/password-reset/confirm-secure", tags=["auth"])
 def password_reset_confirm_secure(
     dto: schemas.PasswordResetConfirmSecure,
     db: Session = Depends(get_db)
 ):
-    """Confirmación segura de reset de contraseña via token de email"""
+    """Confirmación segura de reset de contraseña via token de email (REQUIERE CONTRASEÑA ACTUAL)"""
     try:
         result = services.secure_password_reset_confirm(
             db=db,
             token=dto.token,
+            current_password=dto.current_password,
             new_password=dto.new_password,
             confirm_password=dto.confirm_password
         )
