@@ -11,7 +11,7 @@ from app.schemas import (
     EmpresaOut, EmpresaCreate, RolOut, EmpresaDetailOutPublic, 
     ContactoOutPublic, LoteOutPublic
 )
-from app.routes.auth import require_admin_polo, get_current_user
+from app.routes.auth import require_admin_polo, get_current_user, require_empresa_role
 
 router = APIRouter(
     prefix="",
@@ -26,12 +26,94 @@ router = APIRouter(
 # Constante para identificar al polo - AJUSTAR SEGÚN TU LÓGICA
 POLO_CUIL = 44123456789  # Reemplaza con el CUIL real del polo en tu BD
 
+# Límites de usuarios por tipo de rol
+MAX_ADMIN_EMPRESA_PER_COMPANY = 3
+MAX_ADMIN_POLO_TOTAL = 3
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+def validate_user_creation_limits(db: Session, dto: schemas.UserCreate):
+    """Validar límites de creación de usuarios según el rol y empresa"""
+    
+    # Obtener información del rol
+    rol = db.query(models.Rol).filter(models.Rol.id_rol == dto.id_rol).first()
+    if not rol:
+        raise HTTPException(status_code=400, detail="Rol inválido")
+    
+    # Validación para admin_polo
+    if rol.tipo_rol == "admin_polo":
+        # Verificar que la empresa sea el POLO
+        if dto.cuil != POLO_CUIL:
+            raise HTTPException(
+                status_code=400, 
+                detail="El rol admin_polo solo puede asignarse a usuarios de la empresa Polo"
+            )
+        
+        # Contar admin_polo existentes
+        admin_polo_count = (
+            db.query(models.Usuario)
+            .join(models.RolUsuario)
+            .join(models.Rol)
+            .filter(models.Rol.tipo_rol == "admin_polo")
+            .filter(models.Usuario.estado == True)
+            .count()
+        )
+        
+        if admin_polo_count >= MAX_ADMIN_POLO_TOTAL:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se pueden crear más de {MAX_ADMIN_POLO_TOTAL} usuarios admin_polo. "
+                       f"Actualmente hay {admin_polo_count}. Si necesita más usuarios, "
+                       f"contacte con soporte técnico."
+            )
+    
+    # Validación para admin_empresa
+    elif rol.tipo_rol == "admin_empresa":
+        # Verificar que NO sea la empresa Polo
+        if dto.cuil == POLO_CUIL:
+            raise HTTPException(
+                status_code=400,
+                detail="La empresa Polo no puede tener usuarios admin_empresa. "
+                       "Solo puede tener usuarios admin_polo y publicos."
+            )
+        
+        # Contar admin_empresa existentes para esta empresa específica
+        admin_empresa_count = (
+            db.query(models.Usuario)
+            .join(models.RolUsuario)
+            .join(models.Rol)
+            .filter(models.Rol.tipo_rol == "admin_empresa")
+            .filter(models.Usuario.cuil == dto.cuil)
+            .filter(models.Usuario.estado == True)
+            .count()
+        )
+        
+        if admin_empresa_count >= MAX_ADMIN_EMPRESA_PER_COMPANY:
+            empresa = db.query(models.Empresa).filter(models.Empresa.cuil == dto.cuil).first()
+            empresa_nombre = empresa.nombre if empresa else f"CUIL {dto.cuil}"
+            
+            raise HTTPException(
+                status_code=400,
+                detail=f"La empresa '{empresa_nombre}' ya tiene el máximo de {MAX_ADMIN_EMPRESA_PER_COMPANY} "
+                       f"usuarios admin_empresa permitidos. Actualmente hay {admin_empresa_count}. "
+                       f"Si necesita más usuarios, contacte con el administrador del polo para solicitar "
+                       f"una ampliación del límite."
+            )
+    
+    # Validación para usuarios públicos
+    elif rol.tipo_rol == "publico":
+        # Verificar que SOLO se puedan crear en la empresa Polo
+        if dto.cuil != POLO_CUIL:
+            raise HTTPException(
+                status_code=400,
+                detail="Los usuarios con rol 'publico' solo pueden crearse en la empresa Polo. "
+                       "Las demás empresas solo pueden tener usuarios 'admin_empresa'."
+            )
 
 def build_empresa_detail_public(emp: models.Empresa) -> schemas.EmpresaDetailOutPublic:
     """Construir detalle público de empresa con contactos y servicios polo"""
@@ -251,12 +333,24 @@ def get_user(user_id: UUID, db: Session = Depends(get_db)):
 @router.post("/usuarios", response_model=schemas.UserOut, summary="Crear un nuevo usuario con contraseña automática")
 def create_user(dto: schemas.UserCreate, db: Session = Depends(get_db)):
     """Crear nuevo usuario con contraseña generada automáticamente"""
+    
+    # NUEVA VALIDACIÓN: Verificar límites antes de crear
+    validate_user_creation_limits(db, dto)
+    
     # Verificar que no exista el usuario
     if db.query(models.Usuario).filter(models.Usuario.nombre == dto.nombre).first():
         raise HTTPException(status_code=400, detail="Ya existe un usuario con ese nombre")
     
     if db.query(models.Usuario).filter(models.Usuario.email == dto.email).first():
         raise HTTPException(status_code=400, detail="Ya existe un usuario con ese email")
+    
+    # Verificar que la empresa existe
+    empresa = db.query(models.Empresa).filter(models.Empresa.cuil == dto.cuil).first()
+    if not empresa:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"No existe una empresa registrada con CUIL {dto.cuil}"
+        )
     
     # Verificar que el rol existe
     rol = db.query(models.Rol).filter(models.Rol.id_rol == dto.id_rol).first()
@@ -338,6 +432,111 @@ def delete_user(user_id: UUID, db: Session = Depends(get_db)):
     u.estado = False  # Marcamos como inhabilitado
     db.commit()
     return {"msg": "Usuario inhabilitado exitosamente"}
+
+# ═══════════════════════════════════════════════════════════════════
+# ENDPOINTS DE LÍMITES Y SOLICITUDES DE USUARIOS
+# ═══════════════════════════════════════════════════════════════════
+
+@router.get("/usuarios/limits-status", summary="Consultar límites de usuarios por empresa")
+def get_users_limits_status(db: Session = Depends(get_db)):
+    """Obtener información sobre límites de usuarios y estado actual"""
+    
+    # Información del Polo
+    polo_admin_count = (
+        db.query(models.Usuario)
+        .join(models.RolUsuario)
+        .join(models.Rol)
+        .filter(models.Rol.tipo_rol == "admin_polo")
+        .filter(models.Usuario.estado == True)
+        .count()
+    )
+    
+    # Información por empresa (admin_empresa)
+    empresas_info = []
+    empresas = db.query(models.Empresa).filter(models.Empresa.cuil != POLO_CUIL).all()
+    
+    for empresa in empresas:
+        admin_count = (
+            db.query(models.Usuario)
+            .join(models.RolUsuario)
+            .join(models.Rol)
+            .filter(models.Rol.tipo_rol == "admin_empresa")
+            .filter(models.Usuario.cuil == empresa.cuil)
+            .filter(models.Usuario.estado == True)
+            .count()
+        )
+        
+        empresas_info.append({
+            "cuil": empresa.cuil,
+            "nombre": empresa.nombre,
+            "admin_empresa_actuales": admin_count,
+            "limite_admin_empresa": MAX_ADMIN_EMPRESA_PER_COMPANY,
+            "puede_crear_mas": admin_count < MAX_ADMIN_EMPRESA_PER_COMPANY
+        })
+    
+    return {
+        "polo_info": {
+            "admin_polo_actuales": polo_admin_count,
+            "limite_admin_polo": MAX_ADMIN_POLO_TOTAL,
+            "puede_crear_mas": polo_admin_count < MAX_ADMIN_POLO_TOTAL
+        },
+        "empresas_info": empresas_info,
+        "limites_configurados": {
+            "max_admin_empresa_per_company": MAX_ADMIN_EMPRESA_PER_COMPANY,
+            "max_admin_polo_total": MAX_ADMIN_POLO_TOTAL,
+            "polo_cuil": POLO_CUIL
+        }
+    }
+
+# Endpoint para solicitudes - sin restricción de admin_polo porque las empresas deben poder acceder
+@router.post("/usuarios/request-limit-increase", 
+    dependencies=[], # Sin dependencia de admin_polo 
+    summary="Solicitar ampliación de límite de usuarios"
+)
+def request_limit_increase(
+    cuil_empresa: int,
+    justificacion: str,
+    usuarios_adicionales_solicitados: int,
+    current_user: models.Usuario = Depends(require_empresa_role),
+    db: Session = Depends(get_db)
+):
+    """Endpoint para que las empresas soliciten más usuarios admin_empresa"""
+    
+    # Verificar que el usuario pertenece a la empresa que solicita
+    if current_user.cuil != cuil_empresa:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo puedes solicitar ampliación de límites para tu propia empresa"
+        )
+    
+    empresa = db.query(models.Empresa).filter(models.Empresa.cuil == cuil_empresa).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    
+    # Contar usuarios actuales
+    current_count = (
+        db.query(models.Usuario)
+        .join(models.RolUsuario)
+        .join(models.Rol)
+        .filter(models.Rol.tipo_rol == "admin_empresa")
+        .filter(models.Usuario.cuil == cuil_empresa)
+        .filter(models.Usuario.estado == True)
+        .count()
+    )
+    
+    # Aquí podrías agregar lógica para enviar email al admin_polo
+    # o guardar la solicitud en una tabla de solicitudes pendientes
+    
+    return {
+        "message": "Solicitud de ampliación registrada",
+        "empresa": empresa.nombre,
+        "usuarios_actuales": current_count,
+        "limite_actual": MAX_ADMIN_EMPRESA_PER_COMPANY,
+        "usuarios_adicionales_solicitados": usuarios_adicionales_solicitados,
+        "justificacion": justificacion,
+        "nota": "La solicitud será revisada por el administrador del polo. "
+                "Recibirá una respuesta por email en los próximos días hábiles."
+    }
 
 # ═══════════════════════════════════════════════════════════════════
 # GESTIÓN DE EMPRESAS
