@@ -34,10 +34,9 @@ interface TokenVerificationResponse {
   error?: string;
   expired?: boolean;
   used?: boolean;
-  email?: string; // ← Agregar este campo
-  user_name?: string; // ← Agregar este campo
+  email?: string; // ✅ Ya agregado
+  user_name?: string; // ✅ Ya agregado
 }
-
 @Injectable({ providedIn: 'root' })
 export class AuthenticationService {
   private loginUrl = `${environment.apiUrl}/login`;
@@ -62,16 +61,16 @@ export class AuthenticationService {
   }
 
   // 🆕 NUEVO MÉTODO - Verificar token de reset sin hacer cambios
+  // 2. Corregir el método verifyResetToken para usar el cuerpo en lugar de params
   verifyResetToken(token: string): Observable<TokenVerificationResponse> {
-    const params = new HttpParams().set('token', token);
-
     console.log('🔍 Verificando token:', token.substring(0, 20) + '...');
 
     return this.http
       .post<TokenVerificationResponse>(
-        `${environment.apiUrl}/password-reset/verify-token`,
-        null,
-        { params }
+        `${
+          environment.apiUrl
+        }/password-reset/verify-token?token=${encodeURIComponent(token)}`,
+        {} // 👈 body vacío porque el back no lo espera en JSON
       )
       .pipe(
         tap((response) => {
@@ -80,7 +79,6 @@ export class AuthenticationService {
         catchError((err) => {
           console.error('❌ Error verificando token:', err);
 
-          // Transformar el error en una respuesta consistente
           const errorResponse: TokenVerificationResponse = {
             valid: false,
             error: err.error?.detail || err.message || 'Token inválido',
@@ -89,11 +87,59 @@ export class AuthenticationService {
               (err.error?.detail && err.error.detail.includes('expirado')),
             used:
               err.status === 400 ||
-              (err.error?.detail && err.error.detail.includes('utilizado')), // ✅ Detectar tokens usados
+              (err.error?.detail && err.error.detail.includes('utilizado')),
           };
 
-          // Retornar como observable en lugar de error para manejar en el componente
           return of(errorResponse);
+        })
+      );
+  }
+
+  requestPasswordReset(email: string): Observable<any> {
+    // ✅ Tu método forgotPassword ya hace esto, pero agregamos alias para los componentes
+    return this.forgotPassword(email);
+  }
+  cleanupResetTokensCache(): Observable<any> {
+    const token = this.getToken();
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    });
+
+    return this.http
+      .post(
+        `${environment.apiUrl}/password-reset/cleanup-cache`,
+        {},
+        { headers }
+      )
+      .pipe(
+        tap((response) => {
+          console.log('🧹 Cache de tokens limpiado:', response);
+        }),
+        catchError((err) => {
+          console.error('❌ Error limpiando cache:', err);
+          return throwError(() => err);
+        })
+      );
+  }
+
+  // 5. Método para obtener estado del cache (para admin - opcional)
+  getCacheStatus(): Observable<any> {
+    const token = this.getToken();
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    });
+
+    return this.http
+      .get(`${environment.apiUrl}/password-reset/cache-status`, { headers })
+      .pipe(
+        tap((response) => {
+          console.log('📊 Estado del cache:', response);
+        }),
+        catchError((err) => {
+          console.error('❌ Error obteniendo estado del cache:', err);
+          return throwError(() => err);
         })
       );
   }
@@ -464,6 +510,79 @@ export class AuthenticationService {
         }),
         catchError((err) => {
           console.error('❌ Error enviando solicitud de reset:', err);
+          return throwError(() => err);
+        })
+      );
+  }
+
+  // Add/Update this method in your AuthenticationService
+
+  /**
+   * Reset de contraseña para usuarios NO logueados (solo con token de email)
+   * Usa el endpoint /forgot-password/confirm (sin current_password)
+   */
+  resetPasswordForgotten(data: {
+    token: string;
+    new_password: string;
+    confirm_password: string;
+  }): Observable<any> {
+    console.log('🔓 Enviando reset password (usuario NO logueado):', {
+      token: data.token.substring(0, 20) + '...',
+      new_password: '***',
+      confirm_password: '***',
+    });
+
+    return this.http
+      .post(`${environment.apiUrl}/forgot-password/confirm`, data)
+      .pipe(
+        tap((response) => {
+          console.log('✅ Reset password (NO logueado) exitoso:', response);
+        }),
+        catchError((err) => {
+          console.error('❌ Error en reset password (NO logueado):', err);
+          return throwError(() => err);
+        })
+      );
+  }
+
+  /**
+   * Método actualizado para reset seguro (CON current_password - usuarios logueados)
+   * Usa el endpoint /password-reset/confirm-secure
+   */
+  resetPasswordSecureLoggedUser(data: {
+    token: string;
+    current_password: string;
+    new_password: string;
+    confirm_password: string;
+  }): Observable<any> {
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${this.getToken()}`,
+      'Content-Type': 'application/json',
+    });
+
+    console.log('🔒 Enviando reset password (usuario logueado con token):', {
+      token: data.token.substring(0, 20) + '...',
+      current_password: '***',
+      new_password: '***',
+      confirm_password: '***',
+    });
+
+    return this.http
+      .post(`${environment.apiUrl}/password-reset/confirm-secure`, data, {
+        headers,
+      })
+      .pipe(
+        tap((response) => {
+          console.log(
+            '✅ Reset password (logueado con token) exitoso:',
+            response
+          );
+        }),
+        catchError((err) => {
+          console.error(
+            '❌ Error en reset password (logueado con token):',
+            err
+          );
           return throwError(() => err);
         })
       );

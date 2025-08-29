@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { AuthGuard } from './auth.guard';
 import { ChatbotComponent } from './chat/chat.component';
 import { LoginComponent } from './auth/login/login.component';
-import { ResetPasswordPublicComponent } from './shared/password-reset/password-reset.component';
+import { PasswordResetComponent } from './shared/password-reset/password-reset.component';
 import { AuthSuccessComponent } from './auth/auth-success.component';
 import { AuthPendingComponent } from './auth/auth-pending.component';
 import { AuthErrorComponent } from './auth/auth-error.component';
@@ -29,7 +29,7 @@ export const routes: Routes = [
 
   {
     path: 'reset-password',
-    component: ResetPasswordPublicComponent,
+    component: PasswordResetComponent,
   },
   {
     path: 'chat',

@@ -1,33 +1,8 @@
 // shared/password-change-modal/password-change-modal.component.ts
-import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
-  OnInit,
-  OnDestroy,
-} from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { NgForm, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthenticationService } from '../../auth/auth.service';
-import { Subject } from 'rxjs';
-import { Router } from '@angular/router';
-
-interface PasswordFormData {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
-export interface PasswordErrors {
-  general?: string;
-  currentPassword?: string;
-  newPassword?: string;
-  confirmPassword?: string;
-  passwordReused?: boolean;
-  wrongCurrent?: boolean;
-  passwordMismatch?: boolean;
-}
 
 @Component({
   selector: 'app-password-change-modal',
@@ -37,11 +12,14 @@ export interface PasswordErrors {
   styleUrls: ['./password-change-modal.component.css'],
 })
 export class PasswordChangeModalComponent implements OnInit {
-  // Campos del formulario - INCLUYE contraseña actual
+  // Campos del formulario - INCLUYE contraseña actual (usuario logueado)
   currentPassword = '';
   newPassword = '';
   confirmPassword = '';
-  showModal: boolean = false;
+
+  @Input() showModal: boolean = false;
+  @Output() modalClosed = new EventEmitter<void>();
+  @Output() passwordChanged = new EventEmitter<boolean>();
 
   // Estados
   message = '';
@@ -52,73 +30,67 @@ export class PasswordChangeModalComponent implements OnInit {
   currentPasswordError = '';
   passwordReused = false;
   validatingPassword = false;
+  successMessage = '';
 
-  constructor(
-    private authService: AuthenticationService,
-    private router: Router
-  ) {}
+  // Propiedades para mostrar errores específicos
+  wrongCurrentPassword = false;
+  passwordsMismatch = false;
+
+  constructor(private authService: AuthenticationService) {}
 
   ngOnInit() {
     console.log(
-      '🔐 Iniciando componente de cambio de contraseña para usuario logueado'
+      '🔐 Componente de cambio de contraseña para usuario logueado iniciado'
     );
   }
 
   openModal() {
     this.showModal = true;
+    this.clearForm();
+    this.clearMessages();
   }
 
   closeModal() {
     this.showModal = false;
     this.clearForm();
+    this.clearMessages();
+    this.modalClosed.emit();
   }
 
-  // Validación en tiempo real de nueva contraseña
+  clearMessages() {
+    this.error = '';
+    this.message = '';
+    this.successMessage = '';
+    this.currentPasswordError = '';
+    this.passwordReused = false;
+    this.wrongCurrentPassword = false;
+    this.passwordsMismatch = false;
+  }
+
   onNewPasswordChange() {
     this.passwordReused = false;
     this.error = '';
     this.currentPasswordError = '';
-
-    // Si la contraseña cumple requisitos básicos, validar contra historial
-    if (
-      this.newPassword &&
-      this.isPasswordValid() &&
-      this.newPassword.length >= 8
-    ) {
-      this.validateAgainstHistory();
-    }
+    this.wrongCurrentPassword = false;
+    this.passwordsMismatch = false;
   }
 
-  // Validar que la contraseña no haya sido utilizada antes
-  validateAgainstHistory() {
-    if (!this.newPassword || !this.currentPassword) return;
+  onCurrentPasswordChange() {
+    this.currentPasswordError = '';
+    this.wrongCurrentPassword = false;
+    this.error = '';
+  }
 
-    this.validatingPassword = true;
-
-    // Payload para validar (puedes implementar un endpoint específico)
-    const validationPayload = {
-      current_password: this.currentPassword,
-      new_password: this.newPassword,
-      confirm_password: this.newPassword,
-      validate_only: true,
-    };
-
-    // Simular validación - implementa validatePasswordDirect en tu servicio
-    setTimeout(() => {
-      this.validatingPassword = false;
-      // this.authService.validatePasswordDirect(validationPayload).subscribe(...)
-    }, 800);
+  onConfirmPasswordChange() {
+    this.passwordsMismatch = false;
+    this.error = '';
   }
 
   // MÉTODO PRINCIPAL - Cambio de contraseña para usuarios LOGUEADOS
   onChangePassword(form: NgForm) {
     console.log('🚀 Iniciando cambio de contraseña para usuario logueado...');
 
-    // Limpiar mensajes y errores previos
-    this.error = '';
-    this.message = '';
-    this.currentPasswordError = '';
-    this.passwordReused = false;
+    this.clearMessages();
 
     // Validaciones del formulario
     if (form.invalid) {
@@ -126,16 +98,16 @@ export class PasswordChangeModalComponent implements OnInit {
       return;
     }
 
-    // VALIDACIÓN CRÍTICA: Contraseña actual es obligatoria
+    // Validación contraseña actual obligatoria
     if (!this.currentPassword || this.currentPassword.trim() === '') {
-      this.currentPasswordError =
-        'Debes ingresar tu contraseña actual para confirmar tu identidad.';
+      this.currentPasswordError = 'Debes ingresar tu contraseña actual.';
       this.error = 'La contraseña actual es obligatoria.';
       return;
     }
 
     // Validar que las contraseñas nuevas coincidan
     if (this.newPassword !== this.confirmPassword) {
+      this.passwordsMismatch = true;
       this.error = 'Las contraseñas nuevas no coinciden.';
       return;
     }
@@ -153,7 +125,6 @@ export class PasswordChangeModalComponent implements OnInit {
       return;
     }
 
-    // Iniciar proceso de cambio con validación de contraseña actual
     this.loading = true;
 
     // DTO para usuarios logueados - CON current_password obligatorio
@@ -163,24 +134,23 @@ export class PasswordChangeModalComponent implements OnInit {
       confirm_password: this.confirmPassword,
     };
 
-    // Usar endpoint específico para usuarios logueados
+    // Llamada al endpoint para usuarios logueados
     this.authService.changePasswordDirect(changeData).subscribe({
       next: (response) => {
-        console.log('✅ Cambio de contraseña exitoso:', response);
+        console.log('✅ Respuesta del cambio de contraseña:', response);
         this.loading = false;
 
         if (response.success) {
-          this.message =
-            response.message ||
-            'Contraseña actualizada correctamente. El cambio es efectivo inmediatamente.';
+          this.successMessage =
+            response.message || 'Contraseña actualizada correctamente.';
+          this.message = this.successMessage;
 
-          // Limpiar campos por seguridad
+          this.passwordChanged.emit(true);
           this.clearForm();
 
-          // Opcional: Mostrar mensaje y redirigir después
           setTimeout(() => {
-            this.goBack();
-          }, 3000);
+            this.closeModal();
+          }, 2000);
         } else {
           this.handleChangeError(response);
         }
@@ -193,34 +163,41 @@ export class PasswordChangeModalComponent implements OnInit {
     });
   }
 
-  // Manejar errores específicos del cambio de contraseña
+  // Manejar errores específicos basados en tu backend
   handleChangeError(errorResponse: any) {
-    // Error de contraseña actual incorrecta
+    console.log('🔍 Analizando error:', errorResponse);
+
+    // Contraseña actual incorrecta
     if (
       errorResponse.wrong_current ||
-      errorResponse.error?.includes('contraseña actual') ||
-      errorResponse.detail?.includes('incorrecta')
+      (errorResponse.error &&
+        errorResponse.error.includes('contraseña actual')) ||
+      (errorResponse.detail && errorResponse.detail.includes('incorrecta'))
     ) {
-      this.currentPasswordError =
-        'La contraseña actual es incorrecta. Verifica e intenta nuevamente.';
+      this.wrongCurrentPassword = true;
+      this.currentPasswordError = 'La contraseña actual es incorrecta.';
       this.error = 'Contraseña actual incorrecta.';
     }
-    // Error de contraseña reutilizada
+    // Contraseña reutilizada
     else if (
       errorResponse.password_reused ||
-      errorResponse.error?.includes('utilizado anteriormente')
+      (errorResponse.error &&
+        errorResponse.error.includes('utilizado anteriormente')) ||
+      (errorResponse.detail &&
+        errorResponse.detail.includes('utilizado anteriormente'))
     ) {
       this.passwordReused = true;
       this.error =
-        'No puedes usar una contraseña que ya hayas utilizado anteriormente. Elige una diferente.';
+        'No puedes usar una contraseña que ya hayas utilizado anteriormente.';
     }
-    // Error de contraseñas que no coinciden
+    // Contraseñas no coinciden
     else if (
       errorResponse.passwords_mismatch ||
-      errorResponse.error?.includes('no coinciden')
+      (errorResponse.error && errorResponse.error.includes('no coinciden')) ||
+      (errorResponse.detail && errorResponse.detail.includes('no coinciden'))
     ) {
-      this.error =
-        'Las contraseñas no coinciden. Verifica e intenta nuevamente.';
+      this.passwordsMismatch = true;
+      this.error = 'Las contraseñas no coinciden.';
     }
     // Errores generales
     else if (errorResponse.detail) {
@@ -232,22 +209,18 @@ export class PasswordChangeModalComponent implements OnInit {
     }
   }
 
-  // Limpiar formulario por seguridad
   clearForm() {
     this.currentPassword = '';
     this.newPassword = '';
     this.confirmPassword = '';
     this.currentPasswordError = '';
     this.passwordReused = false;
+    this.validatingPassword = false;
+    this.wrongCurrentPassword = false;
+    this.passwordsMismatch = false;
   }
 
-  // Navegación
-  goBack() {
-    // Redirigir al dashboard o página anterior
-    this.router.navigate(['/dashboard']); // Cambia por tu ruta
-  }
-
-  // Validaciones de contraseña
+  // Validaciones de contraseña según tu backend
   validatePassword(password: string): { isValid: boolean; message: string } {
     if (!password) {
       return { isValid: false, message: 'La contraseña es requerida.' };
@@ -260,10 +233,24 @@ export class PasswordChangeModalComponent implements OnInit {
       };
     }
 
+    if (password.length > 128) {
+      return {
+        isValid: false,
+        message: 'La contraseña no puede tener más de 128 caracteres.',
+      };
+    }
+
     if (!/[A-Z]/.test(password)) {
       return {
         isValid: false,
         message: 'La contraseña debe tener al menos una letra mayúscula.',
+      };
+    }
+
+    if (!/[a-z]/.test(password)) {
+      return {
+        isValid: false,
+        message: 'La contraseña debe tener al menos una letra minúscula.',
       };
     }
 
@@ -292,24 +279,31 @@ export class PasswordChangeModalComponent implements OnInit {
     const password = this.newPassword;
     return {
       minLength: password.length >= 8,
+      maxLength: password.length <= 128,
       hasUppercase: /[A-Z]/.test(password),
+      hasLowercase: /[a-z]/.test(password),
       hasNumber: /[0-9]/.test(password),
       notReused: !this.passwordReused,
     };
   }
 
-  // Validación completa del formulario para usuarios logueados
   isFormValid(): boolean {
     return (
-      // VALIDACIÓN CLAVE: Contraseña actual obligatoria
       this.currentPassword.trim() !== '' &&
-      // Validaciones estándar
       this.isPasswordValid() &&
       this.doPasswordsMatch() &&
       !this.passwordReused &&
       !this.validatingPassword &&
-      // Verificar que no sea igual a la actual
       this.currentPassword !== this.newPassword
     );
+  }
+
+  // Métodos públicos para uso externo
+  public open() {
+    this.openModal();
+  }
+
+  public close() {
+    this.closeModal();
   }
 }

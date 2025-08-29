@@ -22,7 +22,7 @@ import {
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
 import {
   PasswordChangeModalComponent,
-  PasswordErrors, // Cambiar FormError por PasswordErrors
+  // Cambiar FormError por PasswordErrors
 } from '../shared/password-change-modal/password-change-modal.component';
 
 // Interfaces para manejo de errores
@@ -53,6 +53,8 @@ interface ErrorResponse {
   styleUrls: ['./admin-polo.component.css'],
 })
 export class AdminPoloComponent implements OnInit {
+  showPasswordModal = false;
+
   activeTab = 'perfil'; // Cambiar tab por defecto a perfil
 
   // NUEVAS PROPIEDADES PARA EL POLO
@@ -1446,35 +1448,22 @@ export class AdminPoloComponent implements OnInit {
     this.saveInitialFormState('lote', this.loteForm);
   }
 
-  getPasswordErrors(): PasswordErrors {
-    const errors = this.formErrors['password'] || [];
-    const modalErrors: PasswordErrors = {};
-
-    errors.forEach((error) => {
-      if (error.field === 'general') {
-        modalErrors.general = error.message;
-      } else if (error.field === 'currentPassword') {
-        modalErrors.currentPassword = error.message;
-        modalErrors.wrongCurrent = true;
-      } else if (error.field === 'newPassword') {
-        modalErrors.newPassword = error.message;
-        modalErrors.passwordReused = true;
-      } else if (error.field === 'confirmPassword') {
-        modalErrors.confirmPassword = error.message;
-        modalErrors.passwordMismatch = true;
-      }
-    });
-
-    return modalErrors;
-  }
-  // Método para cerrar el modal
-  onPasswordModalClose(): void {
-    this.closeForm('password');
+  openPasswordModal() {
+    this.showPasswordModal = true;
+    // O también puedes usar: this.passwordModal.open();
   }
 
-  // Método para confirmar el cambio de contraseña
-  onPasswordModalConfirm(): void {
-    this.onSubmitPassword();
+  onPasswordModalClosed() {
+    this.showPasswordModal = false;
+    console.log('Modal de cambio de contraseña cerrado');
+  }
+
+  onPasswordChanged(success: boolean) {
+    if (success) {
+      console.log('✅ Contraseña cambiada exitosamente');
+      // Aquí puedes mostrar una notificación de éxito
+      // o actualizar algún estado en tu aplicación
+    }
   }
 }
 

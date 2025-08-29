@@ -119,7 +119,22 @@
       <div class="section-header">
         <h2>Perfil de la Empresa</h2>
         <div class="header-actions">
-          <app-password-change-modal></app-password-change-modal>
+          <div class="user-profile">
+            <!-- Botón para abrir el modal -->
+            <button class="btn btn-primary" (click)="openPasswordModal()">
+              <i class="fas fa-key"></i>
+              Cambiar Contraseña
+            </button>
+
+            <!-- El modal de cambio de contraseña -->
+            <app-password-change-modal
+              #passwordModal
+              [showModal]="showPasswordModal"
+              (modalClosed)="onPasswordModalClosed()"
+              (passwordChanged)="onPasswordChanged($event)"
+            >
+            </app-password-change-modal>
+          </div>
           <button class="btn btn-primary" (click)="openEmpresaEditForm()">
             <svg
               xmlns="http://www.w3.org/2000/svg"

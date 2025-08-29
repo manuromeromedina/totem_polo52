@@ -25,8 +25,7 @@ import {
 } from './admin-empresa.service';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
 import {
-  PasswordChangeModalComponent,
-  PasswordErrors, // Solo importar PasswordErrors
+  PasswordChangeModalComponent, // Solo importar PasswordErrors
 } from '../shared/password-change-modal/password-change-modal.component';
 
 // Interfaces para manejo de errores
@@ -1360,83 +1359,6 @@ export class EmpresaMeComponent implements OnInit {
     return allErrors;
   }
 
-  getPasswordErrors(): PasswordErrors {
-    // Cambiar ModalFormError por PasswordErrors
-    const errors = this.formErrors['password'] || [];
-
-    // Convertir FormError[] a PasswordErrors (objeto con propiedades específicas)
-    const modalErrors: PasswordErrors = {};
-
-    errors.forEach((error) => {
-      if (error.field === 'general') {
-        modalErrors.general = error.message;
-      } else if (error.field === 'currentPassword') {
-        modalErrors.currentPassword = error.message;
-        modalErrors.wrongCurrent = true;
-      } else if (error.field === 'newPassword') {
-        modalErrors.newPassword = error.message;
-        modalErrors.passwordReused = true;
-      } else if (error.field === 'confirmPassword') {
-        modalErrors.confirmPassword = error.message;
-        modalErrors.passwordMismatch = true;
-      }
-    });
-
-    return modalErrors;
-  }
-
-  // Método para cerrar el modal
-  onPasswordModalClose(): void {
-    console.log('❌ Cerrando modal de contraseña');
-    this.showPasswordForm = false;
-    this.clearFormErrors('password');
-  }
-
-  // Método para confirmar el cambio de contraseña
-  onPasswordModalConfirm(formData: {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
-  }): void {
-    console.log('🚀 Iniciando cambio de contraseña para usuario logueado');
-
-    this.loading = true;
-    this.clearFormErrors('password');
-
-    // Construir payload para usuarios logueados (CON contraseña actual)
-    const changePasswordData = {
-      current_password: formData.currentPassword,
-      new_password: formData.newPassword,
-      confirm_password: formData.confirmPassword,
-    };
-
-    // Llamar al servicio de cambio directo (usuarios logueados)
-    this.authService.changePasswordDirect(changePasswordData).subscribe({
-      next: (response) => {
-        console.log('✅ Cambio de contraseña exitoso:', response);
-        this.loading = false;
-
-        if (response.success) {
-          // Mostrar mensaje de éxito
-          this.showMessage('Contraseña actualizada correctamente', 'success');
-
-          // Cerrar modal después de un breve delay
-          setTimeout(() => {
-            this.onPasswordModalClose();
-          }, 1500);
-        } else {
-          // Manejar respuesta de error desde el backend
-          this.handlePasswordError(response);
-        }
-      },
-      error: (err) => {
-        console.error('❌ Error en cambio de contraseña:', err);
-        this.loading = false;
-        this.handlePasswordError(err.error || err);
-      },
-    });
-  }
-
   private handlePasswordError(errorResponse: any): void {
     this.clearFormErrors('password');
     let passwordErrors: FormError[] = []; // Usar la interfaz FormError que ya tienes definida localmente
@@ -1508,5 +1430,24 @@ export class EmpresaMeComponent implements OnInit {
 
     // Asignar errores específicos para el modal de contraseña
     this.formErrors['password'] = passwordErrors;
+  }
+  showPasswordModal = false;
+
+  openPasswordModal() {
+    this.showPasswordModal = true;
+    // O también puedes usar: this.passwordModal.open();
+  }
+
+  onPasswordModalClosed() {
+    this.showPasswordModal = false;
+    console.log('Modal de cambio de contraseña cerrado');
+  }
+
+  onPasswordChanged(success: boolean) {
+    if (success) {
+      console.log('✅ Contraseña cambiada exitosamente');
+      // Aquí puedes mostrar una notificación de éxito
+      // o actualizar algún estado en tu aplicación
+    }
   }
 }
