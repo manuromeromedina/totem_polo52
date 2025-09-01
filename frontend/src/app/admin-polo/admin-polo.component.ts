@@ -20,10 +20,7 @@ import {
   PoloSelfUpdate,
 } from './admin-polo.service';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
-import {
-  PasswordChangeModalComponent,
-  // Cambiar FormError por PasswordErrors
-} from '../shared/password-change-modal/password-change-modal.component';
+import { PasswordChangeModalComponent } from '../shared/password-change-modal/password-change-modal.component';
 
 // Interfaces para manejo de errores
 interface FormError {
@@ -55,9 +52,9 @@ interface ErrorResponse {
 export class AdminPoloComponent implements OnInit {
   showPasswordModal = false;
 
-  activeTab = 'perfil'; // Cambiar tab por defecto a perfil
+  activeTab = 'perfil';
 
-  // NUEVAS PROPIEDADES PARA EL POLO
+  // PROPIEDADES PARA EL POLO
   poloData: PoloDetail | null = null;
   showPasswordForm = false;
   showPoloEditForm = false;
@@ -73,11 +70,11 @@ export class AdminPoloComponent implements OnInit {
     horario_trabajo: '',
   };
 
-  // 🔥 NUEVAS PROPIEDADES PARA CONTROL DE CAMBIOS
+  // PROPIEDADES PARA CONTROL DE CAMBIOS - MEJORADO
   private initialForms: { [key: string]: any } = {};
   private hasUnsavedChanges: { [key: string]: boolean } = {};
 
-  // 🔥 Sistema de errores mejorado
+  // Sistema de errores mejorado
   formErrors: { [key: string]: FormError[] } = {};
 
   // Empresas
@@ -149,7 +146,7 @@ export class AdminPoloComponent implements OnInit {
   message = '';
   messageType: 'success' | 'error' = 'success';
 
-  // NUEVAS PROPIEDADES PARA BÚSQUEDA
+  // PROPIEDADES PARA BÚSQUEDA
   empresaSearchTerm: string = '';
   usuarioSearchTerm: string = '';
   servicioSearchTerm: string = '';
@@ -167,9 +164,7 @@ export class AdminPoloComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRoles();
-    // Cargar datos del polo primero
     this.loadPoloData();
-    // Cargar datos de la pestaña activa por defecto
     this.loadData();
     const savedTheme = localStorage.getItem('theme');
     this.isDarkMode = savedTheme === 'dark';
@@ -182,14 +177,44 @@ export class AdminPoloComponent implements OnInit {
 
   setActiveTab(tab: string): void {
     this.activeTab = tab;
-    this.resetForms();
+    // Cerrar formularios sin confirmación al cambiar de tab
+    this.closeAllFormsWithoutConfirmation();
     this.loadData();
   }
 
-  // 🔥 NUEVOS MÉTODOS PARA CONTROL DE CAMBIOS
+  // MÉTODO PARA CERRAR TODOS LOS FORMULARIOS SIN CONFIRMACIÓN
+  private closeAllFormsWithoutConfirmation(): void {
+    this.showPasswordForm = false;
+    this.showPoloEditForm = false;
+    this.showEmpresaForm = false;
+    this.showUsuarioForm = false;
+    this.showServicioPoloForm = false;
+    this.showLoteForm = false;
+    this.editingEmpresa = null;
+    this.editingUsuario = null;
+    this.selectedEmpresa = null;
+    this.creatingForEmpresa = false;
+
+    // Limpiar errores de todos los formularios
+    this.formErrors = {};
+
+    // Limpiar estados de cambios
+    this.initialForms = {};
+    this.hasUnsavedChanges = {};
+  }
+
+  // MÉTODOS PARA CONTROL DE CAMBIOS MEJORADO
+
+  // 1. MÉTODO PARA GUARDAR ESTADO INICIAL MEJORADO
   private saveInitialFormState(formName: string, formData: any): void {
+    // Crear copia profunda inmediatamente
     this.initialForms[formName] = JSON.parse(JSON.stringify(formData));
     this.hasUnsavedChanges[formName] = false;
+
+    console.log(
+      `Estado inicial guardado para ${formName}:`,
+      this.initialForms[formName]
+    );
   }
 
   private hasFormChanged(formName: string, currentFormData: any): boolean {
@@ -205,10 +230,92 @@ export class AdminPoloComponent implements OnInit {
     return this.hasFormChanged(formName, currentFormData);
   }
 
-  // Método para detectar cambios en tiempo real
-  onFormChange(formName: string): void {
+  // MÉTODO PARA RESTAURAR DATOS ORIGINALES
+  private restoreOriginalFormData(formName: string): void {
+    console.log(`Restaurando datos para ${formName}`);
+
+    if (!this.initialForms[formName]) {
+      console.error('No hay datos iniciales guardados para', formName);
+      return;
+    }
+
+    // Crear copia profunda de los datos originales
+    const originalData = JSON.parse(
+      JSON.stringify(this.initialForms[formName])
+    );
+    console.log('Datos originales a restaurar:', originalData);
+
+    switch (formName) {
+      case 'polo':
+        this.poloEditForm = {
+          cant_empleados: originalData.cant_empleados,
+          observaciones: originalData.observaciones,
+          horario_trabajo: originalData.horario_trabajo,
+        };
+        console.log('Polo restaurado:', this.poloEditForm);
+        break;
+
+      case 'empresa':
+        this.empresaForm = {
+          cuil: originalData.cuil,
+          nombre: originalData.nombre,
+          rubro: originalData.rubro,
+          cant_empleados: originalData.cant_empleados,
+          observaciones: originalData.observaciones,
+          horario_trabajo: originalData.horario_trabajo,
+        };
+        console.log('Empresa restaurada:', this.empresaForm);
+        break;
+
+      case 'usuario':
+        this.usuarioForm = {
+          email: originalData.email,
+          nombre: originalData.nombre,
+          password: originalData.password,
+          estado: originalData.estado,
+          cuil: originalData.cuil,
+          id_rol: originalData.id_rol,
+        };
+        console.log('Usuario restaurado:', this.usuarioForm);
+        break;
+
+      case 'servicioPolo':
+        this.servicioPoloForm = {
+          nombre: originalData.nombre,
+          horario: originalData.horario,
+          datos: { ...originalData.datos },
+          propietario: originalData.propietario,
+          id_tipo_servicio_polo: originalData.id_tipo_servicio_polo,
+          cuil: originalData.cuil,
+        };
+        console.log('Servicio Polo restaurado:', this.servicioPoloForm);
+        break;
+
+      case 'lote':
+        this.loteForm = {
+          dueno: originalData.dueno,
+          lote: originalData.lote,
+          manzana: originalData.manzana,
+          id_servicio_polo: originalData.id_servicio_polo,
+        };
+        console.log('Lote restaurado:', this.loteForm);
+        break;
+
+      case 'password':
+        this.passwordForm = {
+          password: originalData.password,
+          confirmPassword: originalData.confirmPassword,
+        };
+        console.log('Password restaurado:', this.passwordForm);
+        break;
+    }
+  }
+
+  // MÉTODO PARA CANCELAR FORMULARIOS CON CONFIRMACIÓN DE CAMBIOS
+  cancelForm(formName: string): void {
     let currentFormData: any;
 
+    // Obtener los datos actuales del formulario
     switch (formName) {
       case 'polo':
         currentFormData = this.poloEditForm;
@@ -224,60 +331,46 @@ export class AdminPoloComponent implements OnInit {
         break;
       case 'lote':
         currentFormData = this.loteForm;
+        break;
+      case 'password':
+        currentFormData = this.passwordForm;
         break;
       default:
         return;
     }
 
-    this.hasUnsavedChanges[formName] = this.hasFormChanged(
-      formName,
-      currentFormData
-    );
-  }
+    console.log(`Cancelando formulario ${formName}`);
+    console.log('Datos actuales:', currentFormData);
+    console.log('Datos iniciales guardados:', this.initialForms[formName]);
 
-  // Método para mostrar confirmación antes de cerrar
-  private confirmCloseForm(formName: string): boolean {
-    let currentFormData: any;
+    // Verificar si hay cambios sin guardar
+    const hasChanges = this.checkUnsavedChanges(formName, currentFormData);
+    console.log('¿Hay cambios?', hasChanges);
 
-    switch (formName) {
-      case 'polo':
-        currentFormData = this.poloEditForm;
-        break;
-      case 'empresa':
-        currentFormData = this.empresaForm;
-        break;
-      case 'usuario':
-        currentFormData = this.usuarioForm;
-        break;
-      case 'servicioPolo':
-        currentFormData = this.servicioPoloForm;
-        break;
-      case 'lote':
-        currentFormData = this.loteForm;
-        break;
-      default:
-        return true;
-    }
-
-    if (this.checkUnsavedChanges(formName, currentFormData)) {
-      return confirm(
-        '¿Estás seguro de que quieres cerrar este formulario?\n\n' +
-          'Se perderán todos los cambios no guardados.'
+    if (hasChanges) {
+      const shouldDiscard = confirm(
+        '¿Deseas descartar los cambios?\n\n' +
+          'Se perderán todos los cambios no guardados.\n\n' +
+          'Presiona "Aceptar" para descartar o "Cancelar" para continuar editando.'
       );
+
+      console.log('Usuario eligió descartar:', shouldDiscard);
+
+      if (!shouldDiscard) {
+        return; // Usuario decide continuar editando
+      }
+
+      // Restaurar datos originales ANTES de cerrar
+      console.log('Restaurando datos originales...');
+      this.restoreOriginalFormData(formName);
     }
 
-    return true;
+    // Cerrar el formulario
+    this.closeFormWithoutConfirmation(formName);
   }
 
-  // 🔥 MÉTODO PARA CERRAR FORMULARIOS ESPECÍFICOS CON CONFIRMACIÓN
-  closeForm(formName: string): void {
-    if (!this.confirmCloseForm(formName)) {
-      return;
-    }
-
-    // 🔥 RESTAURAR DATOS ORIGINALES AL CANCELAR
-    this.restoreOriginalFormData(formName);
-
+  // MÉTODO PARA CERRAR FORMULARIO SIN CONFIRMACIÓN (uso interno)
+  private closeFormWithoutConfirmation(formName: string): void {
     switch (formName) {
       case 'polo':
         this.showPoloEditForm = false;
@@ -313,127 +406,110 @@ export class AdminPoloComponent implements OnInit {
     this.creatingForEmpresa = false;
   }
 
-  // 🔥 NUEVO MÉTODO PARA RESTAURAR DATOS ORIGINALES
-  private restoreOriginalFormData(formName: string): void {
-    if (!this.initialForms[formName]) return;
+  closeFormDirectly(formName: string): void {
+    // Este método se usa para el botón X y hace la misma validación
+    this.cancelForm(formName);
+  }
 
-    const originalData = JSON.parse(
-      JSON.stringify(this.initialForms[formName])
-    );
-
-    switch (formName) {
-      case 'polo':
-        this.poloEditForm = originalData;
-        break;
-      case 'empresa':
-        this.empresaForm = originalData;
-        break;
-      case 'usuario':
-        this.usuarioForm = originalData;
-        break;
-      case 'servicioPolo':
-        this.servicioPoloForm = originalData;
-        break;
-      case 'lote':
-        this.loteForm = originalData;
-        break;
-      case 'password':
-        this.passwordForm = originalData;
-        break;
+  // MÉTODOS DE FILTRADO
+  filterEmpresas(): void {
+    if (!this.empresaSearchTerm.trim()) {
+      this.filteredEmpresas = [...this.empresas];
+      return;
     }
+
+    const term = this.empresaSearchTerm.toLowerCase().trim();
+    this.filteredEmpresas = this.empresas.filter(
+      (empresa) =>
+        empresa.nombre.toLowerCase().includes(term) ||
+        empresa.cuil.toString().includes(term) ||
+        empresa.rubro.toLowerCase().includes(term)
+    );
   }
 
-  // 🔥 NUEVOS MÉTODOS PARA EL POLO
-  loadPoloData(): void {
-    this.loading = true;
-    this.clearFormErrors('general');
-
-    this.adminPoloService.getPoloDetails().subscribe({
-      next: (data) => {
-        this.poloData = data;
-        this.poloEditForm = {
-          cant_empleados: data.cant_empleados,
-          observaciones: data.observaciones || '',
-          horario_trabajo: data.horario_trabajo,
-        };
-        this.loading = false;
-      },
-      error: (error) => {
-        this.handleError(error, 'general', 'cargar datos del polo');
-        this.loading = false;
-      },
-    });
+  clearEmpresaSearch(): void {
+    this.empresaSearchTerm = '';
+    this.filteredEmpresas = [...this.empresas];
   }
 
-  // PASSWORD PARA POLO
-  openPasswordForm(): void {
-    this.clearFormErrors('password');
-    this.showPasswordForm = true;
-    this.saveInitialFormState('password', this.passwordForm);
+  filterUsuarios(): void {
+    if (!this.usuarioSearchTerm.trim()) {
+      this.filteredUsuarios = [...this.usuarios];
+      return;
+    }
+
+    const term = this.usuarioSearchTerm.toLowerCase().trim();
+    this.filteredUsuarios = this.usuarios.filter(
+      (usuario) =>
+        usuario.nombre.toLowerCase().includes(term) ||
+        usuario.email.toLowerCase().includes(term) ||
+        usuario.cuil.toString().includes(term)
+    );
   }
 
-  onSubmitPassword(): void {
-    this.loading = true;
-    this.clearFormErrors('password');
-
-    this.adminPoloService.changePasswordRequest().subscribe({
-      next: () => {
-        this.showMessage(
-          'Se ha enviado un enlace de cambio de contraseña a tu email',
-          'success'
-        );
-        this.resetForms();
-        this.loading = false;
-      },
-      error: (error) => {
-        this.handleError(error, 'password', 'solicitar cambio de contraseña');
-        this.loading = false;
-      },
-    });
+  clearUsuarioSearch(): void {
+    this.usuarioSearchTerm = '';
+    this.filteredUsuarios = [...this.usuarios];
   }
 
-  // POLO EDIT
-  openPoloEditForm(): void {
-    this.clearFormErrors('polo');
-    this.showPoloEditForm = true;
-    this.saveInitialFormState('polo', this.poloEditForm);
+  filterServicios(): void {
+    if (!this.servicioSearchTerm.trim()) {
+      this.filteredServicios = [...this.serviciosPolo];
+      return;
+    }
+
+    const term = this.servicioSearchTerm.toLowerCase().trim();
+    this.filteredServicios = this.serviciosPolo.filter(
+      (servicio) =>
+        servicio.nombre.toLowerCase().includes(term) ||
+        servicio.cuil.toString().includes(term) ||
+        (servicio.propietario &&
+          servicio.propietario.toLowerCase().includes(term))
+    );
   }
 
-  onSubmitPoloEdit(): void {
-    this.loading = true;
-    this.clearFormErrors('polo');
-
-    this.adminPoloService.updatePolo(this.poloEditForm).subscribe({
-      next: () => {
-        this.showMessage('Datos del polo actualizados exitosamente', 'success');
-        this.loadPoloData();
-        this.resetForms();
-        this.loading = false;
-      },
-      error: (error) => {
-        this.handleError(error, 'polo', 'actualizar datos del polo');
-        this.loading = false;
-      },
-    });
+  clearServicioSearch(): void {
+    this.servicioSearchTerm = '';
+    this.filteredServicios = [...this.serviciosPolo];
   }
 
-  // 🔥 Método para limpiar errores específicos
+  filterLotes(): void {
+    if (!this.loteSearchTerm.trim()) {
+      this.filteredLotes = [...this.lotes];
+      return;
+    }
+
+    const term = this.loteSearchTerm.toLowerCase().trim();
+    this.filteredLotes = this.lotes.filter(
+      (lote) =>
+        lote.dueno.toLowerCase().includes(term) ||
+        lote.lote.toString().includes(term) ||
+        lote.manzana.toString().includes(term)
+    );
+  }
+
+  clearLoteSearch(): void {
+    this.loteSearchTerm = '';
+    this.filteredLotes = [...this.lotes];
+  }
+
+  // Método para limpiar errores específicos
   clearFormErrors(formName: string): void {
     this.formErrors[formName] = [];
   }
 
-  // 🔥 Método para obtener errores de un campo específico
+  // Método para obtener errores de un campo específico
   getFieldErrors(formName: string, fieldName: string): FormError[] {
     const errors = this.formErrors[formName] || [];
     return errors.filter((error) => error.field === fieldName);
   }
 
-  // 🔥 Método para verificar si un campo tiene errores
+  // Método para verificar si un campo tiene errores
   hasFieldError(formName: string, fieldName: string): boolean {
     return this.getFieldErrors(formName, fieldName).length > 0;
   }
 
-  // 🔥 Procesador de errores HTTP mejorado
+  // Procesador de errores HTTP mejorado
   private handleError(error: any, formName: string, operation: string): void {
     console.error(`Error en ${operation}:`, error);
 
@@ -523,7 +599,7 @@ export class AdminPoloComponent implements OnInit {
     }
   }
 
-  // 🔥 Traductor de errores de campos específicos
+  // Traductor de errores de campos específicos
   private translateFieldError(
     field: string,
     message: string,
@@ -534,6 +610,35 @@ export class AdminPoloComponent implements OnInit {
         cant_empleados: 'La cantidad de empleados debe ser mayor a 0',
         horario_trabajo: 'El horario de trabajo es requerido',
         observaciones: 'Las observaciones no pueden exceder 500 caracteres',
+      },
+      empresa: {
+        cuil: 'El CUIL debe tener formato válido',
+        nombre: 'El nombre es requerido (mínimo 2 caracteres)',
+        rubro: 'El rubro es requerido',
+        cant_empleados: 'La cantidad de empleados debe ser mayor a 0',
+        horario_trabajo: 'El horario de trabajo es requerido',
+        observaciones: 'Las observaciones no pueden exceder 500 caracteres',
+      },
+      usuario: {
+        email: 'El formato del email es inválido',
+        nombre: 'El nombre de usuario es requerido',
+        password: 'La contraseña debe tener al menos 6 caracteres',
+        cuil: 'El CUIL de empresa es requerido',
+        id_rol: 'Debe seleccionar un rol',
+      },
+      servicioPolo: {
+        nombre: 'El nombre del servicio es requerido',
+        cuil: 'El CUIL de empresa es requerido',
+        propietario: 'Debe seleccionar el tipo de propietario',
+        'datos.cant_puestos':
+          'La cantidad de puestos es requerida para coworking',
+        'datos.m2': 'Los metros cuadrados son requeridos',
+      },
+      lote: {
+        dueno: 'El dueño del lote es requerido',
+        lote: 'El número de lote debe ser mayor a 0',
+        manzana: 'El número de manzana debe ser mayor a 0',
+        id_servicio_polo: 'El ID del servicio polo es requerido',
       },
       password: {
         password: 'La contraseña debe tener al menos 6 caracteres',
@@ -559,20 +664,49 @@ export class AdminPoloComponent implements OnInit {
     return genericTranslations[message] || message;
   }
 
-  // 🔥 Traductor de errores genéricos
+  // Traductor de errores genéricos
   private translateGenericError(detail: string, formName: string): string {
     const translations: { [key: string]: string } = {
+      'Ya existe una empresa con ese CUIL':
+        'Ya existe una empresa registrada con ese CUIL',
+      'Ya existe un usuario con ese email':
+        'Ya existe un usuario registrado con ese email',
       'Usuario no encontrado': 'Usuario no encontrado en el sistema',
       'Email no registrado': 'El email no está registrado en el sistema',
       'Credenciales inválidas': 'Usuario o contraseña incorrectos',
       'Token inválido':
         'La sesión ha expirado, por favor inicie sesión nuevamente',
       'Polo no encontrado': 'El polo no fue encontrado',
+      'Empresa no encontrada': 'La empresa no fue encontrada',
+      'Servicio no encontrado': 'El servicio solicitado no existe',
+      'Lote no encontrado': 'El lote solicitado no existe',
+      'Rol inválido': 'El rol especificado no es válido',
       'Acceso denegado': 'No tiene permisos para realizar esta acción',
       'Datos inválidos': 'Los datos enviados contienen errores',
     };
 
     return translations[detail] || detail;
+  }
+
+  loadPoloData(): void {
+    this.loading = true;
+    this.clearFormErrors('general');
+
+    this.adminPoloService.getPoloDetails().subscribe({
+      next: (data) => {
+        this.poloData = data;
+        this.poloEditForm = {
+          cant_empleados: data.cant_empleados,
+          observaciones: data.observaciones || '',
+          horario_trabajo: data.horario_trabajo,
+        };
+        this.loading = false;
+      },
+      error: (error) => {
+        this.handleError(error, 'general', 'cargar datos del polo');
+        this.loading = false;
+      },
+    });
   }
 
   loadRoles(): void {
@@ -591,7 +725,6 @@ export class AdminPoloComponent implements OnInit {
 
     switch (this.activeTab) {
       case 'perfil':
-        // Ya se carga en ngOnInit
         this.loading = false;
         break;
       case 'empresas':
@@ -615,16 +748,12 @@ export class AdminPoloComponent implements OnInit {
     this.adminPoloService.getEmpresas().subscribe({
       next: (empresas) => {
         this.empresas = empresas;
-        this.filteredEmpresas = [...empresas]; // Inicializar array filtrado
-        this.filterEmpresas(); // Aplicar filtro actual si existe
+        this.filteredEmpresas = [...empresas];
+        this.filterEmpresas();
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading empresas:', error);
-        this.showMessage(
-          'Error al cargar empresas: ' + (error.error?.detail || error.message),
-          'error'
-        );
+        this.handleError(error, 'general', 'cargar empresas');
         this.loading = false;
       },
     });
@@ -634,16 +763,12 @@ export class AdminPoloComponent implements OnInit {
     this.adminPoloService.getUsers().subscribe({
       next: (usuarios) => {
         this.usuarios = usuarios;
-        this.filteredUsuarios = [...usuarios]; // Inicializar array filtrado
-        this.filterUsuarios(); // Aplicar filtro actual si existe
+        this.filteredUsuarios = [...usuarios];
+        this.filterUsuarios();
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading usuarios:', error);
-        this.showMessage(
-          'Error al cargar usuarios: ' + (error.error?.detail || error.message),
-          'error'
-        );
+        this.handleError(error, 'general', 'cargar usuarios');
         this.loading = false;
       },
     });
@@ -653,17 +778,12 @@ export class AdminPoloComponent implements OnInit {
     this.adminPoloService.getServiciosPolo().subscribe({
       next: (servicios) => {
         this.serviciosPolo = servicios;
-        this.filteredServicios = [...servicios]; // Inicializar array filtrado
-        this.filterServicios(); // Aplicar filtro actual si existe
+        this.filteredServicios = [...servicios];
+        this.filterServicios();
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading servicios polo:', error);
-        this.showMessage(
-          'Error al cargar servicios del polo: ' +
-            (error.error?.detail || error.message),
-          'error'
-        );
+        this.handleError(error, 'general', 'cargar servicios del polo');
         this.loading = false;
       },
     });
@@ -673,158 +793,25 @@ export class AdminPoloComponent implements OnInit {
     this.adminPoloService.getLotes().subscribe({
       next: (lotes) => {
         this.lotes = lotes;
-        this.filteredLotes = [...lotes]; // Inicializar array filtrado
-        this.filterLotes(); // Aplicar filtro actual si existe
+        this.filteredLotes = [...lotes];
+        this.filterLotes();
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading lotes:', error);
-        this.showMessage(
-          'Error al cargar lotes: ' + (error.error?.detail || error.message),
-          'error'
-        );
+        this.handleError(error, 'general', 'cargar lotes');
         this.loading = false;
       },
     });
   }
 
-  // NUEVOS MÉTODOS DE FILTRADO
-  filterEmpresas(): void {
-    if (!this.empresaSearchTerm.trim()) {
-      this.filteredEmpresas = [...this.empresas];
-      return;
-    }
-
-    const term = this.empresaSearchTerm.toLowerCase().trim();
-    this.filteredEmpresas = this.empresas.filter(
-      (empresa) =>
-        empresa.nombre.toLowerCase().includes(term) ||
-        empresa.cuil.toString().includes(term) ||
-        empresa.rubro.toLowerCase().includes(term)
-    );
-  }
-
-  clearEmpresaSearch(): void {
-    this.empresaSearchTerm = '';
-    this.filteredEmpresas = [...this.empresas];
-  }
-
-  filterUsuarios(): void {
-    if (!this.usuarioSearchTerm.trim()) {
-      this.filteredUsuarios = [...this.usuarios];
-      return;
-    }
-
-    const term = this.usuarioSearchTerm.toLowerCase().trim();
-    this.filteredUsuarios = this.usuarios.filter(
-      (usuario) =>
-        usuario.nombre.toLowerCase().includes(term) ||
-        usuario.email.toLowerCase().includes(term) ||
-        usuario.cuil.toString().includes(term)
-    );
-  }
-
-  clearUsuarioSearch(): void {
-    this.usuarioSearchTerm = '';
-    this.filteredUsuarios = [...this.usuarios];
-  }
-
-  filterServicios(): void {
-    if (!this.servicioSearchTerm.trim()) {
-      this.filteredServicios = [...this.serviciosPolo];
-      return;
-    }
-
-    const term = this.servicioSearchTerm.toLowerCase().trim();
-    this.filteredServicios = this.serviciosPolo.filter(
-      (servicio) =>
-        servicio.nombre.toLowerCase().includes(term) ||
-        servicio.cuil.toString().includes(term) ||
-        (servicio.propietario &&
-          servicio.propietario.toLowerCase().includes(term))
-    );
-  }
-
-  clearServicioSearch(): void {
-    this.servicioSearchTerm = '';
-    this.filteredServicios = [...this.serviciosPolo];
-  }
-
-  filterLotes(): void {
-    if (!this.loteSearchTerm.trim()) {
-      this.filteredLotes = [...this.lotes];
-      return;
-    }
-
-    const term = this.loteSearchTerm.toLowerCase().trim();
-    this.filteredLotes = this.lotes.filter(
-      (lote) =>
-        lote.dueno.toLowerCase().includes(term) ||
-        lote.lote.toString().includes(term) ||
-        lote.manzana.toString().includes(term)
-    );
-  }
-
-  clearLoteSearch(): void {
-    this.loteSearchTerm = '';
-    this.filteredLotes = [...this.lotes];
-  }
-
-  // 🔥 MÉTODO RESETFORMS ACTUALIZADO CON CONFIRMACIÓN
+  // Método resetForms sin confirmación (usado al enviar exitosamente)
   resetForms(): void {
-    // Verificar si hay cambios sin guardar antes de resetear
-    const formsToCheck = ['polo', 'empresa', 'usuario', 'servicioPolo', 'lote'];
-    let hasChanges = false;
-    let formWithChanges = '';
-
-    for (const formName of formsToCheck) {
-      let currentFormData: any;
-      let isFormOpen = false;
-
-      switch (formName) {
-        case 'polo':
-          currentFormData = this.poloEditForm;
-          isFormOpen = this.showPoloEditForm;
-          break;
-        case 'empresa':
-          currentFormData = this.empresaForm;
-          isFormOpen = this.showEmpresaForm;
-          break;
-        case 'usuario':
-          currentFormData = this.usuarioForm;
-          isFormOpen = this.showUsuarioForm;
-          break;
-        case 'servicioPolo':
-          currentFormData = this.servicioPoloForm;
-          isFormOpen = this.showServicioPoloForm;
-          break;
-        case 'lote':
-          currentFormData = this.loteForm;
-          isFormOpen = this.showLoteForm;
-          break;
-        default:
-          continue;
-      }
-
-      if (isFormOpen && this.checkUnsavedChanges(formName, currentFormData)) {
-        hasChanges = true;
-        formWithChanges = formName;
-        break;
-      }
-    }
-
-    // Si hay cambios, mostrar confirmación
-    if (hasChanges && !this.confirmCloseForm(formWithChanges)) {
-      return; // No cerrar si el usuario cancela
-    }
-
-    // Proceder con el reset normal
+    this.showPasswordForm = false;
+    this.showPoloEditForm = false;
     this.showEmpresaForm = false;
     this.showUsuarioForm = false;
     this.showServicioPoloForm = false;
     this.showLoteForm = false;
-    this.showPasswordForm = false;
-    this.showPoloEditForm = false;
     this.editingEmpresa = null;
     this.editingUsuario = null;
     this.selectedEmpresa = null;
@@ -834,6 +821,7 @@ export class AdminPoloComponent implements OnInit {
     // Limpiar errores de todos los formularios
     this.formErrors = {};
 
+    // Resetear formularios
     this.passwordForm = { password: '', confirmPassword: '' };
 
     this.empresaForm = {
@@ -845,11 +833,10 @@ export class AdminPoloComponent implements OnInit {
       horario_trabajo: '',
     };
 
-    // Limpiar formulario de usuario sin contraseña para nuevos usuarios
     this.usuarioForm = {
       email: '',
       nombre: '',
-      password: '', // Se mantiene para edición, pero no se usa en creación
+      password: '',
       estado: true,
       cuil: null as any,
       id_rol: null as any,
@@ -889,13 +876,55 @@ export class AdminPoloComponent implements OnInit {
     }, 5000);
   }
 
+  openPasswordForm(): void {
+    this.clearFormErrors('password');
+    this.showPasswordForm = true;
+    // No necesitamos saveInitialFormState aquí porque el modal maneja su propio estado
+  }
+
+  // POLO EDIT
+  openPoloEditForm(): void {
+    this.clearFormErrors('polo');
+    this.showPoloEditForm = true;
+
+    // IMPORTANTE: Guardar el estado inicial DESPUÉS de mostrar el formulario
+    setTimeout(() => {
+      this.saveInitialFormState('polo', this.poloEditForm);
+    }, 0);
+  }
+
+  onSubmitPoloEdit(): void {
+    this.loading = true;
+    this.clearFormErrors('polo');
+
+    this.adminPoloService.updatePolo(this.poloEditForm).subscribe({
+      next: () => {
+        this.showMessage('Datos del polo actualizados exitosamente', 'success');
+        this.loadPoloData();
+        this.resetForms();
+        this.loading = false;
+      },
+      error: (error) => {
+        this.handleError(error, 'polo', 'actualizar datos del polo');
+        this.loading = false;
+      },
+    });
+  }
+
   // EMPRESAS
   openEmpresaForm(empresa?: Empresa): void {
     this.clearFormErrors('empresa');
 
     if (empresa) {
       this.editingEmpresa = empresa;
-      this.empresaForm = { ...empresa };
+      this.empresaForm = {
+        cuil: empresa.cuil,
+        nombre: empresa.nombre,
+        rubro: empresa.rubro,
+        cant_empleados: empresa.cant_empleados,
+        observaciones: empresa.observaciones || '',
+        horario_trabajo: empresa.horario_trabajo,
+      };
     } else {
       this.editingEmpresa = null;
       this.empresaForm = {
@@ -907,12 +936,18 @@ export class AdminPoloComponent implements OnInit {
         horario_trabajo: '',
       };
     }
+
     this.showEmpresaForm = true;
-    this.saveInitialFormState('empresa', this.empresaForm);
+
+    // IMPORTANTE: Guardar estado después de configurar el formulario
+    setTimeout(() => {
+      this.saveInitialFormState('empresa', this.empresaForm);
+    }, 0);
   }
 
   onSubmitEmpresa(): void {
     this.loading = true;
+    this.clearFormErrors('empresa');
 
     if (this.editingEmpresa) {
       // Actualizar
@@ -924,37 +959,28 @@ export class AdminPoloComponent implements OnInit {
       this.adminPoloService
         .updateEmpresa(this.editingEmpresa.cuil, updateData)
         .subscribe({
-          next: (empresa) => {
+          next: () => {
             this.showMessage('Empresa actualizada exitosamente', 'success');
+            this.loadEmpresas();
             this.resetForms();
-            this.loadEmpresas(); // Esto ahora actualiza los filtros también
             this.loading = false;
           },
           error: (error) => {
-            this.showMessage(
-              'Error al actualizar empresa: ' +
-                (error.error?.detail || error.message),
-              'error'
-            );
+            this.handleError(error, 'empresa', 'actualizar empresa');
             this.loading = false;
           },
         });
     } else {
       // Crear
       this.adminPoloService.createEmpresa(this.empresaForm).subscribe({
-        next: (empresa) => {
+        next: () => {
           this.showMessage('Empresa creada exitosamente', 'success');
-          this.empresas.push(empresa);
-          this.filteredEmpresas = [...this.empresas]; // Actualizar filtros
-          this.filterEmpresas(); // Aplicar filtro actual
+          this.loadEmpresas();
           this.resetForms();
           this.loading = false;
         },
         error: (error) => {
-          this.showMessage(
-            'Error al crear empresa: ' + (error.error?.detail || error.message),
-            'error'
-          );
+          this.handleError(error, 'empresa', 'crear empresa');
           this.loading = false;
         },
       });
@@ -966,14 +992,10 @@ export class AdminPoloComponent implements OnInit {
       this.adminPoloService.deleteEmpresa(cuil).subscribe({
         next: () => {
           this.showMessage('Empresa eliminada exitosamente', 'success');
-          this.loadEmpresas(); // Esto actualizará tanto el array principal como el filtrado
+          this.loadEmpresas();
         },
         error: (error) => {
-          this.showMessage(
-            'Error al eliminar empresa: ' +
-              (error.error?.detail || error.message),
-            'error'
-          );
+          this.handleError(error, 'general', 'eliminar empresa');
         },
       });
     }
@@ -991,7 +1013,7 @@ export class AdminPoloComponent implements OnInit {
         password: '',
         estado: usuario.estado,
         cuil: usuario.cuil,
-        id_rol: 0,
+        id_rol: 0, // Los roles no se editan en usuarios existentes
       };
     } else {
       this.editingUsuario = null;
@@ -1004,12 +1026,18 @@ export class AdminPoloComponent implements OnInit {
         id_rol: null as any,
       };
     }
+
     this.showUsuarioForm = true;
-    this.saveInitialFormState('usuario', this.usuarioForm);
+
+    // IMPORTANTE: Guardar estado después de configurar el formulario
+    setTimeout(() => {
+      this.saveInitialFormState('usuario', this.usuarioForm);
+    }, 0);
   }
 
   onSubmitUsuario(): void {
     this.loading = true;
+    this.clearFormErrors('usuario');
 
     if (this.editingUsuario) {
       // Actualizar usuario existente
@@ -1021,106 +1049,39 @@ export class AdminPoloComponent implements OnInit {
       this.adminPoloService
         .updateUser(this.editingUsuario.id_usuario, updateData)
         .subscribe({
-          next: (usuario) => {
+          next: () => {
             this.showMessage('Usuario actualizado exitosamente', 'success');
-            this.resetForms();
             this.loadUsuarios();
+            this.resetForms();
             this.loading = false;
           },
           error: (error) => {
-            let errorMessage = 'Error al actualizar usuario';
-
-            if (error.error?.detail && Array.isArray(error.error.detail)) {
-              const validationErrors = error.error.detail
-                .map((err: any) => err.msg)
-                .join(', ');
-              errorMessage = validationErrors;
-            } else if (error.error?.detail) {
-              errorMessage = error.error.detail;
-            } else {
-              errorMessage = error.message;
-            }
-
-            this.showMessage(errorMessage, 'error');
+            this.handleError(error, 'usuario', 'actualizar usuario');
             this.loading = false;
           },
         });
     } else {
-      // Crear nuevo usuario - SIN validación de contraseña
-
-      // Validaciones básicas
-      if (!this.usuarioForm.email) {
-        this.showMessage('El email es requerido', 'error');
-        this.loading = false;
-        return;
-      }
-
-      if (!this.usuarioForm.nombre) {
-        this.showMessage('El nombre de usuario es requerido', 'error');
-        this.loading = false;
-        return;
-      }
-
-      if (!this.usuarioForm.cuil || this.usuarioForm.cuil === 0) {
-        this.showMessage('El CUIL de empresa es requerido', 'error');
-        this.loading = false;
-        return;
-      }
-
-      if (!this.usuarioForm.id_rol || this.usuarioForm.id_rol === 0) {
-        this.showMessage('Debe seleccionar un rol', 'error');
-        this.loading = false;
-        return;
-      }
-
-      // Validar formato de email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(this.usuarioForm.email)) {
-        this.showMessage('El formato del email es inválido', 'error');
-        this.loading = false;
-        return;
-      }
-
-      // Crear el usuario sin contraseña (se genera automáticamente en el backend)
+      // Crear nuevo usuario
       const userCreateData = {
         email: this.usuarioForm.email,
         nombre: this.usuarioForm.nombre,
-        // NO enviamos password - se genera automáticamente
         estado: this.usuarioForm.estado,
         cuil: this.usuarioForm.cuil,
         id_rol: this.usuarioForm.id_rol,
       };
 
       this.adminPoloService.createUser(userCreateData).subscribe({
-        next: (usuario) => {
+        next: () => {
           this.showMessage(
             'Usuario creado exitosamente. Se han enviado las credenciales por email.',
             'success'
           );
-          this.usuarios.push(usuario);
-          this.filteredUsuarios = [...this.usuarios];
-          this.filterUsuarios();
+          this.loadUsuarios();
           this.resetForms();
           this.loading = false;
         },
         error: (error) => {
-          console.log('Error completo:', error);
-          console.log('Error detail:', error.error?.detail);
-
-          let errorMessage = 'Error al crear usuario';
-
-          if (error.error?.detail && Array.isArray(error.error.detail)) {
-            const validationErrors = error.error.detail
-              .map((err: any) => err.msg)
-              .join(', ');
-            errorMessage = validationErrors;
-          } else if (error.error?.detail) {
-            errorMessage = error.error.detail;
-          } else {
-            errorMessage = error.message;
-          }
-
-          this.showMessage(errorMessage, 'error');
+          this.handleError(error, 'usuario', 'crear usuario');
           this.loading = false;
         },
       });
@@ -1159,11 +1120,7 @@ export class AdminPoloComponent implements OnInit {
             this.showMessage(`Usuario ${accion}do exitosamente`, 'success');
           },
           error: (error) => {
-            this.showMessage(
-              `Error al ${accion} usuario: ` +
-                (error.error?.detail || error.message),
-              'error'
-            );
+            this.handleError(error, 'general', `${accion} usuario`);
           },
         });
     }
@@ -1173,7 +1130,11 @@ export class AdminPoloComponent implements OnInit {
   openServicioPoloForm(): void {
     this.clearFormErrors('servicioPolo');
     this.showServicioPoloForm = true;
-    this.saveInitialFormState('servicioPolo', this.servicioPoloForm);
+
+    // IMPORTANTE: Guardar estado después de configurar el formulario
+    setTimeout(() => {
+      this.saveInitialFormState('servicioPolo', this.servicioPoloForm);
+    }, 0);
   }
 
   isCantPuestosRequired(): boolean {
@@ -1185,43 +1146,51 @@ export class AdminPoloComponent implements OnInit {
   }
 
   onSubmitServicioPolo(): void {
+    this.loading = true;
+    this.clearFormErrors('servicioPolo');
+
     const tipo = this.servicioPoloForm.id_tipo_servicio_polo;
     const datos = this.servicioPoloForm.datos || {};
 
     // Validaciones manuales
     if (tipo === 1 && (!datos.cant_puestos || datos.cant_puestos <= 0)) {
-      this.showMessage(
-        'Debe ingresar la cantidad de puestos para coworking.',
-        'error'
+      this.handleError(
+        {
+          error: {
+            detail: 'Debe ingresar la cantidad de puestos para coworking.',
+          },
+        },
+        'servicioPolo',
+        'validar servicio polo'
       );
+      this.loading = false;
       return;
     }
 
     if (tipo !== 1 && (!datos.m2 || datos.m2 <= 0)) {
-      this.showMessage(
-        'Debe ingresar los metros cuadrados para este tipo de servicio.',
-        'error'
+      this.handleError(
+        {
+          error: {
+            detail:
+              'Debe ingresar los metros cuadrados para este tipo de servicio.',
+          },
+        },
+        'servicioPolo',
+        'validar servicio polo'
       );
+      this.loading = false;
       return;
     }
 
-    // Enviar
-    this.loading = true;
     this.adminPoloService.createServicioPolo(this.servicioPoloForm).subscribe({
-      next: (servicio) => {
+      next: () => {
         this.showMessage('Servicio del polo creado exitosamente', 'success');
-        this.serviciosPolo.push(servicio);
-        this.filteredServicios = [...this.serviciosPolo]; // Actualizar filtros
-        this.filterServicios(); // Aplicar filtro actual
+        this.loadServiciosPolo();
         this.resetForms();
         this.loading = false;
       },
       error: (error) => {
-        this.showMessage(
-          'Error al crear servicio del polo: ' +
-            (error.error?.detail || error.message),
-          'error'
-        );
+        this.handleError(error, 'servicioPolo', 'crear servicio del polo');
         this.loading = false;
       },
     });
@@ -1236,9 +1205,6 @@ export class AdminPoloComponent implements OnInit {
 
     this.servicioPoloForm.datos.cant_puestos = null;
     this.servicioPoloForm.datos.m2 = null;
-
-    // Actualizar detección de cambios
-    this.onFormChange('servicioPolo');
   }
 
   onPropietarioChange(): void {
@@ -1260,9 +1226,6 @@ export class AdminPoloComponent implements OnInit {
       delete this.servicioPoloForm.datos.datos_prop;
       delete this.servicioPoloForm.datos.datos_inquilino;
     }
-
-    // Actualizar detección de cambios
-    this.onFormChange('servicioPolo');
   }
 
   deleteServicioPolo(id: number): void {
@@ -1273,19 +1236,10 @@ export class AdminPoloComponent implements OnInit {
             'Servicio del polo eliminado exitosamente',
             'success'
           );
-          this.serviciosPolo = this.serviciosPolo.filter(
-            (s) => s.id_servicio_polo !== id
-          );
-          this.filteredServicios = this.filteredServicios.filter(
-            (s) => s.id_servicio_polo !== id
-          );
+          this.loadServiciosPolo();
         },
         error: (error) => {
-          this.showMessage(
-            'Error al eliminar servicio del polo: ' +
-              (error.error?.detail || error.message),
-            'error'
-          );
+          this.handleError(error, 'general', 'eliminar servicio del polo');
         },
       });
     }
@@ -1308,30 +1262,30 @@ export class AdminPoloComponent implements OnInit {
     };
 
     this.showLoteForm = true;
-    this.saveInitialFormState('lote', this.loteForm);
+
+    // IMPORTANTE: Guardar estado después de configurar el formulario
+    setTimeout(() => {
+      this.saveInitialFormState('lote', this.loteForm);
+    }, 0);
   }
 
   onSubmitLote(): void {
     this.loading = true;
+    this.clearFormErrors('lote');
 
     if (this.selectedServicioPoloId !== null) {
       this.loteForm.id_servicio_polo = this.selectedServicioPoloId;
     }
 
     this.adminPoloService.createLote(this.loteForm).subscribe({
-      next: (lote) => {
+      next: () => {
         this.showMessage('Lote creado exitosamente', 'success');
-        this.lotes.push(lote);
-        this.filteredLotes = [...this.lotes]; // Actualizar filtros
-        this.filterLotes(); // Aplicar filtro actual
+        this.loadLotes();
         this.resetForms();
         this.loading = false;
       },
       error: (error) => {
-        this.showMessage(
-          'Error al crear lote: ' + (error.error?.detail || error.message),
-          'error'
-        );
+        this.handleError(error, 'lote', 'crear lote');
         this.loading = false;
       },
     });
@@ -1342,16 +1296,10 @@ export class AdminPoloComponent implements OnInit {
       this.adminPoloService.deleteLote(id).subscribe({
         next: () => {
           this.showMessage('Lote eliminado exitosamente', 'success');
-          this.lotes = this.lotes.filter((l) => l.id_lotes !== id);
-          this.filteredLotes = this.filteredLotes.filter(
-            (l) => l.id_lotes !== id
-          );
+          this.loadLotes();
         },
         error: (error) => {
-          this.showMessage(
-            'Error al eliminar lote: ' + (error.error?.detail || error.message),
-            'error'
-          );
+          this.handleError(error, 'general', 'eliminar lote');
         },
       });
     }
@@ -1362,32 +1310,7 @@ export class AdminPoloComponent implements OnInit {
     return rol ? rol.tipo_rol : 'Desconocido';
   }
 
-  private validatePassword(password: string): string | null {
-    if (!password) {
-      return 'La contraseña es requerida';
-    }
-
-    if (password.length < 6) {
-      return 'La contraseña debe tener al menos 6 caracteres';
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      return 'La contraseña debe contener al menos una mayúscula';
-    }
-
-    if (!/[a-z]/.test(password)) {
-      return 'La contraseña debe contener al menos una minúscula';
-    }
-
-    if (!/[0-9]/.test(password)) {
-      return 'La contraseña debe contener al menos un número';
-    }
-
-    return null;
-  }
-
   createUsuarioForEmpresa(empresa: Empresa): void {
-    console.log('🚀 createUsuarioForEmpresa ejecutado con:', empresa);
     this.selectedEmpresa = empresa;
     this.creatingForEmpresa = true;
     this.usuarioForm = {
@@ -1398,74 +1321,49 @@ export class AdminPoloComponent implements OnInit {
       cuil: empresa.cuil,
       id_rol: 0,
     };
-    console.log('📝 Formulario configurado:', this.usuarioForm);
-    console.log('🔧 Abriendo formulario...');
     this.showUsuarioForm = true;
-    this.saveInitialFormState('usuario', this.usuarioForm);
-    console.log('✅ showUsuarioForm =', this.showUsuarioForm);
+
+    // IMPORTANTE: Guardar estado después de configurar el formulario
+    setTimeout(() => {
+      this.saveInitialFormState('usuario', this.usuarioForm);
+    }, 0);
   }
 
   createServicioPoloForEmpresa(empresa: Empresa): void {
-    console.log('🚀 createServicioPoloForEmpresa ejecutado con:', empresa);
     this.selectedEmpresa = empresa;
     this.creatingForEmpresa = true;
     this.servicioPoloForm = {
       nombre: '',
       horario: '',
-      datos: {},
+      datos: {
+        cant_puestos: null,
+        m2: null,
+        datos_prop: { nombre: '', contacto: '' },
+        datos_inquilino: { nombre: '', contacto: '' },
+      },
       propietario: '',
       id_tipo_servicio_polo: 1,
       cuil: empresa.cuil,
     };
     this.showServicioPoloForm = true;
-    this.saveInitialFormState('servicioPolo', this.servicioPoloForm);
-    console.log('✅ showServicioPoloForm =', this.showServicioPoloForm);
-  }
 
-  createLoteForEmpresa(empresa: Empresa): void {
-    console.log('🚀 createLoteForEmpresa ejecutado con:', empresa);
-    this.selectedEmpresa = empresa;
-    this.creatingForEmpresa = true;
-    this.loteForm = {
-      dueno: '',
-      lote: 0,
-      manzana: 0,
-      id_servicio_polo: 0,
-    };
-    this.showLoteForm = true;
-    this.saveInitialFormState('lote', this.loteForm);
-    console.log('✅ showLoteForm =', this.showLoteForm);
-  }
-
-  openLoteFormForEmpresa(empresa: Empresa): void {
-    this.loteForm = {
-      dueno: '',
-      lote: 0,
-      manzana: 0,
-      id_servicio_polo: 0,
-    };
-    this.showLoteForm = true;
-    this.saveInitialFormState('lote', this.loteForm);
+    // IMPORTANTE: Guardar estado después de configurar el formulario
+    setTimeout(() => {
+      this.saveInitialFormState('servicioPolo', this.servicioPoloForm);
+    }, 0);
   }
 
   openPasswordModal() {
     this.showPasswordModal = true;
-    // O también puedes usar: this.passwordModal.open();
   }
 
   onPasswordModalClosed() {
     this.showPasswordModal = false;
-    console.log('Modal de cambio de contraseña cerrado');
   }
 
   onPasswordChanged(success: boolean) {
     if (success) {
       console.log('✅ Contraseña cambiada exitosamente');
-      // Aquí puedes mostrar una notificación de éxito
-      // o actualizar algún estado en tu aplicación
     }
   }
 }
-
-// Exportar como default también si es necesario
-export default AdminPoloComponent;
