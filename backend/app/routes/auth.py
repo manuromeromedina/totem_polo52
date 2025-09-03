@@ -1,10 +1,10 @@
 #auth.py
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import Depends, HTTPException, APIRouter, Response, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from jose import JWTError, jwt
-from datetime import date
+from datetime import date, datetime, timedelta
 from app.config import SessionLocal, SECRET_KEY, ALGORITHM
 from app import models, schemas, services
 from app.models import Usuario
@@ -55,9 +55,54 @@ def get_current_user(
         )
         if not user:
             raise HTTPException(401, "Usuario no encontrado")
+        
+        # VALIDACIÓN: Verificar que el usuario siga habilitado durante sesiones activas
+        if not user.estado:
+            raise HTTPException(
+                status_code=403, 
+                detail="Su cuenta ha sido deshabilitada. Contacte con el administrador."
+            )
+            
         return user
     except JWTError:
         raise HTTPException(401, "Token inválido")
+
+# Función para obtener usuario desde cookie de "recordarme"
+def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -> models.Usuario:
+    """
+    Obtiene el usuario actual desde token Bearer o cookie de "recordarme"
+    Usado para endpoints que pueden funcionar con o sin autenticación
+    """
+    # Primero intentar con Authorization header
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            nombre = payload.get("sub")
+            if nombre:
+                user = db.query(models.Usuario).filter(models.Usuario.nombre == nombre).first()
+                if user and user.estado:
+                    return user
+        except JWTError:
+            pass
+    
+    # Si no hay Bearer token, intentar con cookie de "recordarme"
+    remember_token = request.cookies.get("remember_token")
+    if remember_token:
+        try:
+            payload = jwt.decode(remember_token, SECRET_KEY, algorithms=[ALGORITHM])
+            nombre = payload.get("sub")
+            token_type = payload.get("type")
+            
+            if nombre and token_type == "remember":
+                user = db.query(models.Usuario).filter(models.Usuario.nombre == nombre).first()
+                if user and user.estado:
+                    return user
+        except JWTError:
+            pass
+    
+    return None
 
 # ═══════════════════════════════════════════════════════════════════
 # VALIDACIÓN DE ROLES
@@ -127,8 +172,10 @@ def register(dto: schemas.UserRegister, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.Token, tags=["auth"])
 def login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
+    remember_me: bool = False  # Nuevo parámetro
 ):
     user = (db.query(models.Usuario).filter(
         or_(models.Usuario.nombre == form_data.username, 
@@ -137,6 +184,13 @@ def login(
     
     if not user or not services.verify_password(form_data.password, user.contrasena):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    
+    # VALIDACIÓN: Verificar que el usuario esté habilitado antes del login
+    if not user.estado:
+        raise HTTPException(
+            status_code=403, 
+            detail="Su cuenta ha sido deshabilitada. Contacte con el administrador para más información."
+        )
     
     # Obtener roles del usuario
     roles = (
@@ -149,12 +203,84 @@ def login(
     # Extraer primer rol o asignar un valor por defecto
     rol = roles[0][0] if roles else "usuario"
 
+    # Crear token de acceso normal
     access_token = services.create_access_token(data={"sub": user.nombre})
-    return {"access_token": access_token, "token_type": "bearer", "tipo_rol": rol}
+    
+    # Si "recordarme" está activado, crear cookie persistente
+    if remember_me:
+        # Token de "recordarme" con mayor duración (30 días)
+        remember_data = {
+            "sub": user.nombre,
+            "type": "remember",
+            "exp": datetime.utcnow() + timedelta(days=30)
+        }
+        remember_token = jwt.encode(remember_data, SECRET_KEY, algorithm=ALGORITHM)
+        
+        # Configurar cookie segura
+        response.set_cookie(
+            key="remember_token",
+            value=remember_token,
+            max_age=30 * 24 * 60 * 60,  # 30 días en segundos
+            httponly=True,  # Solo accesible por servidor
+            secure=False,   # Cambiar a True en producción con HTTPS
+            samesite="lax"  # Protección CSRF
+        )
+    
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer", 
+        "tipo_rol": rol,
+        "remember_me": remember_me
+    }
 
 @router.post("/logout", tags=["auth"], summary="Cerrar sesión")
-def logout(current_user: models.Usuario = Depends(get_current_user)):
+def logout(
+    response: Response,
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    # Eliminar cookie de "recordarme" si existe
+    response.delete_cookie(
+        key="remember_token",
+        httponly=True,
+        secure=False,  # Cambiar a True en producción
+        samesite="lax"
+    )
     return {"message": "Sesión cerrada correctamente"}
+
+# Nuevo endpoint para verificar si hay sesión activa desde cookie
+@router.get("/check-remember", tags=["auth"])
+def check_remember_session(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Verifica si existe una sesión válida desde cookie de 'recordarme'"""
+    user = get_current_user_optional(request, db)
+    
+    if user:
+        # Obtener roles del usuario
+        roles = (
+            db.query(models.Rol.tipo_rol)
+            .join(models.RolUsuario, models.Rol.id_rol == models.RolUsuario.id_rol)
+            .filter(models.RolUsuario.id_usuario == user.id_usuario)
+            .all()
+        )
+        rol = roles[0][0] if roles else "usuario"
+        
+        # Crear nuevo access token para la sesión
+        access_token = services.create_access_token(data={"sub": user.nombre})
+        
+        return {
+            "logged_in": True,
+            "user": {
+                "nombre": user.nombre,
+                "email": user.email,
+                "tipo_rol": rol
+            },
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+    
+    return {"logged_in": False}
 
 # ═══════════════════════════════════════════════════════════════════
 # CAMBIO DE CONTRASEÑA DIRECTO (USUARIO LOGUEADO)
@@ -231,6 +357,14 @@ def forgot_password(dto: PasswordResetRequest, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Email no registrado")
     
+    # VALIDACIÓN: No permitir reset de contraseña para usuarios inhabilitados
+    if not user.estado:
+        raise HTTPException(
+            status_code=403, 
+            detail="No se puede restablecer la contraseña de una cuenta deshabilitada. "
+                   "Contacte con el administrador."
+        )
+    
     RESET_TOKEN_EXPIRE_MINUTES = 60  # 1 hora
     
     token = services.create_password_reset_token(
@@ -295,6 +429,14 @@ def verify_reset_token(token: str, db: Session = Depends(get_db)):
         
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        # VALIDACIÓN: Verificar que el usuario siga habilitado
+        if not user.estado:
+            raise HTTPException(
+                status_code=403, 
+                detail="Este enlace no es válido porque la cuenta ha sido deshabilitada. "
+                       "Contacte con el administrador."
+            )
             
         return {
             "valid": True,
@@ -308,7 +450,8 @@ def verify_reset_token(token: str, db: Session = Depends(get_db)):
             "valid": False,
             "error": e.detail,
             "expired": "expirado" in e.detail.lower(),
-            "used": "utilizado" in e.detail.lower()
+            "used": "utilizado" in e.detail.lower(),
+            "disabled": "deshabilitada" in e.detail.lower()
         }
 
 @router.post("/forgot-password/confirm", tags=["auth"])
@@ -318,6 +461,21 @@ def forgot_password_confirm(
 ):
     """Confirmación de reset para contraseña olvidada (sin contraseña actual)"""
     try:
+        # Verificar token y obtener usuario antes de procesar
+        email = services.verify_password_reset_token(dto.token)
+        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        # VALIDACIÓN: Verificar que el usuario esté habilitado
+        if not user.estado:
+            raise HTTPException(
+                status_code=403, 
+                detail="No se puede restablecer la contraseña de una cuenta deshabilitada. "
+                       "Contacte con el administrador."
+            )
+        
         result = services.forgot_password_reset_confirm(
             db=db,
             token=dto.token,
@@ -332,6 +490,7 @@ def forgot_password_confirm(
             "status_code": e.status_code,
             "expired": e.status_code == 400 and "expirado" in e.detail.lower(),
             "used": e.status_code == 400 and "utilizado" in e.detail.lower(),
+            "disabled": e.status_code == 403 and "deshabilitada" in e.detail.lower(),
             "password_reused": "ya hayas utilizado" in e.detail.lower(),
             "passwords_mismatch": "no coinciden" in e.detail.lower()
         }
@@ -349,6 +508,21 @@ def password_reset_confirm_secure(
 ):
     """Confirmación segura de reset de contraseña via token de email (REQUIERE CONTRASEÑA ACTUAL)"""
     try:
+        # Verificar token y obtener usuario antes de procesar
+        email = services.verify_password_reset_token(dto.token)
+        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        # VALIDACIÓN: Verificar que el usuario esté habilitado
+        if not user.estado:
+            raise HTTPException(
+                status_code=403, 
+                detail="No se puede restablecer la contraseña de una cuenta deshabilitada. "
+                       "Contacte con el administrador."
+            )
+        
         result = services.secure_password_reset_confirm(
             db=db,
             token=dto.token,
@@ -364,6 +538,7 @@ def password_reset_confirm_secure(
             "status_code": e.status_code,
             "expired": e.status_code == 400 and "expirado" in e.detail.lower(),
             "used": e.status_code == 400 and "utilizado" in e.detail.lower(),
+            "disabled": e.status_code == 403 and "deshabilitada" in e.detail.lower(),
             "wrong_current": "contraseña actual" in e.detail.lower(),
             "password_reused": "ya hayas utilizado" in e.detail.lower(),
             "passwords_mismatch": "no coinciden" in e.detail.lower()

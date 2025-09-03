@@ -11,7 +11,7 @@ from app.schemas import (
     EmpresaOut, EmpresaCreate, RolOut, EmpresaDetailOutPublic, 
     ContactoOutPublic, LoteOutPublic
 )
-from app.routes.auth import require_admin_polo, get_current_user, require_empresa_role
+from app.routes.auth import require_admin_polo, get_current_user
 
 router = APIRouter(
     prefix="",
@@ -79,7 +79,7 @@ def validate_user_creation_limits(db: Session, dto: schemas.UserCreate):
             raise HTTPException(
                 status_code=400,
                 detail="La empresa Polo no puede tener usuarios admin_empresa. "
-                       "Solo puede tener usuarios admin_polo."
+                       "Solo puede tener usuarios admin_polo y publicos."
             )
         
         # Contar admin_empresa existentes para esta empresa específica
@@ -114,6 +114,63 @@ def validate_user_creation_limits(db: Session, dto: schemas.UserCreate):
                 detail="Los usuarios con rol 'publico' solo pueden crearse en la empresa Polo. "
                        "Las demás empresas solo pueden tener usuarios 'admin_empresa'."
             )
+
+def validate_user_activation_limits(db: Session, user: models.Usuario):
+    """Validar límites específicamente para rehabilitar/activar usuarios existentes"""
+    
+    # Obtener el rol del usuario
+    if not user.rol_usuario_links:
+        raise HTTPException(status_code=400, detail="Usuario sin rol asignado")
+    
+    rol_id = user.rol_usuario_links[0].id_rol
+    rol = db.query(models.Rol).filter(models.Rol.id_rol == rol_id).first()
+    if not rol:
+        raise HTTPException(status_code=400, detail="Rol del usuario inválido")
+    
+    # Validación para admin_polo
+    if rol.tipo_rol == "admin_polo":
+        admin_polo_count = (
+            db.query(models.Usuario)
+            .join(models.RolUsuario)
+            .join(models.Rol)
+            .filter(models.Rol.tipo_rol == "admin_polo")
+            .filter(models.Usuario.estado == True)
+            .count()
+        )
+        
+        if admin_polo_count >= MAX_ADMIN_POLO_TOTAL:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se puede activar este usuario admin_polo. "
+                       f"Ya hay {admin_polo_count} usuarios admin_polo activos (máximo: {MAX_ADMIN_POLO_TOTAL}). "
+                       f"Debe inhabilitar otro usuario admin_polo antes de activar este."
+            )
+    
+    # Validación para admin_empresa
+    elif rol.tipo_rol == "admin_empresa":
+        admin_empresa_count = (
+            db.query(models.Usuario)
+            .join(models.RolUsuario)
+            .join(models.Rol)
+            .filter(models.Rol.tipo_rol == "admin_empresa")
+            .filter(models.Usuario.cuil == user.cuil)
+            .filter(models.Usuario.estado == True)
+            .count()
+        )
+        
+        if admin_empresa_count >= MAX_ADMIN_EMPRESA_PER_COMPANY:
+            empresa = db.query(models.Empresa).filter(models.Empresa.cuil == user.cuil).first()
+            empresa_nombre = empresa.nombre if empresa else f"CUIL {user.cuil}"
+            
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se puede activar este usuario admin_empresa. "
+                       f"La empresa '{empresa_nombre}' ya tiene {admin_empresa_count} usuarios activos "
+                       f"(máximo: {MAX_ADMIN_EMPRESA_PER_COMPANY}). "
+                       f"Debe inhabilitar otro usuario admin_empresa de esta empresa antes de activar este."
+            )
+    
+    # Para usuarios públicos no hay límite, siempre se permite activar
 
 def build_empresa_detail_public(emp: models.Empresa) -> schemas.EmpresaDetailOutPublic:
     """Construir detalle público de empresa con contactos y servicios polo"""
@@ -334,7 +391,7 @@ def get_user(user_id: UUID, db: Session = Depends(get_db)):
 def create_user(dto: schemas.UserCreate, db: Session = Depends(get_db)):
     """Crear nuevo usuario con contraseña generada automáticamente"""
     
-    # NUEVA VALIDACIÓN: Verificar límites antes de crear
+    # VALIDACIÓN: Verificar límites antes de crear
     validate_user_creation_limits(db, dto)
     
     # Verificar que no exista el usuario
@@ -403,6 +460,11 @@ def update_user(user_id: UUID, dto: schemas.UserUpdate, db: Session = Depends(ge
     if not u:
         raise HTTPException(status_code=404, detail="Usuario no existe")
     
+    # Si se está cambiando el estado de False a True (rehabilitando usuario)
+    # VALIDAR LÍMITES ESTRICTOS - SIN EXCEPCIONES
+    if dto.estado is not None and dto.estado == True and u.estado == False:
+        validate_user_activation_limits(db, u)
+    
     if dto.password:
         # Validar que no reutilice contraseñas anteriores
         if services.is_password_reused(db, u.id_usuario, dto.password):
@@ -434,7 +496,7 @@ def delete_user(user_id: UUID, db: Session = Depends(get_db)):
     return {"msg": "Usuario inhabilitado exitosamente"}
 
 # ═══════════════════════════════════════════════════════════════════
-# ENDPOINTS DE LÍMITES Y SOLICITUDES DE USUARIOS
+# ENDPOINTS DE LÍMITES Y CONSULTAS
 # ═══════════════════════════════════════════════════════════════════
 
 @router.get("/usuarios/limits-status", summary="Consultar límites de usuarios por empresa")
@@ -499,46 +561,6 @@ def get_users_limits_status(db: Session = Depends(get_db)):
             "max_admin_polo_total": MAX_ADMIN_POLO_TOTAL,
             "polo_cuil": POLO_CUIL
         }
-    }
-
-# Endpoint para solicitudes - MOVIDO A company_user.py
-# Este endpoint debe estar en company_user.py, no aquí
-    """Endpoint para que las empresas soliciten más usuarios admin_empresa"""
-    
-    # Verificar que el usuario pertenece a la empresa que solicita
-    if current_user.cuil != cuil_empresa:
-        raise HTTPException(
-            status_code=403,
-            detail="Solo puedes solicitar ampliación de límites para tu propia empresa"
-        )
-    
-    empresa = db.query(models.Empresa).filter(models.Empresa.cuil == cuil_empresa).first()
-    if not empresa:
-        raise HTTPException(status_code=404, detail="Empresa no encontrada")
-    
-    # Contar usuarios actuales
-    current_count = (
-        db.query(models.Usuario)
-        .join(models.RolUsuario)
-        .join(models.Rol)
-        .filter(models.Rol.tipo_rol == "admin_empresa")
-        .filter(models.Usuario.cuil == cuil_empresa)
-        .filter(models.Usuario.estado == True)
-        .count()
-    )
-    
-    # Aquí podrías agregar lógica para enviar email al admin_polo
-    # o guardar la solicitud en una tabla de solicitudes pendientes
-    
-    return {
-        "message": "Solicitud de ampliación registrada",
-        "empresa": empresa.nombre,
-        "usuarios_actuales": current_count,
-        "limite_actual": MAX_ADMIN_EMPRESA_PER_COMPANY,
-        "usuarios_adicionales_solicitados": usuarios_adicionales_solicitados,
-        "justificacion": justificacion,
-        "nota": "La solicitud será revisada por el administrador del polo. "
-                "Recibirá una respuesta por email en los próximos días hábiles."
     }
 
 # ═══════════════════════════════════════════════════════════════════

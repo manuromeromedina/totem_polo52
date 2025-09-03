@@ -62,6 +62,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     tipo_rol: str 
+    remember_me: Optional[bool] = False  # NUEVO: Campo para recordarme
 
     class Config:
            from_attributes = True
@@ -200,6 +201,39 @@ class ChangePasswordDirect(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS PARA FUNCIONALIDAD "RECORDARME"
+# ═══════════════════════════════════════════════════════════════════
+
+class LoginRequest(BaseModel):
+    """Schema para login con opción de recordarme"""
+    username: str = Field(..., min_length=1, description="Nombre de usuario o email")
+    password: str = Field(..., min_length=1, description="Contraseña")
+    remember_me: Optional[bool] = Field(False, description="Recordar sesión por 30 días")
+    
+    class Config:
+        from_attributes = True
+
+class RememberSessionResponse(BaseModel):
+    """Response para verificación de sesión recordada"""
+    logged_in: bool
+    user: Optional[Dict] = None
+    access_token: Optional[str] = None
+    token_type: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+class UserSessionInfo(BaseModel):
+    """Información del usuario para sesión recordada"""
+    nombre: str
+    email: str
+    tipo_rol: str
+    
+    class Config:
+        from_attributes = True
+
 # ═══════════════════════════════════════════════════════════════════
 # SCHEMAS DE TIPOS/CATÁLOGOS
 # ═══════════════════════════════════════════════════════════════════
