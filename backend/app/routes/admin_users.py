@@ -79,7 +79,7 @@ def validate_user_creation_limits(db: Session, dto: schemas.UserCreate):
             raise HTTPException(
                 status_code=400,
                 detail="La empresa Polo no puede tener usuarios admin_empresa. "
-                       "Solo puede tener usuarios admin_polo y publicos."
+                       "Solo puede tener usuarios admin_polo."
             )
         
         # Contar admin_empresa existentes para esta empresa específica
@@ -451,6 +451,17 @@ def get_users_limits_status(db: Session = Depends(get_db)):
         .count()
     )
     
+    # Contar usuarios públicos en el polo
+    polo_public_count = (
+        db.query(models.Usuario)
+        .join(models.RolUsuario)
+        .join(models.Rol)
+        .filter(models.Rol.tipo_rol == "publico")
+        .filter(models.Usuario.cuil == POLO_CUIL)
+        .filter(models.Usuario.estado == True)
+        .count()
+    )
+    
     # Información por empresa (admin_empresa)
     empresas_info = []
     empresas = db.query(models.Empresa).filter(models.Empresa.cuil != POLO_CUIL).all()
@@ -477,8 +488,10 @@ def get_users_limits_status(db: Session = Depends(get_db)):
     return {
         "polo_info": {
             "admin_polo_actuales": polo_admin_count,
+            "usuarios_publicos_actuales": polo_public_count,
             "limite_admin_polo": MAX_ADMIN_POLO_TOTAL,
-            "puede_crear_mas": polo_admin_count < MAX_ADMIN_POLO_TOTAL
+            "puede_crear_admin_polo": polo_admin_count < MAX_ADMIN_POLO_TOTAL,
+            "puede_crear_publico": True  # Sin límite para públicos
         },
         "empresas_info": empresas_info,
         "limites_configurados": {
@@ -488,18 +501,8 @@ def get_users_limits_status(db: Session = Depends(get_db)):
         }
     }
 
-# Endpoint para solicitudes - sin restricción de admin_polo porque las empresas deben poder acceder
-@router.post("/usuarios/request-limit-increase", 
-    dependencies=[], # Sin dependencia de admin_polo 
-    summary="Solicitar ampliación de límite de usuarios"
-)
-def request_limit_increase(
-    cuil_empresa: int,
-    justificacion: str,
-    usuarios_adicionales_solicitados: int,
-    current_user: models.Usuario = Depends(require_empresa_role),
-    db: Session = Depends(get_db)
-):
+# Endpoint para solicitudes - MOVIDO A company_user.py
+# Este endpoint debe estar en company_user.py, no aquí
     """Endpoint para que las empresas soliciten más usuarios admin_empresa"""
     
     # Verificar que el usuario pertenece a la empresa que solicita

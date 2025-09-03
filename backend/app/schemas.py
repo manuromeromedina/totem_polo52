@@ -615,3 +615,13 @@ class PoloDetailOut(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+#-------------#
+class UserLimitIncreaseRequest(BaseModel):
+    cuil_empresa: int = Field(..., gt=0, description="CUIL de la empresa que solicita")
+    justificacion: str = Field(..., min_length=20, max_length=500, description="Justificación de la solicitud")
+    usuarios_adicionales_solicitados: int = Field(..., gt=0, le=10, description="Cantidad de usuarios adicionales solicitados")
+    
+    class Config:
+        from_attributes = True

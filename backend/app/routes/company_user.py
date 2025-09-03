@@ -5,6 +5,7 @@ from app.config import SessionLocal
 from app.routes.auth import get_current_user, require_empresa_role
 from app import models, schemas, services
 
+
 router = APIRouter(
     prefix="",
     tags=["Admin_empresa"],
@@ -519,3 +520,51 @@ def get_tipos_servicio(db: Session = Depends(get_db)):
 def get_tipos_contacto(db: Session = Depends(get_db)):
     """Listar todos los tipos de contacto disponibles"""
     return db.query(models.TipoContacto).all()
+
+# ═══════════════════════════════════════════════════════════════════
+# SOLICITUDES DE AMPLIACIÓN DE LÍMITES
+# ═══════════════════════════════════════════════════════════════════
+
+@router.post("/request-limit-increase", summary="Solicitar ampliación de límite de usuarios")
+def request_limit_increase(
+    dto: schemas.UserLimitIncreaseRequest,
+    current_user: models.Usuario = Depends(require_empresa_role),
+    db: Session = Depends(get_db)
+):
+    """Endpoint para que las empresas soliciten más usuarios admin_empresa"""
+    
+    # Verificar que el usuario pertenece a la empresa que solicita
+    if current_user.cuil != dto.cuil_empresa:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo puedes solicitar ampliación de límites para tu propia empresa"
+        )
+    
+    empresa = db.query(models.Empresa).filter(models.Empresa.cuil == dto.cuil_empresa).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    
+    # Contar usuarios actuales
+    current_count = (
+        db.query(models.Usuario)
+        .join(models.RolUsuario)
+        .join(models.Rol)
+        .filter(models.Rol.tipo_rol == "admin_empresa")
+        .filter(models.Usuario.cuil == dto.cuil_empresa)
+        .filter(models.Usuario.estado == True)
+        .count()
+    )
+    
+    # Aquí podrías agregar lógica para enviar email al admin_polo
+    # o guardar la solicitud en una tabla de solicitudes pendientes
+    
+    return {
+        "message": "Solicitud de ampliación registrada",
+        "empresa": empresa.nombre,
+        "usuarios_actuales": current_count,
+        "limite_actual": 3,  # MAX_ADMIN_EMPRESA_PER_COMPANY
+        "usuarios_adicionales_solicitados": dto.usuarios_adicionales_solicitados,
+        "justificacion": dto.justificacion,
+        "nota": "La solicitud será revisada por el administrador del polo. "
+                "Recibirá una respuesta por email en los próximos días hábiles."
+    }
