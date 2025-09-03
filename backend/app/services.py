@@ -332,25 +332,36 @@ def forgot_password_reset_confirm(
                 detail="Las contraseñas nuevas no coinciden"
             )
         
-        # 2. Verificar y consumir token
-        email = consume_password_reset_token(token)
+        # 2. VERIFICAR el token SIN consumir (solo validar)
+        email = verify_password_reset_token(token)
         
         # 3. Obtener usuario
         user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
         
-        # 4. Verificar que no esté reutilizando contraseña (sin validar contraseña actual)
+        # 4. Verificar que no esté reutilizando contraseña
         if is_password_reused(db, user.id_usuario, new_password):
+            # NO consumir el token si hay error de reutilización
             raise HTTPException(
                 status_code=400,
                 detail="No puedes usar una contraseña que ya hayas utilizado anteriormente. Elige una contraseña diferente."
             )
         
-        # 5. Guardar contraseña actual en historial
+        # 5. AHORA SÍ marcar el token como usado MANUALMENTE
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            token_id = payload.get("jti")
+            if token_id:
+                mark_token_as_used(token_id)
+        except:
+            # Si hay error decodificando, es raro pero continuamos
+            pass
+        
+        # 6. Guardar contraseña actual en historial
         save_password_to_history(db, user.id_usuario, user.contrasena)
         
-        # 6. Actualizar contraseña
+        # 7. Actualizar contraseña
         user.contrasena = hash_password(new_password)
         db.commit()
         db.refresh(user)
@@ -369,184 +380,6 @@ def forgot_password_reset_confirm(
             status_code=500,
             detail=f"Error interno al actualizar contraseña: {str(e)}"
         )
-
-def send_password_change_notification(email: str, nombre: str) -> bool:
-    """Envía notificación por email cuando se cambia la contraseña desde la web"""
-    try:
-        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-        smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        smtp_user = os.getenv("EMAIL_USER")
-        smtp_password = os.getenv("EMAIL_PASS")
-        
-        if not smtp_user or not smtp_password:
-            print("Configuración SMTP no encontrada")
-            return False
-            
-        # Crear el mensaje
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        import smtplib
-        from datetime import datetime
-        
-        msg = MIMEMultipart()
-        msg['From'] = smtp_user
-        msg['To'] = email
-        msg['Subject'] = "Contraseña Cambiada - Polo 52"
-        
-        # Obtener fecha y hora actual
-        fecha_cambio = datetime.now().strftime("%d/%m/%Y a las %H:%M")
-        
-        # Cuerpo del email
-        body = f"""
-Hola {nombre},
-
-Te informamos que tu contraseña ha sido cambiada exitosamente el {fecha_cambio}.
-
-DETALLES DEL CAMBIO:
-• Cambio realizado desde: Aplicación Web (usuario logueado)
-• Fecha y hora: {fecha_cambio}
-• IP: [Sistema interno]
-
-Si no realizaste este cambio, contacta inmediatamente con el administrador del sistema.
-
-RECORDATORIOS DE SEGURIDAD:
-• Nunca compartas tu contraseña con otras personas
-• Usa contraseñas únicas y seguras
-• Si sospechas actividad no autorizada, cambia tu contraseña inmediatamente
-
-Saludos,
-Administración Polo 52
-        """
-        
-        msg.attach(MIMEText(body, 'plain'))
-        
-        # Enviar el email
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(smtp_user, smtp_password)
-        text = msg.as_string()
-        server.sendmail(smtp_user, email, text)
-        server.quit()
-        
-        print(f"Notificación de cambio de contraseña enviada a {email}")
-        return True
-        
-    except Exception as e:
-        print(f"Error enviando notificación: {str(e)}")
-        return False
-
-def forgot_password_reset_confirm(
-    db: Session,
-    token: str,
-    new_password: str,
-    confirm_password: str
-) -> dict:
-    """Confirmación de reset para contraseña olvidada (sin validar contraseña actual)"""
-    try:
-        # 1. Verificar que las contraseñas nuevas coincidan
-        if new_password != confirm_password:
-            raise HTTPException(
-                status_code=400,
-                detail="Las contraseñas nuevas no coinciden"
-            )
-        
-        # 2. Verificar y consumir token
-        email = consume_password_reset_token(token)
-        
-        # 3. Obtener usuario
-        user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        
-        # 4. Verificar que no esté reutilizando contraseña (sin validar contraseña actual)
-        if is_password_reused(db, user.id_usuario, new_password):
-            raise HTTPException(
-                status_code=400,
-                detail="No puedes usar una contraseña que ya hayas utilizado anteriormente. Elige una contraseña diferente."
-            )
-        
-        # 5. Guardar contraseña actual en historial
-        save_password_to_history(db, user.id_usuario, user.contrasena)
-        
-        # 6. Actualizar contraseña
-        user.contrasena = hash_password(new_password)
-        db.commit()
-        db.refresh(user)
-        
-        return {
-            "success": True,
-            "message": "Contraseña restablecida correctamente. Ya puedes iniciar sesión con tu nueva contraseña."
-        }
-        
-    except HTTPException as e:
-        db.rollback()
-        raise e
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error interno al actualizar contraseña: {str(e)}"
-        )
-
-def send_password_change_notification(email: str, nombre: str) -> bool:
-    """Envía notificación por email cuando se cambia la contraseña desde la web"""
-    try:
-        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-        smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        smtp_user = os.getenv("EMAIL_USER")
-        smtp_password = os.getenv("EMAIL_PASS")
-        
-        if not smtp_user or not smtp_password:
-            print("Configuración SMTP no encontrada")
-            return False
-            
-        # Crear el mensaje
-        msg = MIMEMultipart()
-        msg['From'] = smtp_user
-        msg['To'] = email
-        msg['Subject'] = "Contraseña Cambiada - Polo 52"
-        
-        # Obtener fecha y hora actual
-        fecha_cambio = datetime.now().strftime("%d/%m/%Y a las %H:%M")
-        
-        # Cuerpo del email
-        body = f"""
-Hola {nombre},
-
-Te informamos que tu contraseña ha sido cambiada exitosamente el {fecha_cambio}.
-
-DETALLES DEL CAMBIO:
-• Cambio realizado desde: Aplicación Web (usuario logueado)
-• Fecha y hora: {fecha_cambio}
-• IP: [Sistema interno]
-
-Si no realizaste este cambio, contacta inmediatamente con el administrador del sistema.
-
-RECORDATORIOS DE SEGURIDAD:
-• Nunca compartas tu contraseña con otras personas
-• Usa contraseñas únicas y seguras
-• Si sospechas actividad no autorizada, cambia tu contraseña inmediatamente
-
-Saludos,
-Administración Polo 52
-        """
-        
-        msg.attach(MIMEText(body, 'plain'))
-        
-        # Enviar el email
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(smtp_user, smtp_password)
-        text = msg.as_string()
-        server.sendmail(smtp_user, email, text)
-        server.quit()
-        
-        print(f"Notificación de cambio de contraseña enviada a {email}")
-        return True
-        
-    except Exception as e:
-        print(f"Error enviando notificación: {str(e)}")
-        return False
 
 def secure_password_reset_confirm(
     db: Session,
@@ -564,8 +397,8 @@ def secure_password_reset_confirm(
                 detail="Las contraseñas nuevas no coinciden"
             )
         
-        # 2. Verificar y consumir token
-        email = consume_password_reset_token(token)
+        # 2. VERIFICAR el token SIN consumir (solo validar)
+        email = verify_password_reset_token(token)
         
         # 3. Obtener usuario
         user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
@@ -586,10 +419,20 @@ def secure_password_reset_confirm(
                 detail="No puedes usar una contraseña que ya hayas utilizado anteriormente. Elige una contraseña diferente."
             )
         
-        # 6. Guardar contraseña actual en historial
+        # 6. AHORA SÍ marcar el token como usado MANUALMENTE
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            token_id = payload.get("jti")
+            if token_id:
+                mark_token_as_used(token_id)
+        except:
+            # Si hay error decodificando, es raro pero continuamos
+            pass
+        
+        # 7. Guardar contraseña actual en historial
         save_password_to_history(db, user.id_usuario, user.contrasena)
         
-        # 7. Actualizar contraseña
+        # 8. Actualizar contraseña
         user.contrasena = hash_password(new_password)
         db.commit()
         db.refresh(user)
@@ -608,6 +451,66 @@ def secure_password_reset_confirm(
             status_code=500,
             detail=f"Error interno al actualizar contraseña: {str(e)}"
         )
+
+def send_password_change_notification(email: str, nombre: str) -> bool:
+    """Envía notificación por email cuando se cambia la contraseña desde la web"""
+    try:
+        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        smtp_user = os.getenv("EMAIL_USER")
+        smtp_password = os.getenv("EMAIL_PASS")
+        
+        if not smtp_user or not smtp_password:
+            print("Configuración SMTP no encontrada")
+            return False
+            
+        # Crear el mensaje
+        msg = MIMEMultipart()
+        msg['From'] = smtp_user
+        msg['To'] = email
+        msg['Subject'] = "Contraseña Cambiada - Polo 52"
+        
+        # Obtener fecha y hora actual
+        fecha_cambio = datetime.now().strftime("%d/%m/%Y a las %H:%M")
+        
+        # Cuerpo del email
+        body = f"""
+Hola {nombre},
+
+Te informamos que tu contraseña ha sido cambiada exitosamente el {fecha_cambio}.
+
+DETALLES DEL CAMBIO:
+• Cambio realizado desde: Aplicación Web (usuario logueado)
+• Fecha y hora: {fecha_cambio}
+• IP: [Sistema interno]
+
+Si no realizaste este cambio, contacta inmediatamente con el administrador del sistema.
+
+RECORDATORIOS DE SEGURIDAD:
+• Nunca compartas tu contraseña con otras personas
+• Usa contraseñas únicas y seguras
+• Si sospechas actividad no autorizada, cambia tu contraseña inmediatamente
+
+Saludos,
+Administración Polo 52
+        """
+        
+        msg.attach(MIMEText(body, 'plain'))
+        
+        # Enviar el email
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        text = msg.as_string()
+        server.sendmail(smtp_user, email, text)
+        server.quit()
+        
+        print(f"Notificación de cambio de contraseña enviada a {email}")
+        return True
+        
+    except Exception as e:
+        print(f"Error enviando notificación: {str(e)}")
+        return False
 
 # ═══════════════════════════════════════════════════════════════════
 # ENVÍO DE EMAILS
