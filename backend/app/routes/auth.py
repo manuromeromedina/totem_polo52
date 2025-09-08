@@ -105,6 +105,95 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -
     return None
 
 # ═══════════════════════════════════════════════════════════════════
+# >>> AGREGADO: Helpers de email para cambio de contraseña (éxito / fallo)
+# Reutiliza Gmail SMTP como en /forgot-password
+def _send_change_password_success_email(to_email: str, nombre: str):
+    cuerpo = f"""
+Hola {nombre},
+
+Confirmamos que tu contraseña fue actualizada correctamente.
+Si no fuiste vos, por favor contactá al soporte de inmediato.
+
+Saludos,
+Administración Polo 52
+""".strip()
+
+    msg = MIMEText(cuerpo)
+    msg["Subject"] = "Polo 52 - Tu contraseña fue actualizada"
+    msg["From"] = settings.EMAIL_USER
+    msg["To"] = to_email
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
+            server.send_message(msg)
+    except Exception:
+        # No interrumpir el flujo por error de email
+        pass
+
+
+def _send_change_password_failure_email(to_email: str, nombre: str, reason: str):
+    cuerpo = f"""
+Hola {nombre},
+
+Se intentó actualizar tu contraseña pero ocurrió un problema:
+- Detalle: {reason}
+
+Por favor, intentá nuevamente. Si el problema persiste, contactá soporte.
+
+Saludos,
+Administración Polo 52
+""".strip()
+
+    msg = MIMEText(cuerpo)
+    msg["Subject"] = "Polo 52 - No pudimos actualizar tu contraseña"
+    msg["From"] = settings.EMAIL_USER
+    msg["To"] = to_email
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
+            server.send_message(msg)
+    except Exception:
+        # No interrumpir el flujo por error de email
+        pass
+# <<< AGREGADO
+
+# ═══════════════════════════════════════════════════════════════════
+# >>> AGREGADO: Cooldown por intentos fallidos en cambio de contraseña
+_MAX_FAILS_CHANGE_PW = 3          # intentos fallidos permitidos antes del bloqueo
+_COOLDOWN_SECONDS_CHANGE_PW = 60  # segundos de espera al alcanzar el límite
+
+# Estructura en memoria: { user_id: {"fails": int, "lock_until": datetime|None} }
+_change_pw_attempts = {}
+
+def _is_change_pw_locked(user_id: int):
+    info = _change_pw_attempts.get(user_id)
+    if not info:
+        return False, 0
+    lock_until = info.get("lock_until")
+    if lock_until and datetime.utcnow() < lock_until:
+        remaining = int((lock_until - datetime.utcnow()).total_seconds())
+        return True, max(0, remaining)
+    return False, 0
+
+def _register_change_pw_failure(user_id: int):
+    info = _change_pw_attempts.get(user_id, {"fails": 0, "lock_until": None})
+    info["fails"] = info.get("fails", 0) + 1
+    if info["fails"] >= _MAX_FAILS_CHANGE_PW:
+        info["lock_until"] = datetime.utcnow() + timedelta(seconds=_COOLDOWN_SECONDS_CHANGE_PW)
+        info["fails"] = 0  # opcional: resetea contador al iniciar cooldown
+    _change_pw_attempts[user_id] = info
+    return info
+
+def _reset_change_pw_attempts(user_id: int):
+    if user_id in _change_pw_attempts:
+        _change_pw_attempts.pop(user_id, None)
+# <<< AGREGADO
+
+# ═══════════════════════════════════════════════════════════════════
 # VALIDACIÓN DE ROLES
 # ═══════════════════════════════════════════════════════════════════
 
@@ -293,8 +382,20 @@ def change_password_direct(
     db: Session = Depends(get_db)
 ):
     """
-    Cambio directo de contraseña (sin email, requiere estar logueado)
+    Cambio directo de contraseña (requiere estar logueado)
     """
+
+    # >>> AGREGADO: bloquear si está en cooldown por demasiados intentos
+    locked, wait_sec = _is_change_pw_locked(current_user.id_usuario)
+    if locked:
+        return {
+            "success": False,
+            "error": f"Demasiados intentos fallidos. Esperá {wait_sec} segundos para reintentar.",
+            "cooldown_seconds": wait_sec,
+            "locked": True
+        }
+    # <<< AGREGADO
+
     try:
         # 1. Verificar contraseña actual
         if not services.verify_password(dto.current_password, current_user.contrasena):
@@ -324,6 +425,17 @@ def change_password_direct(
         current_user.contrasena = services.hash_password(dto.new_password)
         db.commit()
         db.refresh(current_user)
+
+        # >>> AGREGADO: resetear intentos en éxito + enviar email de éxito
+        _reset_change_pw_attempts(current_user.id_usuario)
+        try:
+            _send_change_password_success_email(
+                to_email=current_user.email,
+                nombre=current_user.nombre
+            )
+        except Exception:
+            pass
+        # <<< AGREGADO
         
         return {
             "success": True,
@@ -332,15 +444,46 @@ def change_password_direct(
         
     except HTTPException as e:
         db.rollback()
+
+        # >>> AGREGADO: registrar intento fallido + email de fallo
+        _register_change_pw_failure(current_user.id_usuario)
+        locked, wait_sec = _is_change_pw_locked(current_user.id_usuario)
+        try:
+            _send_change_password_failure_email(
+                to_email=current_user.email,
+                nombre=current_user.nombre,
+                reason=e.detail
+            )
+        except Exception:
+            pass
+        # <<< AGREGADO
+
         return {
             "success": False,
             "error": e.detail,
+            "locked": locked,
+            "cooldown_seconds": wait_sec,
             "wrong_current": "contraseña actual" in e.detail.lower(),
             "password_reused": "ya hayas utilizado" in e.detail.lower(),
             "passwords_mismatch": "no coinciden" in e.detail.lower()
         }
+
     except Exception as e:
         db.rollback()
+
+        # >>> AGREGADO: registrar intento fallido + email de fallo genérico
+        _register_change_pw_failure(current_user.id_usuario)
+        locked, wait_sec = _is_change_pw_locked(current_user.id_usuario)
+        try:
+            _send_change_password_failure_email(
+                to_email=current_user.email,
+                nombre=current_user.nombre,
+                reason="Error interno al actualizar la contraseña"
+            )
+        except Exception:
+            pass
+        # <<< AGREGADO
+
         raise HTTPException(
             status_code=500,
             detail=f"Error interno al actualizar contraseña: {str(e)}"
