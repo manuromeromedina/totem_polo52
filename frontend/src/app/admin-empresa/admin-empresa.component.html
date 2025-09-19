@@ -1,2233 +1,979 @@
-<!-- admin-empresa.component.html MEJORADO -->
-<div class="admin-container" [class.dark-mode]="isDarkMode">
-  <!-- Header -->
-  <header class="admin-header">
-    <div class="header-content">
-      <div class="logo-section">
-        <h1>Mi Empresa - Polo 52</h1>
-        <p *ngIf="empresaData">
-          {{ empresaData.nombre }} - {{ empresaData.rubro }}
-        </p>
-        <p *ngIf="!empresaData">Gestión de datos empresariales</p>
-      </div>
-      <div class="header-actions">
-        <button
-          (click)="toggleDarkMode()"
-          aria-label="Cambiar modo claro/oscuro"
-          class="mode-toggle-btn"
-        >
-          <svg
-            *ngIf="isDarkMode"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="feather feather-sun"
-            viewBox="0 0 24 24"
-          >
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
+<!-- admin-empresa.component.html -->
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:FILL@0..1"
+  rel="stylesheet"
+/>
 
-          <svg
-            *ngIf="!isDarkMode"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="feather feather-moon"
-            viewBox="0 0 24 24"
-          >
-            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
-          </svg>
-        </button>
-
-        <app-logout-button></app-logout-button>
+<div class="admin-layout">
+  <!-- NAVBAR SUPERIOR -->
+  <!-- TOP NAV -->
+  <nav class="topbar">
+    <div class="topbar-left">
+      <img
+        class="brand-logo"
+        src="../../assets/images/polologo-blanco.png"
+        alt="Polo 52"
+      />
+      <div class="topbar-title">
+        <div class="app-title">POLO 52</div>
+        <div class="app-sub">Parque Industrial</div>
       </div>
     </div>
-  </header>
 
-  <!-- Navigation Tabs -->
-  <nav class="tab-navigation">
-    <button
-      class="tab-button"
-      [class.active]="activeTab === 'perfil'"
-      (click)="setActiveTab('perfil')"
-    >
-      Perfil Empresa
-    </button>
-    <button
-      class="tab-button"
-      [class.active]="activeTab === 'vehiculos'"
-      (click)="setActiveTab('vehiculos')"
-    >
-      Vehículos
-    </button>
-    <button
-      class="tab-button"
-      [class.active]="activeTab === 'servicios'"
-      (click)="setActiveTab('servicios')"
-    >
-      Servicios
-    </button>
-    <button
-      class="tab-button"
-      [class.active]="activeTab === 'contactos'"
-      (click)="setActiveTab('contactos')"
-    >
-      Contactos
-    </button>
-    <button
-      class="tab-button"
-      [class.active]="activeTab === 'serviciosPolo'"
-      (click)="setActiveTab('serviciosPolo')"
-    >
-      Servicios de Polo
-    </button>
+    <div class="topbar-tabs">
+      <button
+        class="tab"
+        [class.active]="activeTab === 'resumen'"
+        (click)="goTo('resumen')"
+      >
+        Resumen
+      </button>
+      <button
+        class="tab"
+        [class.active]="activeTab === 'vehiculos'"
+        (click)="goTo('vehiculos')"
+      >
+        Vehículos
+      </button>
+      <button
+        class="tab"
+        [class.active]="activeTab === 'servicios'"
+        (click)="goTo('servicios')"
+      >
+        Servicios
+      </button>
+      <button
+        class="tab"
+        [class.active]="activeTab === 'contactos'"
+        (click)="goTo('contactos')"
+      >
+        Contactos
+      </button>
+      <button
+        class="tab"
+        [class.active]="activeTab === 'perfil'"
+        (click)="goTo('perfil')"
+      >
+        Mi Información
+      </button>
+    </div>
+
+    <div class="topbar-right">
+      <button class="pill">Empresa Activa</button>
+      <button class="ghost" (click)="goTo('config')">Mi Perfil</button>
+      <app-logout-button></app-logout-button>
+    </div>
   </nav>
 
-  <!-- Message Display -->
-  <div *ngIf="message" class="message" [class]="messageType">
-    {{ message }}
-  </div>
+  <!-- MAIN -->
+  <main class="content">
+    <!-- ========== RESUMEN ============================================================================ -->
+    <!-- RESUMEN -->
+    <section *ngIf="activeTab === 'resumen'" class="resume-grid">
+      <!-- Métricas -->
+      <div class="kpi card">
+        <div class="kpi-head">
+          <div class="kpi-title">Vehículos Activos</div>
+          <span class="material-symbols-outlined">local_shipping</span>
+        </div>
+        <div class="kpi-number">{{ vehiculosActivos }}</div>
+        <div class="kpi-sub">de {{ vehiculosActivos }} total</div>
+      </div>
 
-  <!-- Loading Indicator -->
-  <div *ngIf="loading && !empresaData" class="loading-container">
-    <div class="loading-spinner"></div>
-    <p>Cargando datos de la empresa...</p>
-  </div>
+      <div class="kpi card">
+        <div class="kpi-head">
+          <div class="kpi-title">Servicios Ofrecidos</div>
+          <span class="material-symbols-outlined">stacked_bar_chart</span>
+        </div>
+        <div class="kpi-number">{{ totalServicios }}</div>
+        <div class="kpi-sub">servicios disponibles</div>
+      </div>
 
-  <!-- Main Content -->
-  <main class="main-content" *ngIf="empresaData">
-    <!-- PERFIL TAB -->
-    <div *ngIf="activeTab === 'perfil'" class="tab-content">
-      <div class="section-header">
-        <h2>Perfil de la Empresa</h2>
-        <div class="header-actions">
-          <div class="user-profile">
-            <!-- Botón para abrir el modal -->
-            <button class="btn btn-primary" (click)="openPasswordModal()">
-              <i class="fas fa-key"></i>
-              Cambiar Contraseña
-            </button>
+      <div class="kpi card">
+        <div class="kpi-head">
+          <div class="kpi-title">Contactos</div>
+          <span class="material-symbols-outlined">group</span>
+        </div>
+        <div class="kpi-number">{{ totalContactos }}</div>
+        <div class="kpi-sub">personas de contacto</div>
+      </div>
 
-            <!-- El modal de cambio de contraseña -->
-            <app-password-change-modal
-              #passwordModal
-              [showModal]="showPasswordModal"
-              (modalClosed)="onPasswordModalClosed()"
-              (passwordChanged)="onPasswordChanged($event)"
-            >
-            </app-password-change-modal>
+      <div class="kpi card">
+        <div class="kpi-head">
+          <div class="kpi-title">Estado</div>
+          <span class="material-symbols-outlined">schedule</span>
+        </div>
+        <div
+          class="status"
+          [class.active]="estaActiva"
+          [class.inactive]="!estaActiva"
+        >
+          {{ estaActiva ? "Activo" : "Inactivo" }}
+        </div>
+        <div class="kpi-sub">desde {{ desdeIngreso }}</div>
+      </div>
+
+      <!-- Actividad reciente -->
+      <div class="card activity">
+        <h2>Actividad Reciente</h2>
+        <ul class="activity-list" *ngIf="actividadReciente.length; else noAct">
+          <li *ngFor="let a of actividadReciente">
+            <span
+              class="dot"
+              [class.ok]="a.tipo === 'ok'"
+              [class.warn]="a.tipo === 'warn'"
+              [class.info]="a.tipo === 'info'"
+            ></span>
+            <div class="a-texts">
+              <div class="a-title">{{ a.titulo }}</div>
+              <div class="a-when">{{ a.cuando }}</div>
+            </div>
+          </li>
+        </ul>
+        <ng-template #noAct
+          ><div class="muted">Sin actividad por ahora.</div></ng-template
+        >
+      </div>
+
+      <!-- Accesos rápidos -->
+      <div class="card quick">
+        <h2>Accesos Rápidos</h2>
+        <div class="quick-list">
+          <button class="quick-btn" (click)="quickAddVehiculo()">
+            <span class="material-symbols-outlined">add</span> Agregar Vehículo
+          </button>
+          <button class="quick-btn" (click)="quickAddServicio()">
+            <span class="material-symbols-outlined">add</span> Nuevo Servicio
+          </button>
+          <button class="quick-btn" (click)="quickAddContacto()">
+            <span class="material-symbols-outlined">add</span> Agregar Contacto
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PERFIL =========================================================================== -->
+    <section *ngIf="activeTab === 'perfil'" class="card-grid">
+      <!-- Datos solo-lectura -->
+      <div class="card">
+        <h2>Datos</h2>
+        <div class="grid-2 nice-form">
+          <div class="field">
+            <label>CUIL</label>
+            <input type="text" [value]="empresaData?.cuil" disabled />
           </div>
-          <button class="btn btn-primary" (click)="openEmpresaEditForm()">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3-6.5 6.5v3h3l6.5-6.5z"
-              />
-            </svg>
-            Editar Datos
+          <div class="field">
+            <label>Nombre</label>
+            <input type="text" [value]="empresaData?.nombre" disabled />
+          </div>
+          <div class="field">
+            <label>Rubro</label>
+            <input type="text" [value]="empresaData?.rubro" disabled />
+          </div>
+          <div class="field">
+            <label>Fecha ingreso</label>
+            <input
+              type="text"
+              [value]="formatDate(empresaData?.fecha_ingreso || '')"
+              disabled
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Editar empresa (self) -->
+      <div class="card">
+        <div class="actions">
+          <button
+            class="btn primary"
+            type="button"
+            (click)="openEmpresaEditForm()"
+          >
+            <span class="material-symbols-outlined">edit</span>
+            <span>Editar datos</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VEHICULOS ============================================================ -->
+    <section *ngIf="activeTab === 'vehiculos'" class="card-stack">
+      <div class="card">
+        <div class="actions">
+          <button
+            class="btn primary"
+            type="button"
+            (click)="openVehiculoForm()"
+          >
+            <span class="material-symbols-outlined">add_circle</span>
+            <span>Nuevo vehículo</span>
           </button>
         </div>
       </div>
 
-      <!-- Empresa Info Card -->
-      <div class="info-card">
-        <div class="card-header">
-          <h3>Información General</h3>
-        </div>
-        <div class="card-content">
-          <div class="info-grid">
-            <div class="info-item">
-              <label>CUIL:</label>
-              <span>{{ empresaData.cuil }}</span>
+      <!-- Listado -->
+      <div class="card">
+        <h2>Listado</h2>
+        <div class="table">
+          <div class="thead">
+            <div>Tipo</div>
+            <div>Horarios</div>
+            <div>Frecuencia</div>
+            <div>Datos</div>
+            <div>Acciones</div>
+          </div>
+
+          <div class="row" *ngFor="let v of filteredVehiculos">
+            <div>
+              {{
+                v.id_tipo_vehiculo
+                  ? getTipoVehiculoName(v.id_tipo_vehiculo)
+                  : "-"
+              }}
             </div>
-            <div class="info-item">
-              <label>Nombre:</label>
-              <span>{{ empresaData.nombre }}</span>
+
+            <div>{{ v.horarios || "-" }}</div>
+            <div>{{ v.frecuencia || "-" }}</div>
+            <div>
+              <ng-container *ngIf="v.datos">
+                <span *ngIf="v.datos.cantidad"
+                  >Cantidad: {{ v.datos.cantidad }}</span
+                ><br />
+                <span *ngIf="v.datos.patente"
+                  >Patente: {{ v.datos.patente }}</span
+                ><br />
+                <span *ngIf="v.datos.carga">Carga: {{ v.datos.carga }}</span
+                ><br />
+                <span *ngIf="v.datos.descripcion">{{
+                  v.datos.descripcion
+                }}</span>
+              </ng-container>
+              <span *ngIf="!v.datos || !hasKeys(v.datos)">–</span>
             </div>
-            <div class="info-item">
-              <label>Rubro:</label>
-              <span>{{ empresaData.rubro }}</span>
-            </div>
-            <div class="info-item">
-              <label>Cantidad de Empleados:</label>
-              <span>{{ empresaData.cant_empleados }}</span>
-            </div>
-            <div class="info-item">
-              <label>Fecha de Ingreso:</label>
-              <span>{{ empresaData.fecha_ingreso | date : "dd/MM/yyyy" }}</span>
-            </div>
-            <div class="info-item">
-              <label>Horario de Trabajo:</label>
-              <span>{{ empresaData.horario_trabajo }}</span>
-            </div>
-            <div class="info-item full-width" *ngIf="empresaData.observaciones">
-              <label>Observaciones:</label>
-              <span>{{ empresaData.observaciones }}</span>
+
+            <div class="row-actions">
+              <button
+                class="btn icon"
+                title="Editar"
+                (click)="openVehiculoForm(v)"
+              >
+                <span class="material-symbols-outlined">edit</span>
+              </button>
+              <button
+                class="btn icon danger"
+                title="Eliminar"
+                (click)="deleteVehiculo(v.id_vehiculo)"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
+    </section>
 
-      <div class="stats-grid">
-        <!-- Vehículos -->
-        <div class="stat-card">
-          <div class="stat-icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                d="M4 9a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm8 1a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"
-              />
-              <path
-                fill-rule="evenodd"
-                d="M16 6.5V7a1 1 0 0 1-1 1h-.173l-.833 2.5H14a2 2 0 1 1-4 0H6a2 2 0 1 1-4 0h.006l-.833-2.5H1a1 1 0 0 1-1-1v-.5a.5.5 0 0 1 .276-.447L2.5 4l1-1h9l1 1 2.224 2.053A.5.5 0 0 1 16 6.5zM3 5l-1 1h12l-1-1H3z"
-              />
-            </svg>
-          </div>
-          <div class="stat-info">
-            <h4>{{ empresaData.vehiculos.length }}</h4>
-            <p>Vehículos</p>
-          </div>
-        </div>
-
-        <!-- Servicios -->
-        <div class="stat-card">
-          <div class="stat-icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                d="M1 0a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1.5v1.5H1a1 1 0 0 0 0 2h1.5V11H1a1 1 0 0 0 0 2h1.5v1a1 1 0 0 0 2 0v-1H5v1a1 1 0 0 0 2 0v-1h1.5v1a1 1 0 0 0 2 0v-1H12v1a1 1 0 0 0 2 0v-1h1a1 1 0 0 0 0-2h-1V7.5h1a1 1 0 0 0 0-2h-1V4a1 1 0 0 0-1-1H2V1a1 1 0 0 0-1-1z"
-              />
-            </svg>
-          </div>
-          <div class="stat-info">
-            <h4>{{ empresaData.servicios.length }}</h4>
-            <p>Servicios</p>
-          </div>
-        </div>
-
-        <!-- Contactos -->
-        <div class="stat-card">
-          <div class="stat-icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
-              />
-            </svg>
-          </div>
-          <div class="stat-info">
-            <h4>{{ empresaData.contactos.length }}</h4>
-            <p>Contactos</p>
-          </div>
-        </div>
-
-        <!-- Servicios del Polo -->
-        <div class="stat-card">
-          <div class="stat-icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                d="M6.5 0a.5.5 0 0 1 .5.5V2H9V.5a.5.5 0 0 1 1 0V2h1.5A1.5 1.5 0 0 1 13 3.5v10A1.5 1.5 0 0 1 11.5 15h-7A1.5 1.5 0 0 1 3 13.5v-10A1.5 1.5 0 0 1 4.5 2H6V.5a.5.5 0 0 1 .5-.5zM4.5 3a.5.5 0 0 0-.5.5V5h8V3.5a.5.5 0 0 0-.5-.5h-7z"
-              />
-            </svg>
-          </div>
-          <div class="stat-info">
-            <h4>{{ empresaData.servicios_polo.length }}</h4>
-            <p>Servicios del Polo</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- VEHÍCULOS TAB -->
-    <div *ngIf="activeTab === 'vehiculos'" class="tab-content">
-      <div class="section-header">
-        <h2>Gestión de Vehículos</h2>
-        <button class="btn btn-primary" (click)="openVehiculoForm()">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            fill="currentColor"
-            viewBox="0 0 16 16"
+    <!-- CONTACTOS ===================================================================================-->
+    <section *ngIf="activeTab === 'contactos'" class="card-stack">
+      <div class="card">
+        <div class="actions">
+          <button
+            class="btn primary"
+            type="button"
+            (click)="openContactoForm()"
           >
-            <path
-              d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
-            />
-          </svg>
-          Nuevo Vehículo
+            <span class="material-symbols-outlined">add_circle</span>
+            <span>Nuevo contacto</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Listado</h2>
+        <div class="table">
+          <div class="thead">
+            <div>Tipo</div>
+            <div>Nombre</div>
+            <div>Teléfono</div>
+            <div>Dirección</div>
+            <div>Datos</div>
+            <div>Acciones</div>
+          </div>
+
+          <div class="row" *ngFor="let c of filteredContactos">
+            <div>
+              {{
+                c.id_tipo_contacto
+                  ? getTipoContactoName(c.id_tipo_contacto)
+                  : "-"
+              }}
+            </div>
+
+            <div>{{ c.nombre }}</div>
+            <div>{{ c.telefono || "-" }}</div>
+            <div>{{ c.direccion || "-" }}</div>
+            <div>
+              <ng-container *ngIf="c.datos">
+                <span *ngIf="c.datos.pagina_web"
+                  >🌐 {{ c.datos.pagina_web }}</span
+                ><br />
+                <span *ngIf="c.datos.correo">✉️ {{ c.datos.correo }}</span
+                ><br />
+                <span *ngIf="c.datos.redes_sociales"
+                  >🔗 {{ c.datos.redes_sociales }}</span
+                ><br />
+                <span *ngIf="c.datos.descripcion">{{
+                  c.datos.descripcion
+                }}</span>
+              </ng-container>
+              <span *ngIf="!c.datos || !hasKeys(c.datos)">–</span>
+            </div>
+
+            <div class="row-actions">
+              <button
+                class="btn icon"
+                title="Editar"
+                (click)="openContactoForm(c)"
+              >
+                <span class="material-symbols-outlined">edit</span>
+              </button>
+              <button
+                class="btn icon danger"
+                title="Eliminar"
+                (click)="deleteContacto(c.id_contacto)"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVICIOS PROPIOS ==============================================================================-->
+    <section *ngIf="activeTab === 'servicios'" class="card-stack">
+      <div class="card">
+        <div class="actions">
+          <button
+            class="btn primary"
+            type="button"
+            (click)="openServicioForm()"
+          >
+            <span class="material-symbols-outlined">add_circle</span>
+            <span>Nuevo servicio</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Listado</h2>
+        <div class="table">
+          <div class="thead">
+            <div>Tipo</div>
+            <div>Datos</div>
+            <div>Acciones</div>
+          </div>
+
+          <div class="row" *ngFor="let s of filteredServicios">
+            <div>
+              {{
+                s.id_tipo_servicio
+                  ? getTipoServicioName(s.id_tipo_servicio)
+                  : "-"
+              }}
+            </div>
+
+            <div>
+              <div>
+                <ng-container *ngIf="s.datos">
+                  <!-- Agua -->
+                  <ng-container *ngIf="s.id_tipo_servicio === 1">
+                    <span>🌱 Biofiltro: {{ s.datos.biofiltro }}</span
+                    ><br />
+                    <span
+                      >💧 Tratamiento:
+                      {{ s.datos.tratamiento_aguas_grises }}</span
+                    >
+                  </ng-container>
+
+                  <!-- Espacios verdes -->
+                  <ng-container *ngIf="s.id_tipo_servicio === 2">
+                    <span>🏛️ Abierto: {{ s.datos.abierto }}</span
+                    ><br />
+                    <span>📏 Superficie: {{ s.datos.m2 }} m²</span>
+                  </ng-container>
+
+                  <!-- Internet -->
+                  <ng-container *ngIf="s.id_tipo_servicio === 3">
+                    <span>🌐 Tipo: {{ s.datos.tipo }}</span
+                    ><br />
+                    <span>🏭 Proveedor: {{ s.datos.proveedor }}</span>
+                  </ng-container>
+
+                  <!-- Residuos -->
+                  <ng-container *ngIf="s.id_tipo_servicio === 4">
+                    <span>♻️ Tipo: {{ s.datos.tipo }}</span
+                    ><br />
+                    <span>#️⃣ Cantidad: {{ s.datos.cantidad }}</span>
+                  </ng-container>
+
+                  <!-- Default -->
+                  <ng-container *ngIf="!s.id_tipo_servicio">
+                    <span>📝 {{ s.datos.descripcion }}</span>
+                  </ng-container>
+                </ng-container>
+
+                <span *ngIf="!s.datos || !hasKeys(s.datos)">–</span>
+              </div>
+            </div>
+            <div class="row-actions">
+              <button
+                class="btn icon"
+                title="Editar"
+                (click)="openServicioForm(s)"
+              >
+                <span class="material-symbols-outlined">edit</span>
+              </button>
+              <button
+                class="btn icon danger"
+                title="Eliminar"
+                (click)="deleteServicio(s.id_servicio)"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVICIOS POLO (solo lectura) ==================================================================-->
+    <section *ngIf="activeTab === 'serviciosPolo'" class="card">
+      <h2>Servicios del Polo asociados</h2>
+      <div class="table">
+        <div class="thead">
+          <div>Nombre</div>
+          <div>Tipo</div>
+          <div>Horario</div>
+          <div>Propietario</div>
+          <div>Lotes</div>
+        </div>
+
+        <div class="row" *ngFor="let sp of filteredServiciosPolo">
+          <div>{{ sp.nombre }}</div>
+          <div>{{ sp.tipo_servicio_polo || "-" }}</div>
+          <div>{{ sp.horario || "-" }}</div>
+          <div>{{ sp.propietario || "-" }}</div>
+          <div>
+            <ng-container *ngIf="sp.lotes?.length; else sinLotes">
+              <span *ngFor="let l of sp.lotes"
+                >M{{ l.manzana }}-L{{ l.lote }}&nbsp;</span
+              >
+            </ng-container>
+            <ng-template #sinLotes>–</ng-template>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONFIGURACIÓN  ==============================================================================-->
+    <section *ngIf="activeTab === 'config'" class="card-grid">
+      <div class="card">
+        <h2>Contraseña</h2>
+        <button class="btn" type="button" (click)="openPasswordModal()">
+          <span class="material-symbols-outlined">vpn_key</span>
+          <span>Cambiar contraseña</span>
         </button>
       </div>
-
-      <!-- Barra de búsqueda para Vehículos -->
-      <div class="search-bar">
-        <div class="search-container">
-          <svg
-            class="search-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            [(ngModel)]="vehiculoSearchTerm"
-            (input)="filterVehiculos()"
-            placeholder="Buscar vehículos por tipo, horarios, patente o carga..."
-            class="search-input"
-          />
-          <button
-            *ngIf="vehiculoSearchTerm"
-            (click)="clearVehiculoSearch()"
-            class="clear-search-btn"
-            type="button"
-          >
-            ×
-          </button>
-        </div>
-        <div class="search-results" *ngIf="vehiculoSearchTerm">
-          <small
-            >{{ filteredVehiculos.length }} de
-            {{ empresaData.vehiculos.length }} vehículos</small
-          >
-        </div>
+      <div class="card">
+        <h2>Sesión</h2>
+        <p>Salir de la cuenta de empresa.</p>
+        <app-logout-button></app-logout-button>
       </div>
-
-      <!-- Vehículos List -->
-      <div class="data-table">
-        <div class="table-header">
-          <h3>Vehículos Registrados</h3>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Tipo</th>
-                <th>Horarios</th>
-                <th>Frecuencia</th>
-                <th>Datos</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <ng-container
-                *ngFor="let vehiculo of filteredVehiculos; let i = index"
-              >
-                <tr>
-                  <td>{{ getTipoVehiculoName(vehiculo.id_tipo_vehiculo) }}</td>
-                  <td>{{ vehiculo.horarios }}</td>
-                  <td>{{ vehiculo.frecuencia }}</td>
-                  <td>
-                    <button
-                      class="btn-ver-mas"
-                      (click)="toggleExpandRow('vehiculo-' + i)"
-                      [attr.aria-label]="
-                        expandedRows.has('vehiculo-' + i)
-                          ? 'Ver menos'
-                          : 'Ver más'
-                      "
-                    >
-                      {{
-                        expandedRows.has("vehiculo-" + i)
-                          ? "Ver menos"
-                          : "Ver más"
-                      }}
-                    </button>
-                  </td>
-                  <td class="actions">
-                    <div class="action-buttons">
-                      <div class="primary-actions">
-                        <button
-                          class="btn btn-sm btn-secondary"
-                          (click)="openVehiculoForm(vehiculo)"
-                          title="Editar vehículo"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            fill="currentColor"
-                            viewBox="0 0 16 16"
-                          >
-                            <path
-                              d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3-6.5 6.5v3h3l6.5-6.5z"
-                            />
-                          </svg>
-                          Editar
-                        </button>
-                        <button
-                          class="btn btn-sm btn-danger"
-                          (click)="deleteVehiculo(vehiculo.id_vehiculo)"
-                          title="Eliminar vehículo"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            fill="currentColor"
-                            viewBox="0 0 16 16"
-                          >
-                            <path
-                              d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
-                            />
-                            <path
-                              fill-rule="evenodd"
-                              d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-                            />
-                          </svg>
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-
-                <tr
-                  *ngIf="expandedRows.has('vehiculo-' + i)"
-                  class="expanded-row"
-                >
-                  <td colspan="5">
-                    <div class="expanded-content">
-                      <h4>Datos del Vehículo</h4>
-                      <div class="data-block vehicle-block">
-                        <div class="data-item" *ngIf="vehiculo.datos.cantidad">
-                          <span class="label">Cantidad de vehículos:</span>
-                          <span class="value">{{
-                            vehiculo.datos.cantidad
-                          }}</span>
-                        </div>
-                        <div class="data-item" *ngIf="vehiculo.datos.patente">
-                          <span class="label">Patente:</span>
-                          <span class="value">{{
-                            vehiculo.datos.patente
-                          }}</span>
-                        </div>
-                        <div class="data-item" *ngIf="vehiculo.datos.carga">
-                          <span class="label">Carga estimada:</span>
-                          <span class="value text-capitalize">{{
-                            vehiculo.datos.carga
-                          }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </ng-container>
-
-              <tr *ngIf="filteredVehiculos.length === 0">
-                <td colspan="5" class="text-center">
-                  <div class="empty-state">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="48"
-                      height="48"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path
-                        d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1zm3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4h-3.5zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z"
-                      />
-                    </svg>
-                    <p>
-                      {{
-                        vehiculoSearchTerm
-                          ? "No se encontraron vehículos"
-                          : "No hay vehículos registrados"
-                      }}
-                    </p>
-                    <small *ngIf="vehiculoSearchTerm"
-                      >Prueba con otros términos de búsqueda</small
-                    >
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- SERVICIOS TAB -->
-    <div *ngIf="activeTab === 'servicios'" class="tab-content">
-      <div class="section-header">
-        <h2>Gestión de Servicios</h2>
-        <button class="btn btn-primary" (click)="openServicioForm()">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
-            />
-          </svg>
-          Nuevo Servicio
-        </button>
-      </div>
-
-      <!-- Barra de búsqueda para Servicios -->
-      <div class="search-bar">
-        <div class="search-container">
-          <svg
-            class="search-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            [(ngModel)]="servicioSearchTerm"
-            (input)="filterServicios()"
-            placeholder="Buscar servicios por tipo o características..."
-            class="search-input"
-          />
-          <button
-            *ngIf="servicioSearchTerm"
-            (click)="clearServicioSearch()"
-            class="clear-search-btn"
-            type="button"
-          >
-            ×
-          </button>
-        </div>
-        <div class="search-results" *ngIf="servicioSearchTerm">
-          <small
-            >{{ filteredServicios.length }} de
-            {{ empresaData.servicios.length }} servicios</small
-          >
-        </div>
-      </div>
-
-      <!-- Servicios List -->
-      <div class="data-table">
-        <div class="table-header">
-          <h3>Servicios Ofrecidos</h3>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Tipo de Servicio</th>
-                <th>Datos</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <ng-container
-                *ngFor="let servicio of filteredServicios; let i = index"
-              >
-                <tr>
-                  <td>{{ getTipoServicioName(servicio.id_tipo_servicio) }}</td>
-                  <td>
-                    <button
-                      class="btn-ver-mas"
-                      (click)="toggleExpandRow('servicio-' + i)"
-                      [attr.aria-label]="
-                        expandedRows.has('servicio-' + i)
-                          ? 'Ver menos'
-                          : 'Ver más'
-                      "
-                    >
-                      {{
-                        expandedRows.has("servicio-" + i)
-                          ? "Ver menos"
-                          : "Ver más"
-                      }}
-                    </button>
-                  </td>
-                  <td class="actions">
-                    <div class="action-buttons">
-                      <div class="primary-actions">
-                        <button
-                          class="btn btn-sm btn-secondary"
-                          (click)="openServicioForm(servicio)"
-                          title="Editar servicio"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            fill="currentColor"
-                            viewBox="0 0 16 16"
-                          >
-                            <path
-                              d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3-6.5 6.5v3h3l6.5-6.5z"
-                            />
-                          </svg>
-                          Editar
-                        </button>
-                        <button
-                          class="btn btn-sm btn-danger"
-                          (click)="deleteServicio(servicio.id_servicio)"
-                          title="Eliminar servicio"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            fill="currentColor"
-                            viewBox="0 0 16 16"
-                          >
-                            <path
-                              d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
-                            />
-                            <path
-                              fill-rule="evenodd"
-                              d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-                            />
-                          </svg>
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-
-                <tr
-                  *ngIf="expandedRows.has('servicio-' + i)"
-                  class="expanded-row"
-                >
-                  <td colspan="3">
-                    <div class="expanded-content">
-                      <h4>Datos del Servicio</h4>
-                      <div class="data-block service-block">
-                        <!-- Servicio Agua -->
-                        <div *ngIf="servicio.id_tipo_servicio === 1">
-                          <div
-                            class="data-item"
-                            *ngIf="servicio.datos.biofiltro"
-                          >
-                            <span class="label">Biofiltro:</span>
-                            <span class="value">{{
-                              servicio.datos.biofiltro
-                            }}</span>
-                          </div>
-                          <div
-                            class="data-item"
-                            *ngIf="servicio.datos.tratamiento_aguas_grises"
-                          >
-                            <span class="label"
-                              >Tratamiento de aguas grises:</span
-                            >
-                            <span class="value">{{
-                              servicio.datos.tratamiento_aguas_grises
-                            }}</span>
-                          </div>
-                        </div>
-
-                        <!-- Servicio Espacios Verdes -->
-                        <div *ngIf="servicio.id_tipo_servicio === 2">
-                          <div class="data-item" *ngIf="servicio.datos.abierto">
-                            <span class="label">Abierto:</span>
-                            <span class="value">{{
-                              servicio.datos.abierto
-                            }}</span>
-                          </div>
-                          <div class="data-item" *ngIf="servicio.datos.m2">
-                            <span class="label">Metros cuadrados (m2):</span>
-                            <span class="value">{{ servicio.datos.m2 }}</span>
-                          </div>
-                        </div>
-
-                        <!-- Servicio Internet -->
-                        <div *ngIf="servicio.id_tipo_servicio === 3">
-                          <div class="data-item" *ngIf="servicio.datos.tipo">
-                            <span class="label">Tipo de Internet:</span>
-                            <span class="value">{{ servicio.datos.tipo }}</span>
-                          </div>
-                          <div
-                            class="data-item"
-                            *ngIf="servicio.datos.proveedor"
-                          >
-                            <span class="label">Proveedor:</span>
-                            <span class="value">{{
-                              servicio.datos.proveedor
-                            }}</span>
-                          </div>
-                        </div>
-
-                        <!-- Servicio Residuos -->
-                        <div *ngIf="servicio.id_tipo_servicio === 4">
-                          <div class="data-item" *ngIf="servicio.datos.tipo">
-                            <span class="label">Tipo de Residuo:</span>
-                            <span class="value">{{ servicio.datos.tipo }}</span>
-                          </div>
-                          <div
-                            class="data-item"
-                            *ngIf="servicio.datos.cantidad"
-                          >
-                            <span class="label">Cantidad:</span>
-                            <span class="value">{{
-                              servicio.datos.cantidad
-                            }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </ng-container>
-
-              <tr *ngIf="filteredServicios.length === 0">
-                <td colspan="3" class="text-center">
-                  <div class="empty-state">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="48"
-                      height="48"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path
-                        d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"
-                      />
-                      <path
-                        d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"
-                      />
-                    </svg>
-                    <p>
-                      {{
-                        servicioSearchTerm
-                          ? "No se encontraron servicios"
-                          : "No hay servicios registrados"
-                      }}
-                    </p>
-                    <small *ngIf="servicioSearchTerm"
-                      >Prueba con otros términos de búsqueda</small
-                    >
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- CONTACTOS TAB -->
-    <div *ngIf="activeTab === 'contactos'" class="tab-content">
-      <div class="section-header">
-        <h2>Gestión de Contactos</h2>
-        <button class="btn btn-primary" (click)="openContactoForm()">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
-            />
-          </svg>
-          Nuevo Contacto
-        </button>
-      </div>
-
-      <!-- Barra de búsqueda para Contactos -->
-      <div class="search-bar">
-        <div class="search-container">
-          <svg
-            class="search-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            [(ngModel)]="contactoSearchTerm"
-            (input)="filterContactos()"
-            placeholder="Buscar contactos por nombre, tipo, teléfono, dirección o email..."
-            class="search-input"
-          />
-          <button
-            *ngIf="contactoSearchTerm"
-            (click)="clearContactoSearch()"
-            class="clear-search-btn"
-            type="button"
-          >
-            ×
-          </button>
-        </div>
-        <div class="search-results" *ngIf="contactoSearchTerm">
-          <small
-            >{{ filteredContactos.length }} de
-            {{ empresaData.contactos.length }} contactos</small
-          >
-        </div>
-      </div>
-
-      <!-- Contactos List -->
-      <div class="data-table">
-        <div class="table-header">
-          <h3>Contactos de la Empresa</h3>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Tipo</th>
-                <th>Teléfono</th>
-                <th>Dirección</th>
-                <th>Datos</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <ng-container
-                *ngFor="let contacto of filteredContactos; let i = index"
-              >
-                <tr>
-                  <td>{{ contacto.nombre }}</td>
-                  <td>{{ getTipoContactoName(contacto.id_tipo_contacto) }}</td>
-                  <td>{{ contacto.telefono || "No especificado" }}</td>
-                  <td>{{ contacto.direccion || "No especificada" }}</td>
-                  <td>
-                    <button
-                      class="btn-ver-mas"
-                      (click)="toggleExpandRow('contacto-' + i)"
-                      [attr.aria-label]="
-                        expandedRows.has('contacto-' + i)
-                          ? 'Ver menos'
-                          : 'Ver más'
-                      "
-                    >
-                      {{
-                        expandedRows.has("contacto-" + i)
-                          ? "Ver menos"
-                          : "Ver más"
-                      }}
-                    </button>
-                  </td>
-                  <td class="actions">
-                    <div class="action-buttons">
-                      <div class="primary-actions">
-                        <button
-                          class="btn btn-sm btn-secondary"
-                          (click)="openContactoForm(contacto)"
-                          title="Editar contacto"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            fill="currentColor"
-                            viewBox="0 0 16 16"
-                          >
-                            <path
-                              d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l-3-3-6.5 6.5v3h3l6.5-6.5z"
-                            />
-                          </svg>
-                          Editar
-                        </button>
-                        <button
-                          class="btn btn-sm btn-danger"
-                          (click)="deleteContacto(contacto.id_contacto)"
-                          title="Eliminar contacto"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            fill="currentColor"
-                            viewBox="0 0 16 16"
-                          >
-                            <path
-                              d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
-                            />
-                            <path
-                              fill-rule="evenodd"
-                              d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-                            />
-                          </svg>
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-
-                <tr
-                  *ngIf="expandedRows.has('contacto-' + i)"
-                  class="expanded-row"
-                >
-                  <td colspan="6">
-                    <div class="expanded-content">
-                      <h4>Datos del Contacto</h4>
-                      <div class="data-block contact-block">
-                        <div
-                          class="data-item"
-                          *ngIf="contacto.datos?.direccion"
-                        >
-                          <span class="label">Dirección:</span>
-                          <span class="value">{{
-                            contacto.datos.direccion
-                          }}</span>
-                        </div>
-                        <div
-                          class="data-item"
-                          *ngIf="contacto.datos?.pagina_web"
-                        >
-                          <span class="label">Página Web:</span>
-                          <span class="value">{{
-                            contacto.datos.pagina_web
-                          }}</span>
-                        </div>
-                        <div class="data-item" *ngIf="contacto.datos?.correo">
-                          <span class="label">Correo:</span>
-                          <span class="value">{{ contacto.datos.correo }}</span>
-                        </div>
-                        <div
-                          class="data-item"
-                          *ngIf="contacto.datos?.redes_sociales"
-                        >
-                          <span class="label">Redes Sociales:</span>
-                          <span class="value">{{
-                            contacto.datos.redes_sociales
-                          }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </ng-container>
-
-              <tr *ngIf="filteredContactos.length === 0">
-                <td colspan="6" class="text-center">
-                  <div class="empty-state">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="48"
-                      height="48"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path
-                        d="M3.654 1.328a.678.678 0 0 0-1.015-.063L1.605 2.3c-.483.484-.661 1.169-.45 1.77a17.568 17.568 0 0 0 4.168 6.608 17.569 17.569 0 0 0 6.608 4.168c.601.211 1.286.033 1.77-.45l1.034-1.034a.678.678 0 0 0-.063-1.015l-2.307-1.794a.678.678 0 0 0-.58-.122L9.98 10.99a.68.68 0 0 1-.673-.215l-1.934-1.934a.68.68 0 0 1-.215-.673l.538-1.806a.678.678 0 0 0-.122-.58L5.78 3.974a.678.678 0 0 0-.58-.122L3.654 1.328z"
-                      />
-                    </svg>
-                    <p>
-                      {{
-                        contactoSearchTerm
-                          ? "No se encontraron contactos"
-                          : "No hay contactos registrados"
-                      }}
-                    </p>
-                    <small *ngIf="contactoSearchTerm"
-                      >Prueba con otros términos de búsqueda</small
-                    >
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- SERVICIOS POLO TAB -->
-    <div *ngIf="activeTab === 'serviciosPolo'" class="tab-content">
-      <div class="section-header">
-        <h2>Servicios del Polo</h2>
-        <div class="header-actions">
-          <div class="info-badge">
-            <span>Solo lectura - Gestionados por Administrador de Polo</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Barra de búsqueda para Servicios Polo -->
-      <div class="search-bar">
-        <div class="search-container">
-          <svg
-            class="search-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            [(ngModel)]="servicioPoloSearchTerm"
-            (input)="filterServiciosPolo()"
-            placeholder="Buscar servicios del polo por nombre, tipo, horario o propietario..."
-            class="search-input"
-          />
-          <button
-            *ngIf="servicioPoloSearchTerm"
-            (click)="clearServicioPoloSearch()"
-            class="clear-search-btn"
-            type="button"
-          >
-            ×
-          </button>
-        </div>
-        <div class="search-results" *ngIf="servicioPoloSearchTerm">
-          <small
-            >{{ filteredServiciosPolo.length }} de
-            {{ empresaData.servicios_polo.length }} servicios del polo</small
-          >
-        </div>
-      </div>
-
-      <!-- Servicios Polo List -->
-      <div class="data-table">
-        <div class="table-header">
-          <h3>Servicios del Polo Vinculados</h3>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Tipo</th>
-                <th>Horario</th>
-                <th>Propietario</th>
-                <th>Datos</th>
-                <th>Lotes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <ng-container
-                *ngFor="
-                  let servicioPolo of filteredServiciosPolo;
-                  let i = index
-                "
-              >
-                <tr>
-                  <td>{{ servicioPolo.nombre || "Sin nombre" }}</td>
-                  <td>
-                    {{
-                      getTipoServicioPoloName(
-                        servicioPolo.id_tipo_servicio_polo
-                      )
-                    }}
-                  </td>
-                  <td>{{ servicioPolo.horario || "No especificado" }}</td>
-                  <td>{{ servicioPolo.propietario || "No especificado" }}</td>
-                  <td>
-                    <button
-                      class="btn-ver-mas"
-                      (click)="toggleExpandRow('serviciopolo-' + i)"
-                      [attr.aria-label]="
-                        expandedRows.has('serviciopolo-' + i)
-                          ? 'Ver menos'
-                          : 'Ver más'
-                      "
-                    >
-                      {{
-                        expandedRows.has("serviciopolo-" + i)
-                          ? "Ver menos"
-                          : "Ver más"
-                      }}
-                    </button>
-                  </td>
-                  <td>
-                    <ng-container
-                      *ngIf="servicioPolo.lotes?.length > 0; else sinLotes"
-                    >
-                      <span class="lotes-count"
-                        >{{ servicioPolo.lotes.length }} lote(s)</span
-                      >
-                    </ng-container>
-                    <ng-template #sinLotes>
-                      <span class="no-lotes">Sin lotes</span>
-                    </ng-template>
-                  </td>
-                </tr>
-
-                <tr
-                  *ngIf="expandedRows.has('serviciopolo-' + i)"
-                  class="expanded-row"
-                >
-                  <td colspan="6">
-                    <div class="expanded-content">
-                      <h4>Datos del Servicio del Polo</h4>
-                      <div class="data-block polo-service-block">
-                        <div
-                          class="data-item"
-                          *ngIf="servicioPolo.datos?.cant_puestos"
-                        >
-                          <span class="label">Cantidad de Puestos:</span>
-                          <span class="value">{{
-                            servicioPolo.datos.cant_puestos
-                          }}</span>
-                        </div>
-
-                        <div class="data-item" *ngIf="servicioPolo.datos?.m2">
-                          <span class="label">Metros Cuadrados (m²):</span>
-                          <span class="value">{{ servicioPolo.datos.m2 }}</span>
-                        </div>
-
-                        <div
-                          class="data-item"
-                          *ngIf="hasKeys(servicioPolo.datos?.datos_prop)"
-                        >
-                          <span class="label">Datos del Propietario:</span>
-                          <span class="value">
-                            <div
-                              *ngFor="
-                                let item of servicioPolo.datos.datos_prop
-                                  | keyvalue
-                              "
-                              class="sub-item"
-                            >
-                              <span class="sub-label">{{ item.key }}:</span>
-                              <span class="sub-value">{{ item.value }}</span>
-                            </div>
-                          </span>
-                        </div>
-
-                        <div
-                          class="data-item"
-                          *ngIf="hasKeys(servicioPolo.datos?.datos_inquilino)"
-                        >
-                          <span class="label">Datos del Inquilino:</span>
-                          <span class="value">
-                            <div
-                              *ngFor="
-                                let item of servicioPolo.datos.datos_inquilino
-                                  | keyvalue
-                              "
-                              class="sub-item"
-                            >
-                              <span class="sub-label">{{ item.key }}:</span>
-                              <span class="sub-value">{{ item.value }}</span>
-                            </div>
-                          </span>
-                        </div>
-
-                        <div
-                          class="data-item"
-                          *ngIf="servicioPolo.lotes?.length > 0"
-                        >
-                          <span class="label">Lotes Asociados:</span>
-                          <span class="value">
-                            <div
-                              *ngFor="let lote of servicioPolo.lotes"
-                              class="sub-item"
-                            >
-                              <span class="sub-label"
-                                >Lote {{ lote.lote }}, Mz
-                                {{ lote.manzana }}:</span
-                              >
-                              <span class="sub-value">{{
-                                lote.dueno || "Sin propietario"
-                              }}</span>
-                            </div>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </ng-container>
-
-              <tr *ngIf="filteredServiciosPolo.length === 0">
-                <td colspan="6" class="text-center">
-                  <div class="empty-state">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="48"
-                      height="48"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path
-                        d="M6 1v3h4V1a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v3h3a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-3v8a1 1 0 0 1-1 1H11a1 1 0 0 1-1-1V7H6v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7H0a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V1a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1z"
-                      />
-                    </svg>
-                    <p>
-                      {{
-                        servicioPoloSearchTerm
-                          ? "No se encontraron servicios del polo"
-                          : "No hay servicios del polo registrados"
-                      }}
-                    </p>
-                    <small *ngIf="servicioPoloSearchTerm"
-                      >Prueba con otros términos de búsqueda</small
-                    >
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+      <app-password-change-modal
+        *ngIf="showPasswordModal"
+        (closed)="onPasswordModalClosed()"
+        (changed)="onPasswordChanged(true)"
+      >
+      </app-password-change-modal>
+    </section>
   </main>
+</div>
 
-  <!-- Empresa Edit Form Modal -->
-  <div *ngIf="showEmpresaEditForm" class="form-modal empresa-form">
-    <div class="form-container">
-      <div class="form-header">
-        <h3>Editar Datos de la Empresa</h3>
-        <button class="close-btn" (click)="cancelForm('empresa')">
-          &times;
-        </button>
-      </div>
+<!-- =============== OVERLAYS DE FORMULARIO ======================================================== -->
+<!-- ============================================================================================== -->
 
-      <!-- Error Display -->
-      <div *ngIf="hasFieldError('empresa', 'general')" class="error-display">
-        <div
-          class="error-message"
-          *ngFor="let error of getFieldErrors('empresa', 'general')"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"
-            />
-          </svg>
-          {{ error.message }}
-        </div>
-      </div>
-
-      <form (ngSubmit)="onSubmitEmpresaEdit()" #empresaEditFormRef="ngForm">
-        <div class="form-grid">
-          <div
-            class="form-group"
-            [class.has-error]="hasFieldError('empresa', 'cant_empleados')"
-          >
-            <label for="cant_empleados">Cantidad de Empleados *</label>
-            <input
-              type="number"
-              id="cant_empleados"
-              name="cant_empleados"
-              [(ngModel)]="empresaEditForm.cant_empleados"
-              required
-              min="1"
-              class="form-control"
-              [class.error]="hasFieldError('empresa', 'cant_empleados')"
-            />
-            <div
-              *ngIf="hasFieldError('empresa', 'cant_empleados')"
-              class="field-error"
-            >
-              <span
-                *ngFor="
-                  let error of getFieldErrors('empresa', 'cant_empleados')
-                "
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
-
-          <div
-            class="form-group"
-            [class.has-error]="hasFieldError('empresa', 'horario_trabajo')"
-          >
-            <label for="horario_trabajo">Horario de Trabajo *</label>
-            <input
-              type="text"
-              id="horario_trabajo"
-              name="horario_trabajo"
-              [(ngModel)]="empresaEditForm.horario_trabajo"
-              required
-              class="form-control"
-              [class.error]="hasFieldError('empresa', 'horario_trabajo')"
-            />
-            <div
-              *ngIf="hasFieldError('empresa', 'horario_trabajo')"
-              class="field-error"
-            >
-              <span
-                *ngFor="
-                  let error of getFieldErrors('empresa', 'horario_trabajo')
-                "
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
-
-          <div
-            class="form-group full-width"
-            [class.has-error]="hasFieldError('empresa', 'observaciones')"
-          >
-            <label for="observaciones">Observaciones</label>
-            <textarea
-              id="observaciones"
-              name="observaciones"
-              [(ngModel)]="empresaEditForm.observaciones"
-              rows="4"
-              class="form-control"
-              [class.error]="hasFieldError('empresa', 'observaciones')"
-            ></textarea>
-            <div
-              *ngIf="hasFieldError('empresa', 'observaciones')"
-              class="field-error"
-            >
-              <span
-                *ngFor="let error of getFieldErrors('empresa', 'observaciones')"
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            (click)="cancelForm('empresa')"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            [disabled]="loading || empresaEditFormRef.invalid"
-            [class.loading]="loading"
-          >
-            {{ loading ? "Guardando..." : "Actualizar Datos" }}
-          </button>
-        </div>
-      </form>
+<!-- Empresa: editar propios -->
+<div class="overlay" *ngIf="showEmpresaEditForm">
+  <div class="modal modal--md">
+    <div class="modal-header">
+      <h3>Editar datos de la empresa</h3>
+      <button
+        type="button"
+        class="icon-btn"
+        (click)="cancelForm('empresa')"
+        aria-label="Cerrar"
+      >
+        ✕
+      </button>
     </div>
-  </div>
 
-  <!-- Vehiculo Form Modal -->
-  <div *ngIf="showVehiculoForm" class="form-modal vehiculo-form">
-    <div class="form-container">
-      <div class="form-header">
-        <h3>{{ editingVehiculo ? "Editar Vehículo" : "Nuevo Vehículo" }}</h3>
-        <button class="close-btn" (click)="cancelForm('vehiculo')">
-          &times;
+    <form (ngSubmit)="onSubmitEmpresaEdit()" class="nice-form">
+      <div class="modal-body grid-3">
+        <div class="field">
+          <label>Cant. empleados</label>
+          <input
+            type="number"
+            [(ngModel)]="empresaEditForm.cant_empleados"
+            name="cant_empleados"
+          />
+        </div>
+        <div class="field">
+          <label>Horario trabajo</label>
+          <input
+            type="text"
+            [(ngModel)]="empresaEditForm.horario_trabajo"
+            name="horario_trabajo"
+            placeholder="Lun–Vie 8–17"
+          />
+        </div>
+        <div class="field col-3">
+          <label>Observaciones</label>
+          <textarea
+            rows="4"
+            [(ngModel)]="empresaEditForm.observaciones"
+            name="observaciones"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn primary" type="submit">Guardar cambios</button>
+        <button class="btn ghost" type="button" (click)="cancelForm('empresa')">
+          Cancelar
         </button>
       </div>
+    </form>
+  </div>
+</div>
 
-      <!-- Error Display -->
-      <div *ngIf="hasFieldError('vehiculo', 'general')" class="error-display">
-        <div
-          class="error-message"
-          *ngFor="let error of getFieldErrors('vehiculo', 'general')"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"
-            />
-          </svg>
-          {{ error.message }}
-        </div>
-      </div>
+<!-- Vehículo: crear/editar -->
+<div class="overlay" *ngIf="showVehiculoForm">
+  <div class="modal modal--lg">
+    <div class="modal-header">
+      <h3>
+        {{ editingVehiculo ? "Editar vehículo" : "Nuevo vehículo" }}
+      </h3>
+      <button
+        type="button"
+        class="icon-btn"
+        (click)="cancelForm('vehiculo')"
+        aria-label="Cerrar"
+      >
+        ✕
+      </button>
+    </div>
 
-      <form (ngSubmit)="onSubmitVehiculo()" #vehiculoFormRef="ngForm">
-        <div class="form-grid">
-          <div
-            class="form-group"
-            [class.has-error]="hasFieldError('vehiculo', 'id_tipo_vehiculo')"
+    <form (ngSubmit)="onSubmitVehiculo()" class="nice-form">
+      <div class="modal-body grid-3">
+        <div class="field col-3">
+          <label>Tipo</label>
+          <select
+            [(ngModel)]="vehiculoForm.id_tipo_vehiculo"
+            name="v_id_tipo_vehiculo"
+            (ngModelChange)="onVehiculoTipoChange()"
+            required
           >
-            <label for="tipo_vehiculo">Tipo de Vehículo *</label>
-            <select
-              id="tipo_vehiculo"
-              name="tipo_vehiculo"
-              [(ngModel)]="vehiculoForm.id_tipo_vehiculo"
-              required
-              class="form-control"
-              [class.error]="hasFieldError('vehiculo', 'id_tipo_vehiculo')"
+            <option
+              *ngFor="let t of tiposVehiculo"
+              [ngValue]="t.id_tipo_vehiculo"
             >
-              <option
-                *ngFor="let tipo of tiposVehiculo"
-                [value]="tipo.id_tipo_vehiculo"
-              >
-                {{ tipo.tipo }}
-              </option>
-            </select>
-            <div
-              *ngIf="hasFieldError('vehiculo', 'id_tipo_vehiculo')"
-              class="field-error"
-            >
-              <span
-                *ngFor="
-                  let error of getFieldErrors('vehiculo', 'id_tipo_vehiculo')
-                "
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
-
-          <div
-            class="form-group"
-            [class.has-error]="hasFieldError('vehiculo', 'horarios')"
-          >
-            <label for="vehiculo_horarios">Horarios *</label>
-            <input
-              type="text"
-              id="vehiculo_horarios"
-              name="vehiculo_horarios"
-              [(ngModel)]="vehiculoForm.horarios"
-              required
-              placeholder="Ej: 08:00 - 17:00"
-              class="form-control"
-              [class.error]="hasFieldError('vehiculo', 'horarios')"
-            />
-            <div
-              *ngIf="hasFieldError('vehiculo', 'horarios')"
-              class="field-error"
-            >
-              <span
-                *ngFor="let error of getFieldErrors('vehiculo', 'horarios')"
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
-
-          <div
-            class="form-group full-width"
-            [class.has-error]="hasFieldError('vehiculo', 'frecuencia')"
-          >
-            <label for="vehiculo_frecuencia">Frecuencia *</label>
-            <input
-              type="text"
-              id="vehiculo_frecuencia"
-              name="vehiculo_frecuencia"
-              [(ngModel)]="vehiculoForm.frecuencia"
-              required
-              placeholder="Ej: Diario, Semanal, etc."
-              class="form-control"
-              [class.error]="hasFieldError('vehiculo', 'frecuencia')"
-            />
-            <div
-              *ngIf="hasFieldError('vehiculo', 'frecuencia')"
-              class="field-error"
-            >
-              <span
-                *ngFor="let error of getFieldErrors('vehiculo', 'frecuencia')"
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
+              {{ t.tipo }}
+            </option>
+          </select>
         </div>
 
-        <!-- Campos dinámicos según tipo de vehículo -->
-        <div
-          class="form-group full-width"
-          *ngIf="vehiculoForm.id_tipo_vehiculo == 1"
-        >
-          <h4 class="section-title">
-            <span>Datos específicos del vehículo</span>
-          </h4>
-          <div class="form-grid">
-            <div
-              class="form-group"
-              [class.has-error]="hasFieldError('vehiculo', 'datos.cantidad')"
-            >
-              <label for="vehiculo_cantidad">Cantidad *</label>
+        <div class="field">
+          <label>Horarios</label>
+          <input
+            type="text"
+            [(ngModel)]="vehiculoForm.horarios"
+            name="v_horarios"
+            placeholder="08-18"
+          />
+        </div>
+        <div class="field">
+          <label>Frecuencia</label>
+          <input
+            type="text"
+            [(ngModel)]="vehiculoForm.frecuencia"
+            name="v_frecuencia"
+            placeholder="Diaria / Semanal"
+          />
+        </div>
+
+        <!-- Condicionales -->
+        <ng-container [ngSwitch]="vehiculoForm.id_tipo_vehiculo">
+          <!-- 1: Corporativo -->
+          <ng-container *ngSwitchCase="1">
+            <div class="field">
+              <label>Cantidad</label>
               <input
                 type="number"
-                id="vehiculo_cantidad"
-                name="vehiculo_cantidad"
                 [(ngModel)]="vehiculoForm.datos.cantidad"
+                name="v_datos_cantidad"
                 required
-                min="1"
-                class="form-control"
-                [class.error]="hasFieldError('vehiculo', 'datos.cantidad')"
               />
-              <div
-                *ngIf="hasFieldError('vehiculo', 'datos.cantidad')"
-                class="field-error"
-              >
-                <span
-                  *ngFor="
-                    let error of getFieldErrors('vehiculo', 'datos.cantidad')
-                  "
-                  >{{ error.message }}</span
-                >
-              </div>
             </div>
-
-            <div
-              class="form-group"
-              [class.has-error]="hasFieldError('vehiculo', 'datos.patente')"
-            >
-              <label for="vehiculo_patente">Patente *</label>
+            <div class="field">
+              <label>Patente</label>
               <input
                 type="text"
-                id="vehiculo_patente"
-                name="vehiculo_patente"
                 [(ngModel)]="vehiculoForm.datos.patente"
+                name="v_datos_patente"
+                placeholder="ABC123"
                 required
-                class="form-control"
-                [class.error]="hasFieldError('vehiculo', 'datos.patente')"
               />
-              <div
-                *ngIf="hasFieldError('vehiculo', 'datos.patente')"
-                class="field-error"
-              >
-                <span
-                  *ngFor="
-                    let error of getFieldErrors('vehiculo', 'datos.patente')
-                  "
-                  >{{ error.message }}</span
-                >
-              </div>
             </div>
-
-            <div
-              class="form-group"
-              [class.has-error]="hasFieldError('vehiculo', 'datos.carga')"
-            >
-              <label for="vehiculo_carga">Carga *</label>
+            <div class="field">
+              <label>Carga</label>
               <select
-                id="vehiculo_carga"
-                name="vehiculo_carga"
                 [(ngModel)]="vehiculoForm.datos.carga"
+                name="v_datos_carga"
                 required
-                class="form-control"
-                [class.error]="hasFieldError('vehiculo', 'datos.carga')"
               >
-                <option value="">Seleccionar carga</option>
-                <option value="baja">Baja</option>
-                <option value="mediana">Mediana</option>
-                <option value="alta">Alta</option>
-              </select>
-              <div
-                *ngIf="hasFieldError('vehiculo', 'datos.carga')"
-                class="field-error"
-              >
-                <span
-                  *ngFor="
-                    let error of getFieldErrors('vehiculo', 'datos.carga')
-                  "
-                  >{{ error.message }}</span
-                >
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="form-group full-width"
-          *ngIf="vehiculoForm.id_tipo_vehiculo == 2"
-        >
-          <h4 class="section-title">
-            <span>Datos específicos del vehículo</span>
-          </h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="vehiculo_cantidad">Cantidad *</label>
-              <input
-                type="number"
-                id="vehiculo_cantidad"
-                name="vehiculo_cantidad"
-                [(ngModel)]="vehiculoForm.datos.cantidad"
-                required
-                min="1"
-                class="form-control"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="vehiculo_patente">Patente *</label>
-              <input
-                type="text"
-                id="vehiculo_patente"
-                name="vehiculo_patente"
-                [(ngModel)]="vehiculoForm.datos.patente"
-                required
-                class="form-control"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="form-group full-width"
-          *ngIf="vehiculoForm.id_tipo_vehiculo == 3"
-        >
-          <h4 class="section-title">
-            <span>Datos específicos del vehículo</span>
-          </h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="vehiculo_cantidad">Cantidad *</label>
-              <input
-                type="number"
-                id="vehiculo_cantidad"
-                name="vehiculo_cantidad"
-                [(ngModel)]="vehiculoForm.datos.cantidad"
-                required
-                min="1"
-                class="form-control"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="vehiculo_carga">Carga *</label>
-              <select
-                id="vehiculo_carga"
-                name="vehiculo_carga"
-                [(ngModel)]="vehiculoForm.datos.carga"
-                required
-                class="form-control"
-              >
-                <option value="">Seleccionar carga</option>
+                <option [ngValue]="null">—</option>
                 <option value="baja">Baja</option>
                 <option value="mediana">Mediana</option>
                 <option value="alta">Alta</option>
               </select>
             </div>
-          </div>
-        </div>
+          </ng-container>
 
-        <div class="form-actions">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            (click)="cancelForm('vehiculo')"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            [disabled]="loading || vehiculoFormRef.invalid"
-            [class.loading]="loading"
-          >
-            {{
-              loading
-                ? "Guardando..."
-                : editingVehiculo
-                ? "Actualizar"
-                : "Crear"
-            }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Servicio Form Modal -->
-  <div *ngIf="showServicioForm" class="form-modal servicio-form">
-    <div class="form-container">
-      <div class="form-header">
-        <h3>{{ editingServicio ? "Editar Servicio" : "Nuevo Servicio" }}</h3>
-        <button class="close-btn" (click)="cancelForm('servicio')">
-          &times;
-        </button>
-      </div>
-
-      <!-- Error Display -->
-      <div *ngIf="hasFieldError('servicio', 'general')" class="error-display">
-        <div
-          class="error-message"
-          *ngFor="let error of getFieldErrors('servicio', 'general')"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"
-            />
-          </svg>
-          {{ error.message }}
-        </div>
-      </div>
-
-      <form (ngSubmit)="onSubmitServicio()" #servicioFormRef="ngForm">
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label for="tipo_servicio">Tipo de Servicio *</label>
-            <select
-              id="tipo_servicio"
-              name="tipo_servicio"
-              [(ngModel)]="servicioForm.id_tipo_servicio"
-              (change)="onTipoServicioChange()"
-              required
-              class="form-control"
-            >
-              <option value="" disabled>Seleccione un tipo</option>
-              <option
-                *ngFor="let tipo of tiposServicio"
-                [value]="tipo.id_tipo_servicio"
-              >
-                {{ tipo.tipo }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Campos para servicio Agua (id_tipo_servicio=1) -->
-          <div
-            class="form-group full-width"
-            *ngIf="servicioForm.id_tipo_servicio == 1"
-          >
-            <h4 class="section-title">
-              <span>Configuración del Servicio</span>
-            </h4>
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="biofiltro">Biofiltro *</label>
-                <select
-                  id="biofiltro"
-                  name="biofiltro"
-                  [(ngModel)]="servicioForm.datos.biofiltro"
-                  required
-                  class="form-control"
-                >
-                  <option value="" disabled>Seleccione</option>
-                  <option value="si">Sí</option>
-                  <option value="no">No</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="tratamiento_aguas_grises"
-                  >Tratamiento de Aguas Grises *</label
-                >
-                <select
-                  id="tratamiento_aguas_grises"
-                  name="tratamiento_aguas_grises"
-                  [(ngModel)]="servicioForm.datos.tratamiento_aguas_grises"
-                  required
-                  class="form-control"
-                >
-                  <option value="" disabled>Seleccione</option>
-                  <option value="si">Sí</option>
-                  <option value="no">No</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Campos para servicio Espacios Verdes (id_tipo_servicio=2) -->
-          <div
-            class="form-group full-width"
-            *ngIf="servicioForm.id_tipo_servicio == 2"
-          >
-            <h4 class="section-title">
-              <span>Configuración del Servicio</span>
-            </h4>
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="abierto">Abierto al público? *</label>
-                <select
-                  id="abierto"
-                  name="abierto"
-                  [(ngModel)]="servicioForm.datos.abierto"
-                  required
-                  class="form-control"
-                >
-                  <option value="" disabled>Seleccione</option>
-                  <option value="si">Sí</option>
-                  <option value="no">No</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="m2">Metros cuadrados *</label>
-                <input
-                  type="number"
-                  id="m2"
-                  name="m2"
-                  [(ngModel)]="servicioForm.datos.m2"
-                  required
-                  min="0"
-                  class="form-control"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Campos para servicio Internet (id_tipo_servicio=3) -->
-          <div
-            class="form-group full-width"
-            *ngIf="servicioForm.id_tipo_servicio == 3"
-          >
-            <h4 class="section-title">
-              <span>Configuración del Servicio</span>
-            </h4>
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="tipo_internet">Tipo *</label>
-                <input
-                  type="text"
-                  id="tipo_internet"
-                  name="tipo_internet"
-                  [(ngModel)]="servicioForm.datos.tipo"
-                  required
-                  class="form-control"
-                />
-              </div>
-
-              <div class="form-group">
-                <label for="proveedor">Proveedor *</label>
-                <input
-                  type="text"
-                  id="proveedor"
-                  name="proveedor"
-                  [(ngModel)]="servicioForm.datos.proveedor"
-                  required
-                  class="form-control"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Campos para servicio Residuos (id_tipo_servicio=4) -->
-          <div
-            class="form-group full-width"
-            *ngIf="servicioForm.id_tipo_servicio == 4"
-          >
-            <h4 class="section-title">
-              <span>Configuración del Servicio</span>
-            </h4>
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="tipo_residuos">Tipo *</label>
-                <input
-                  type="text"
-                  id="tipo_residuos"
-                  name="tipo_residuos"
-                  [(ngModel)]="servicioForm.datos.tipo"
-                  required
-                  class="form-control"
-                />
-              </div>
-
-              <div class="form-group">
-                <label for="cantidad_residuos">Cantidad *</label>
-                <input
-                  type="number"
-                  id="cantidad_residuos"
-                  name="cantidad_residuos"
-                  [(ngModel)]="servicioForm.datos.cantidad"
-                  required
-                  min="0"
-                  class="form-control"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            (click)="cancelForm('servicio')"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            [disabled]="loading || servicioFormRef.invalid"
-            [class.loading]="loading"
-          >
-            {{
-              loading
-                ? "Guardando..."
-                : editingServicio
-                ? "Actualizar"
-                : "Crear"
-            }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Contacto Form Modal -->
-  <div *ngIf="showContactoForm" class="form-modal contacto-form">
-    <div class="form-container">
-      <div class="form-header">
-        <h3>{{ editingContacto ? "Editar Contacto" : "Nuevo Contacto" }}</h3>
-        <button class="close-btn" (click)="cancelForm('contacto')">
-          &times;
-        </button>
-      </div>
-
-      <!-- Error Display -->
-      <div *ngIf="hasFieldError('contacto', 'general')" class="error-display">
-        <div
-          class="error-message"
-          *ngFor="let error of getFieldErrors('contacto', 'general')"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            fill="currentColor"
-            viewBox="0 0 16 16"
-          >
-            <path
-              d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"
-            />
-          </svg>
-          {{ error.message }}
-        </div>
-      </div>
-
-      <form (ngSubmit)="onSubmitContacto()" #contactoFormRef="ngForm">
-        <div class="form-grid">
-          <div
-            class="form-group"
-            [class.has-error]="hasFieldError('contacto', 'nombre')"
-          >
-            <label for="contacto_nombre">Nombre *</label>
-            <input
-              type="text"
-              id="contacto_nombre"
-              name="contacto_nombre"
-              [(ngModel)]="contactoForm.nombre"
-              required
-              class="form-control"
-              [class.error]="hasFieldError('contacto', 'nombre')"
-            />
-            <div
-              *ngIf="hasFieldError('contacto', 'nombre')"
-              class="field-error"
-            >
-              <span
-                *ngFor="let error of getFieldErrors('contacto', 'nombre')"
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
-
-          <div
-            class="form-group"
-            [class.has-error]="hasFieldError('contacto', 'id_tipo_contacto')"
-          >
-            <label for="tipo_contacto">Tipo de Contacto *</label>
-            <select
-              id="tipo_contacto"
-              name="tipo_contacto"
-              [(ngModel)]="contactoForm.id_tipo_contacto"
-              (change)="onTipoContactoChange()"
-              required
-              class="form-control"
-              [class.error]="hasFieldError('contacto', 'id_tipo_contacto')"
-            >
-              <option
-                *ngFor="let tipo of tiposContacto"
-                [ngValue]="tipo.id_tipo_contacto"
-              >
-                {{ tipo.tipo }}
-              </option>
-            </select>
-            <div
-              *ngIf="hasFieldError('contacto', 'id_tipo_contacto')"
-              class="field-error"
-            >
-              <span
-                *ngFor="
-                  let error of getFieldErrors('contacto', 'id_tipo_contacto')
-                "
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
-
-          <div
-            class="form-group"
-            [class.has-error]="hasFieldError('contacto', 'telefono')"
-          >
-            <label for="contacto_telefono">Teléfono</label>
-            <input
-              type="tel"
-              id="contacto_telefono"
-              name="contacto_telefono"
-              [(ngModel)]="contactoForm.telefono"
-              class="form-control"
-              [class.error]="hasFieldError('contacto', 'telefono')"
-            />
-            <div
-              *ngIf="hasFieldError('contacto', 'telefono')"
-              class="field-error"
-            >
-              <span
-                *ngFor="let error of getFieldErrors('contacto', 'telefono')"
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
-
-          <div
-            class="form-group"
-            [class.has-error]="hasFieldError('contacto', 'direccion')"
-          >
-            <label for="contacto_direccion">
-              Dirección
-              <span *ngIf="esTipoComercial()" class="text-danger">*</span>
-            </label>
-            <input
-              type="text"
-              id="contacto_direccion"
-              name="contacto_direccion"
-              [(ngModel)]="contactoForm.direccion"
-              (ngModelChange)="onDireccionChange()"
-              [required]="esTipoComercial()"
-              class="form-control"
-              [class.error]="hasFieldError('contacto', 'direccion')"
-              [placeholder]="
-                esTipoComercial()
-                  ? 'Dirección requerida para contactos comerciales'
-                  : 'Dirección opcional'
-              "
-            />
-            <div
-              *ngIf="hasFieldError('contacto', 'direccion')"
-              class="field-error"
-            >
-              <span
-                *ngFor="let error of getFieldErrors('contacto', 'direccion')"
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
-
-          <div
-            class="form-group"
-            [class.has-error]="hasFieldError('contacto', 'id_servicio_polo')"
-          >
-            <label for="servicio_polo_id">ID Servicio Polo *</label>
-            <input
-              type="number"
-              id="servicio_polo_id"
-              name="servicio_polo_id"
-              [(ngModel)]="contactoForm.id_servicio_polo"
-              required
-              min="1"
-              class="form-control"
-              [class.error]="hasFieldError('contacto', 'id_servicio_polo')"
-            />
-            <div
-              *ngIf="hasFieldError('contacto', 'id_servicio_polo')"
-              class="field-error"
-            >
-              <span
-                *ngFor="
-                  let error of getFieldErrors('contacto', 'id_servicio_polo')
-                "
-                >{{ error.message }}</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <!-- Campos solo para contacto tipo Comercial (id 1) -->
-        <div
-          class="form-group full-width"
-          *ngIf="contactoForm.id_tipo_contacto == 1"
-        >
-          <h4 class="section-title">
-            <span>Información Comercial</span>
-          </h4>
-          <div class="form-grid">
-            <div
-              class="form-group"
-              [class.has-error]="hasFieldError('contacto', 'datos.pagina_web')"
-            >
-              <label for="pagina_web">Página web *</label>
+          <!-- 2: Personal -->
+          <ng-container *ngSwitchCase="2">
+            <div class="field">
+              <label>Cantidad</label>
               <input
-                type="url"
-                id="pagina_web"
-                name="pagina_web"
+                type="number"
+                [(ngModel)]="vehiculoForm.datos.cantidad"
+                name="v_datos_cantidad"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Patente</label>
+              <input
+                type="text"
+                [(ngModel)]="vehiculoForm.datos.patente"
+                name="v_datos_patente"
+                placeholder="ABC123"
+                required
+              />
+            </div>
+          </ng-container>
+
+          <!-- 3: Terceros -->
+          <ng-container *ngSwitchCase="3">
+            <div class="field">
+              <label>Cantidad</label>
+              <input
+                type="number"
+                [(ngModel)]="vehiculoForm.datos.cantidad"
+                name="v_datos_cantidad"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Carga</label>
+              <select
+                [(ngModel)]="vehiculoForm.datos.carga"
+                name="v_datos_carga"
+                required
+              >
+                <option [ngValue]="null">—</option>
+                <option value="baja">Baja</option>
+                <option value="mediana">Mediana</option>
+                <option value="alta">Alta</option>
+              </select>
+            </div>
+          </ng-container>
+
+          <!-- default -->
+          <ng-container *ngSwitchDefault>
+            <div class="field col-3">
+              <label>Datos (opcional)</label>
+              <input
+                type="text"
+                [(ngModel)]="vehiculoForm.datos.descripcion"
+                name="v_datos_desc"
+                placeholder="Descripción..."
+              />
+            </div>
+          </ng-container>
+        </ng-container>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn primary" type="submit">
+          {{ editingVehiculo ? "Actualizar" : "Agregar" }}
+        </button>
+        <button
+          class="btn ghost"
+          type="button"
+          (click)="cancelForm('vehiculo')"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Contacto: crear/editar -->
+<div class="overlay" *ngIf="showContactoForm">
+  <div class="modal modal--md">
+    <div class="modal-header">
+      <h3>
+        {{ editingContacto ? "Editar contacto" : "Nuevo contacto" }}
+      </h3>
+      <button
+        type="button"
+        class="icon-btn"
+        (click)="cancelForm('contacto')"
+        aria-label="Cerrar"
+      >
+        ✕
+      </button>
+    </div>
+
+    <form (ngSubmit)="onSubmitContacto()" class="nice-form">
+      <div class="modal-body grid-3">
+        <!-- Tipo -->
+        <div class="field">
+          <label>Tipo</label>
+          <select
+            [(ngModel)]="contactoForm.id_tipo_contacto"
+            (ngModelChange)="onTipoContactoChange()"
+            name="c_id_tipo_contacto"
+            required
+          >
+            <option
+              *ngFor="let t of tiposContacto"
+              [ngValue]="t.id_tipo_contacto"
+            >
+              {{ t.tipo }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Nombre -->
+        <div class="field">
+          <label>Nombre</label>
+          <input
+            type="text"
+            [(ngModel)]="contactoForm.nombre"
+            name="c_nombre"
+            required
+          />
+        </div>
+
+        <!-- Teléfono -->
+        <div class="field">
+          <label>Teléfono</label>
+          <input
+            type="text"
+            [(ngModel)]="contactoForm.telefono"
+            name="c_telefono"
+            placeholder="Ej: +54 9 11 1234-5678"
+          />
+        </div>
+
+        <!-- Direccion -->
+        <div class="field col-3">
+          <label>Dirección</label>
+          <input
+            type="text"
+            [(ngModel)]="contactoForm.direccion"
+            name="c_direccion"
+            placeholder="Calle 123, Ciudad"
+          />
+        </div>
+
+        <!-- Campos dinámicos según tipo -->
+        <div class="field col-3" [ngSwitch]="contactoForm.id_tipo_contacto">
+          <!-- Comercial -->
+          <ng-container *ngSwitchCase="1">
+            <label>Datos comerciales</label>
+            <div class="inline-3">
+              <input
+                type="text"
                 [(ngModel)]="contactoForm.datos.pagina_web"
-                class="form-control"
+                name="c_datos_web"
+                placeholder="https://empresa.com"
                 required
-                placeholder="https://ejemplo.com"
-                [class.error]="hasFieldError('contacto', 'datos.pagina_web')"
               />
-              <div
-                *ngIf="hasFieldError('contacto', 'datos.pagina_web')"
-                class="field-error"
-              >
-                <span
-                  *ngFor="
-                    let error of getFieldErrors('contacto', 'datos.pagina_web')
-                  "
-                  >{{ error.message }}</span
-                >
-              </div>
-            </div>
-
-            <div
-              class="form-group"
-              [class.has-error]="hasFieldError('contacto', 'datos.correo')"
-            >
-              <label for="correo">Correo electrónico *</label>
               <input
                 type="email"
-                id="correo"
-                name="correo"
                 [(ngModel)]="contactoForm.datos.correo"
-                class="form-control"
+                name="c_datos_correo"
+                placeholder="mail@empresa.com"
                 required
-                placeholder="correo@ejemplo.com"
-                [class.error]="hasFieldError('contacto', 'datos.correo')"
               />
-              <div
-                *ngIf="hasFieldError('contacto', 'datos.correo')"
-                class="field-error"
-              >
-                <span
-                  *ngFor="
-                    let error of getFieldErrors('contacto', 'datos.correo')
-                  "
-                  >{{ error.message }}</span
-                >
-              </div>
-            </div>
-
-            <div
-              class="form-group"
-              [class.has-error]="
-                hasFieldError('contacto', 'datos.redes_sociales')
-              "
-            >
-              <label for="redes_sociales">Redes sociales *</label>
               <input
                 type="text"
-                id="redes_sociales"
-                name="redes_sociales"
                 [(ngModel)]="contactoForm.datos.redes_sociales"
-                class="form-control"
+                name="c_datos_rrss"
+                placeholder="@empresa"
                 required
-                placeholder="@usuario o enlace a redes sociales"
-                [class.error]="
-                  hasFieldError('contacto', 'datos.redes_sociales')
-                "
               />
-              <div
-                *ngIf="hasFieldError('contacto', 'datos.redes_sociales')"
-                class="field-error"
-              >
-                <span
-                  *ngFor="
-                    let error of getFieldErrors(
-                      'contacto',
-                      'datos.redes_sociales'
-                    )
-                  "
-                  >{{ error.message }}</span
-                >
-              </div>
             </div>
+          </ng-container>
+        </div>
+      </div>
 
-            <!-- Campo oculto para sincronizar dirección en datos -->
+      <div class="modal-actions">
+        <button class="btn primary" type="submit">
+          {{ editingContacto ? "Actualizar" : "Agregar" }}
+        </button>
+        <button
+          class="btn ghost"
+          type="button"
+          (click)="cancelForm('contacto')"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Servicio propio: crear/editar -->
+<div class="overlay" *ngIf="showServicioForm">
+  <div class="modal modal--md">
+    <div class="modal-header">
+      <h3>
+        {{ editingServicio ? "Editar servicio" : "Nuevo servicio" }}
+      </h3>
+      <button
+        type="button"
+        class="icon-btn"
+        (click)="cancelForm('servicio')"
+        aria-label="Cerrar"
+      >
+        ✕
+      </button>
+    </div>
+
+    <form (ngSubmit)="onSubmitServicio()" class="nice-form">
+      <div class="modal-body grid-3">
+        <div class="field">
+          <label>Tipo</label>
+          <select
+            [(ngModel)]="servicioForm.id_tipo_servicio"
+            (ngModelChange)="onTipoServicioChange()"
+            name="s_id_tipo_servicio"
+            required
+          >
+            <option
+              *ngFor="let t of tiposServicio"
+              [ngValue]="t.id_tipo_servicio"
+            >
+              {{ t.tipo }}
+            </option>
+          </select>
+        </div>
+
+        <ng-container [ngSwitch]="servicioForm.id_tipo_servicio">
+          <!-- 1: Agua -->
+          <div class="field col-3" *ngSwitchCase="1">
+            <label>Servicio de Agua</label>
             <input
-              type="hidden"
-              name="datos_direccion"
-              [(ngModel)]="contactoForm.datos.direccion"
+              type="text"
+              [(ngModel)]="servicioForm.datos.biofiltro"
+              name="s_biofiltro"
+              placeholder="¿Cuenta con biofiltro? (sí/no)"
+              required
+            />
+            <input
+              type="text"
+              [(ngModel)]="servicioForm.datos.tratamiento_aguas_grises"
+              name="s_aguas"
+              placeholder="Tratamiento aguas grises"
+              required
             />
           </div>
-        </div>
 
-        <div class="form-actions">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            (click)="cancelForm('contacto')"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            [disabled]="
-              loading ||
-              contactoFormRef.invalid ||
-              (esTipoComercial() &&
-                (!contactoForm.direccion ||
-                  contactoForm.direccion.trim() === ''))
-            "
-            [class.loading]="loading"
-          >
-            {{
-              loading
-                ? "Guardando..."
-                : editingContacto
-                ? "Actualizar"
-                : "Crear"
-            }}
-          </button>
-        </div>
-      </form>
-    </div>
+          <!-- 2: Espacios Verdes -->
+          <div class="field col-3" *ngSwitchCase="2">
+            <label>Servicio de Espacios Verdes</label>
+            <input
+              type="text"
+              [(ngModel)]="servicioForm.datos.abierto"
+              name="s_abierto"
+              placeholder="¿Abierto al público? (sí/no)"
+              required
+            />
+            <input
+              type="number"
+              [(ngModel)]="servicioForm.datos.m2"
+              name="s_m2"
+              placeholder="Superficie en m²"
+              required
+            />
+          </div>
+
+          <!-- 3: Internet -->
+          <div class="field col-3" *ngSwitchCase="3">
+            <label>Servicio de Internet</label>
+            <input
+              type="text"
+              [(ngModel)]="servicioForm.datos.tipo"
+              name="s_tipo"
+              placeholder="Tipo de conexión (Fibra, ADSL, etc.)"
+              required
+            />
+            <input
+              type="text"
+              [(ngModel)]="servicioForm.datos.proveedor"
+              name="s_proveedor"
+              placeholder="Proveedor"
+              required
+            />
+          </div>
+
+          <!-- 4: Residuos -->
+          <div class="field col-3" *ngSwitchCase="4">
+            <label>Servicio de Residuos</label>
+            <input
+              type="text"
+              [(ngModel)]="servicioForm.datos.tipo"
+              name="s_tipo_e"
+              placeholder="Tipo de residuo (orgánico, plástico, etc.)"
+              required
+            />
+            <input
+              type="number"
+              [(ngModel)]="servicioForm.datos.cantidad"
+              name="s_cantidad"
+              placeholder="Cantidad recolectada"
+              required
+            />
+          </div>
+        </ng-container>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn primary" type="submit">
+          {{ editingServicio ? "Actualizar" : "Agregar" }}
+        </button>
+        <button
+          class="btn ghost"
+          type="button"
+          (click)="cancelForm('servicio')"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
   </div>
 </div>
