@@ -42,6 +42,19 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   display: block;
 }
 
+.topbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;          /* espacio entre icono y texto */
+  font-weight: 500;
+}
+
+.topbar-icon-btn .material-symbols-outlined {
+  font-size: 20px;     /* un poco más chico que el texto */
+  line-height: 1;
+}
+
+
 /* ─── Resumen ─────────────────────────────────────────────────── */
 .resume-grid{
   display:grid; grid-template-columns:repeat(12,1fr); gap:1rem;
@@ -289,6 +302,19 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 
 .row-actions { display: flex; gap: 0.5rem; }
 
+
+/* 👉 Forzar que el header de "Acciones" se vaya a la derecha */
+.table .thead { align-items: center; }
+.table .thead > div:last-child {
+  justify-self: end;
+  text-align: right;
+}
+
+/* Refuerzo: filas también a la derecha */
+.table .row .row-actions {
+  justify-self: end;
+}
+
 /* Presentación simpática de datos tipo “chips” si los usas */
 .data-list {
   display: flex;
@@ -392,3 +418,246 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   .content { padding: 1rem; }
   .modal { width: 95vw; }
 }
+
+
+/* Botones de acción redondos y consistentes */
+.row-actions .btn.icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.row-actions .btn.icon .material-symbols-outlined {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* Celdas "Datos" con mejor composición cuando hay varios campos */
+.table .row > div:nth-child(5) {
+  white-space: normal;      /* permitir salto */
+  word-break: break-word;   /* cortar palabras largas (URLs) */
+}
+
+/* Estilo del enlace “chip” para la web */
+.chip-link {
+  display: inline-flex;
+  align-items: center;
+  padding: .25rem .5rem;
+  background: #f7f7f7;
+  border: 1px solid #eee;
+  border-radius: 999px;
+  font-size: .9rem;
+  color: #444;
+  text-decoration: none;
+}
+
+.chip-link:hover { background: #f1f1f1; }
+
+/* === Tabla Contactos: columnas y acciones a la derecha === */
+.table--contactos .thead,
+.table--contactos .row {
+  /* ancho fijo para columnas clave y columna Acciones bien a la derecha */
+  grid-template-columns: 140px 1.1fr 160px 230px 1.6fr 120px;
+  align-items: center;
+}
+
+/* En pantallas medianas, compactamos un poco */
+@media (max-width: 1100px) {
+  .table--contactos .thead,
+  .table--contactos .row {
+    grid-template-columns: 120px 1fr 130px 200px 1.4fr 110px;
+  }
+}
+
+/* En móviles: apilar algunos campos manteniendo Acciones a la derecha */
+@media (max-width: 760px) {
+  .table--contactos .thead { display: none; }
+  .table--contactos .row {
+    grid-template-columns: 1fr auto;
+    gap: .35rem .75rem;
+  }
+  .table--contactos .row > div:nth-child(1), /* tipo */
+  .table--contactos .row > div:nth-child(2), /* nombre */
+  .table--contactos .row > div:nth-child(3), /* tel */
+  .table--contactos .row > div:nth-child(4), /* dir */
+  .table--contactos .row > div:nth-child(5)  /* datos */{
+    grid-column: 1 / -1;
+  }
+  .table--contactos .row .row-actions {
+    grid-column: 2 / 3;
+    justify-self: end;
+  }
+}
+
+/* Asegurar que el contenedor Acciones se vaya a la derecha en desktop */
+.table .row .row-actions { justify-self: end; }
+
+/* Botones de acción: círculo perfecto y consistentes */
+.btn.icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.btn.icon .material-symbols-outlined { font-size: 20px; }
+
+/* === Chips (web / mail / rrss / texto) en “Datos” === */
+.data-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chip-link,
+.chip-plain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  max-width: 320px;            /* evita desborde */
+  white-space: nowrap;         /* no corte de línea */
+  overflow: hidden;            /* oculta exceso */
+  text-overflow: ellipsis;     /* … si es largo */
+  line-height: 1;
+}
+
+.chip-link {
+  background: #f6f7f8;
+  border: 1px solid #e9edf1;
+  color: #1f2937;
+  text-decoration: none;
+}
+.chip-link:hover { background: #eef1f4; }
+
+.chip-plain {
+  background: #fafafa;
+  border: 1px solid #eee;
+  color: #374151;
+}
+
+.chip-link .material-symbols-outlined,
+.chip-plain .material-symbols-outlined {
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+
+/* El texto del chip hereda ellipsis */
+.chip-link .text,
+.chip-plain .text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Por si algún email trae caracteres raros, evitar cortes feos */
+.chip-link .text { word-break: keep-all; }
+
+
+/* =============== Fix global de sizing y altura de controles =============== */
+*, *::before, *::after { box-sizing: border-box; }
+
+.nice-form input,
+.nice-form select {
+  height: 44px;                 /* altura consistente */
+  line-height: 44px;            /* evita que el placeholder “flote” raro */
+}
+
+.nice-form textarea {
+  line-height: 1.35;            /* cómodo para multi-línea */
+  min-height: 120px;
+}
+
+/* Placeholders nítidos, sin traslapes */
+.nice-form input::placeholder,
+.nice-form textarea::placeholder {
+  color: #9aa0a6;
+  opacity: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Select: que el texto no se meta debajo de la “flecha” */
+.nice-form select {
+  padding-right: 2.2rem;        /* espacio para la caret */
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%,
+    calc(100% - 2.2rem) 50%;
+}
+
+/* Inputs con iconos o adornos a la derecha (por si agregás alguno) */
+.nice-form .has-right-addon { padding-right: 2.4rem; }
+
+/* =============== Modales: sin scroll horizontal y grillas más flexibles =============== */
+.modal { overflow-x: hidden; }  /* adiós barra horizontal */
+.modal .modal-body {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+/* Triple columna dentro de “Datos comerciales”/similares, pero que se rompa bien */
+.inline-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+@media (max-width: 980px) {
+  .inline-3 { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
+}
+@media (max-width: 680px) {
+  .inline-3 { grid-template-columns: 1fr; }
+}
+
+/* Evitar que el contenido interno ensanche el modal */
+.nice-form .field { min-width: 0; }  /* ya lo tenías, lo reafirmamos */
+.nice-form input, .nice-form select, .nice-form textarea { min-width: 0; }
+
+/* Etiquetas arriba, espacio respirable */
+.nice-form label {
+  margin-bottom: .4rem;
+  line-height: 1.2;
+}
+
+/* Controles: foco más visible pero sin mover el layout */
+.nice-form input:focus,
+.nice-form select:focus,
+/* 👇 Pega esto debajo de tu bloque .nice-form select actual */
+.nice-form select{
+  appearance: auto !important;     /* vuelve al nativo */
+  -webkit-appearance: auto !important;
+  -moz-appearance: auto !important;
+  background-image: none !important; /* quita los gradients */
+  padding-right: .8rem;               /* sin solapar el texto */
+  color: #111 !important;             /* asegura legibilidad */
+}
+
+/* color de las opciones en la lista desplegable */
+.nice-form select option{
+  color:#111;
+  background:#fff;
+}
+
+/* si usas placeholder con :invalid */
+.nice-form select:invalid{ color:#9aa0a6; }
+
+.nice-form textarea:focus {
+  border-color: #a20000;
+  box-shadow: 0 0 0 2px rgba(162,0,0,0.12);
+}
+
+/* Solo los number dentro de .no-spin */
+.no-spin input[type="number"] { appearance: textfield; -moz-appearance: textfield; -webkit-appearance: textfield; }
+.no-spin input[type="number"]::-webkit-outer-spin-button,
+.no-spin input[type="number"]::-webkit-inner-spin-button { appearance:none; -webkit-appearance:none; margin:0; }
+

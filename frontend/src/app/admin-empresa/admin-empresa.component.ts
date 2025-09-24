@@ -1562,4 +1562,20 @@ export class EmpresaMeComponent implements OnInit {
         };
     }
   }
+
+  /** Devuelve un texto de URL sin protocolo para mostrar */
+  displayUrl(u?: string): string {
+    if (!u) return '';
+    try {
+      return u.trim().replace(/^\s*https?:\/\//i, '');
+    } catch {
+      return u;
+    }
+  }
+
+  /** Devuelve una URL segura para usar en href (agrega https:// si falta) */
+  externalHref(u?: string): string {
+    if (!u) return '#';
+    return /^https?:\/\//i.test(u) ? u : `https://${u.trim()}`;
+  }
 }

@@ -60,7 +60,15 @@
 
     <div class="topbar-right">
       <button class="pill">Empresa Activa</button>
-      <button class="ghost" (click)="goTo('config')">Mi Perfil</button>
+
+      <button
+        class="ghost topbar-icon-btn"
+        (click)="goTo('config')"
+        aria-label="Abrir configuración"
+      >
+        <span class="material-symbols-outlined">settings</span>
+      </button>
+
       <app-logout-button></app-logout-button>
     </div>
   </nav>
@@ -82,7 +90,7 @@
 
       <div class="kpi card">
         <div class="kpi-head">
-          <div class="kpi-title">Servicios Ofrecidos</div>
+          <div class="kpi-title">Servicios</div>
           <span class="material-symbols-outlined">stacked_bar_chart</span>
         </div>
         <div class="kpi-number">{{ totalServicios }}</div>
@@ -95,7 +103,7 @@
           <span class="material-symbols-outlined">group</span>
         </div>
         <div class="kpi-number">{{ totalContactos }}</div>
-        <div class="kpi-sub">personas de contacto</div>
+        <div class="kpi-sub">contacto/s</div>
       </div>
 
       <div class="kpi card">
@@ -177,6 +185,34 @@
               [value]="formatDate(empresaData?.fecha_ingreso || '')"
               disabled
             />
+          </div>
+          <!-- NUEVOS (solo lectura en esta vista) -->
+          <div class="field">
+            <label>Cant. empleados</label>
+            <input
+              class="readout"
+              type="text"
+              [value]="empresaData?.cant_empleados || '—'"
+              disabled
+            />
+          </div>
+          <div class="field">
+            <label>Horario trabajo</label>
+            <input
+              class="readout"
+              type="text"
+              [value]="empresaData?.horario_trabajo || '—'"
+              disabled
+            />
+          </div>
+          <div class="field col-2">
+            <label>Observaciones</label>
+            <textarea
+              class="readout"
+              rows="3"
+              [value]="empresaData?.observaciones || '—'"
+              disabled
+            ></textarea>
           </div>
         </div>
       </div>
@@ -286,10 +322,11 @@
           </button>
         </div>
       </div>
-
       <div class="card">
         <h2>Listado</h2>
-        <div class="table">
+
+        <!-- tabla contactos con layout propio -->
+        <div class="table table--contactos">
           <div class="thead">
             <div>Tipo</div>
             <div>Nombre</div>
@@ -311,23 +348,60 @@
             <div>{{ c.nombre }}</div>
             <div>{{ c.telefono || "-" }}</div>
             <div>{{ c.direccion || "-" }}</div>
+
+            <!-- DATOS: chips en columna; cada chip es 1 línea con ellipsis -->
             <div>
-              <ng-container *ngIf="c.datos">
-                <span *ngIf="c.datos.pagina_web"
-                  >🌐 {{ c.datos.pagina_web }}</span
-                ><br />
-                <span *ngIf="c.datos.correo">✉️ {{ c.datos.correo }}</span
-                ><br />
-                <span *ngIf="c.datos.redes_sociales"
-                  >🔗 {{ c.datos.redes_sociales }}</span
-                ><br />
-                <span *ngIf="c.datos.descripcion">{{
-                  c.datos.descripcion
-                }}</span>
-              </ng-container>
-              <span *ngIf="!c.datos || !hasKeys(c.datos)">–</span>
+              <div class="data-stack">
+                <a
+                  *ngIf="c.datos?.pagina_web"
+                  class="chip-link"
+                  [href]="externalHref(c.datos.pagina_web)"
+                  target="_blank"
+                  rel="noopener"
+                  title="{{ c.datos.pagina_web }}"
+                >
+                  <span class="material-symbols-outlined">language</span>
+                  <span class="text">{{ displayUrl(c.datos.pagina_web) }}</span>
+                </a>
+
+                <a
+                  *ngIf="c.datos?.correo"
+                  class="chip-link"
+                  [href]="'mailto:' + c.datos.correo"
+                  title="{{ c.datos.correo }}"
+                >
+                  <span class="material-symbols-outlined">mail</span>
+                  <span class="text">{{ c.datos.correo }}</span>
+                </a>
+
+                <a
+                  *ngIf="c.datos?.redes_sociales"
+                  class="chip-link"
+                  [href]="externalHref(c.datos.redes_sociales)"
+                  target="_blank"
+                  rel="noopener"
+                  title="{{ c.datos.redes_sociales }}"
+                >
+                  <span class="material-symbols-outlined">link</span>
+                  <span class="text">{{
+                    displayUrl(c.datos.redes_sociales)
+                  }}</span>
+                </a>
+
+                <span
+                  *ngIf="c.datos?.descripcion"
+                  class="chip-plain"
+                  title="{{ c.datos.descripcion }}"
+                >
+                  <span class="material-symbols-outlined">notes</span>
+                  <span class="text">{{ c.datos.descripcion }}</span>
+                </span>
+
+                <span *ngIf="!c.datos || !hasKeys(c.datos)">–</span>
+              </div>
             </div>
 
+            <!-- Acciones: pegadas a la derecha -->
             <div class="row-actions">
               <button
                 class="btn icon"
@@ -387,38 +461,37 @@
                 <ng-container *ngIf="s.datos">
                   <!-- Agua -->
                   <ng-container *ngIf="s.id_tipo_servicio === 1">
-                    <span>🌱 Biofiltro: {{ s.datos.biofiltro }}</span
+                    <span>Biofiltro: {{ s.datos.biofiltro }}</span
                     ><br />
                     <span
-                      >💧 Tratamiento:
-                      {{ s.datos.tratamiento_aguas_grises }}</span
+                      >Tratamiento: {{ s.datos.tratamiento_aguas_grises }}</span
                     >
                   </ng-container>
 
                   <!-- Espacios verdes -->
                   <ng-container *ngIf="s.id_tipo_servicio === 2">
-                    <span>🏛️ Abierto: {{ s.datos.abierto }}</span
+                    <span>Abierto: {{ s.datos.abierto }}</span
                     ><br />
-                    <span>📏 Superficie: {{ s.datos.m2 }} m²</span>
+                    <span>Superficie: {{ s.datos.m2 }} m²</span>
                   </ng-container>
 
                   <!-- Internet -->
                   <ng-container *ngIf="s.id_tipo_servicio === 3">
-                    <span>🌐 Tipo: {{ s.datos.tipo }}</span
+                    <span>Tipo: {{ s.datos.tipo }}</span
                     ><br />
-                    <span>🏭 Proveedor: {{ s.datos.proveedor }}</span>
+                    <span>Proveedor: {{ s.datos.proveedor }}</span>
                   </ng-container>
 
                   <!-- Residuos -->
                   <ng-container *ngIf="s.id_tipo_servicio === 4">
-                    <span>♻️ Tipo: {{ s.datos.tipo }}</span
+                    <span>Tipo: {{ s.datos.tipo }}</span
                     ><br />
-                    <span>#️⃣ Cantidad: {{ s.datos.cantidad }}</span>
+                    <span>Cantidad: {{ s.datos.cantidad }}</span>
                   </ng-container>
 
                   <!-- Default -->
                   <ng-container *ngIf="!s.id_tipo_servicio">
-                    <span>📝 {{ s.datos.descripcion }}</span>
+                    <span>{{ s.datos.descripcion }}</span>
                   </ng-container>
                 </ng-container>
 
@@ -477,24 +550,45 @@
 
     <!-- CONFIGURACIÓN  ==============================================================================-->
     <section *ngIf="activeTab === 'config'" class="card-grid">
-      <div class="card">
-        <h2>Contraseña</h2>
-        <button class="btn" type="button" (click)="openPasswordModal()">
-          <span class="material-symbols-outlined">vpn_key</span>
+      <!-- Contraseña -->
+      <div class="card setting-card">
+        <div class="setting-header">
+          <span class="material-symbols-outlined setting-icon">vpn_key</span>
+          <div>
+            <h2>Contraseña</h2>
+            <p class="muted">Actualiza tu contraseña de acceso</p>
+          </div>
+        </div>
+        <button
+          class="btn outline-primary"
+          type="button"
+          (click)="openPasswordModal()"
+        >
+          <span class="material-symbols-outlined">edit</span>
           <span>Cambiar contraseña</span>
         </button>
+        <app-password-change-modal
+          #passwordModal
+          [showModal]="showPasswordModal"
+          (modalClosed)="onPasswordModalClosed()"
+          (passwordChanged)="onPasswordChanged($event)"
+        >
+        </app-password-change-modal>
       </div>
-      <div class="card">
-        <h2>Sesión</h2>
-        <p>Salir de la cuenta de empresa.</p>
+
+      <!-- Sesión -->
+      <div class="card setting-card">
+        <div class="setting-header">
+          <span class="material-symbols-outlined setting-icon danger"
+            >logout</span
+          >
+          <div>
+            <h2>Sesión</h2>
+            <p class="muted">Salir de la cuenta de empresa</p>
+          </div>
+        </div>
         <app-logout-button></app-logout-button>
       </div>
-      <app-password-change-modal
-        *ngIf="showPasswordModal"
-        (closed)="onPasswordModalClosed()"
-        (changed)="onPasswordChanged(true)"
-      >
-      </app-password-change-modal>
     </section>
   </main>
 </div>
@@ -885,80 +979,108 @@
 
         <ng-container [ngSwitch]="servicioForm.id_tipo_servicio">
           <!-- 1: Agua -->
-          <div class="field col-3" *ngSwitchCase="1">
-            <label>Servicio de Agua</label>
-            <input
-              type="text"
-              [(ngModel)]="servicioForm.datos.biofiltro"
-              name="s_biofiltro"
-              placeholder="¿Cuenta con biofiltro? (sí/no)"
-              required
-            />
-            <input
-              type="text"
-              [(ngModel)]="servicioForm.datos.tratamiento_aguas_grises"
-              name="s_aguas"
-              placeholder="Tratamiento aguas grises"
-              required
-            />
-          </div>
+          <ng-container *ngSwitchCase="1">
+            <div class="field col-3">
+              <label>Servicio de Agua</label>
+            </div>
+
+            <div class="field col-3">
+              <input
+                type="text"
+                [(ngModel)]="servicioForm.datos.biofiltro"
+                name="s_biofiltro"
+                placeholder="¿Cuenta con biofiltro? (sí/no)"
+                required
+              />
+            </div>
+
+            <div class="field col-3">
+              <input
+                type="text"
+                [(ngModel)]="servicioForm.datos.tratamiento_aguas_grises"
+                name="s_aguas"
+                placeholder="Tratamiento aguas grises"
+                required
+              />
+            </div>
+          </ng-container>
 
           <!-- 2: Espacios Verdes -->
-          <div class="field col-3" *ngSwitchCase="2">
-            <label>Servicio de Espacios Verdes</label>
-            <input
-              type="text"
-              [(ngModel)]="servicioForm.datos.abierto"
-              name="s_abierto"
-              placeholder="¿Abierto al público? (sí/no)"
-              required
-            />
-            <input
-              type="number"
-              [(ngModel)]="servicioForm.datos.m2"
-              name="s_m2"
-              placeholder="Superficie en m²"
-              required
-            />
-          </div>
+          <ng-container *ngSwitchCase="2">
+            <div class="field col-3">
+              <label>Servicio de Espacios Verdes</label>
+            </div>
+
+            <div class="field col-3">
+              <input
+                type="text"
+                [(ngModel)]="servicioForm.datos.abierto"
+                name="s_abierto"
+                placeholder="¿Abierto al público? (sí/no)"
+                required
+              />
+            </div>
+
+            <div class="field col-3">
+              <input
+                type="number"
+                [(ngModel)]="servicioForm.datos.m2"
+                name="s_m2"
+                placeholder="Superficie en m²"
+                required
+              />
+            </div>
+          </ng-container>
 
           <!-- 3: Internet -->
-          <div class="field col-3" *ngSwitchCase="3">
-            <label>Servicio de Internet</label>
-            <input
-              type="text"
-              [(ngModel)]="servicioForm.datos.tipo"
-              name="s_tipo"
-              placeholder="Tipo de conexión (Fibra, ADSL, etc.)"
-              required
-            />
-            <input
-              type="text"
-              [(ngModel)]="servicioForm.datos.proveedor"
-              name="s_proveedor"
-              placeholder="Proveedor"
-              required
-            />
-          </div>
+          <ng-container *ngSwitchCase="3">
+            <div class="field col-3"><label>Servicio de Internet</label></div>
+
+            <div class="field col-3">
+              <input
+                type="text"
+                [(ngModel)]="servicioForm.datos.tipo"
+                name="s_tipo"
+                placeholder="Tipo de conexión (Fibra, ADSL, etc.)"
+                required
+              />
+            </div>
+
+            <div class="field col-3">
+              <input
+                type="text"
+                [(ngModel)]="servicioForm.datos.proveedor"
+                name="s_proveedor"
+                placeholder="Proveedor"
+                required
+              />
+            </div>
+          </ng-container>
 
           <!-- 4: Residuos -->
-          <div class="field col-3" *ngSwitchCase="4">
-            <label>Servicio de Residuos</label>
-            <input
-              type="text"
-              [(ngModel)]="servicioForm.datos.tipo"
-              name="s_tipo_e"
-              placeholder="Tipo de residuo (orgánico, plástico, etc.)"
-              required
-            />
-            <input
-              type="number"
-              [(ngModel)]="servicioForm.datos.cantidad"
-              name="s_cantidad"
-              placeholder="Cantidad recolectada"
-              required
-            />
-          </div>
+          <ng-container *ngSwitchCase="4">
+            <div class="field col-3"><label>Servicio de Residuos</label></div>
+
+            <div class="field col-3">
+              <input
+                type="text"
+                [(ngModel)]="servicioForm.datos.tipo"
+                name="s_tipo_e"
+                placeholder="Tipo de residuo (orgánico, plástico, etc.)"
+                required
+              />
+            </div>
+
+            <div class="field col-3">
+              <input
+                type="number"
+                [(ngModel)]="servicioForm.datos.cantidad"
+                name="s_cantidad"
+                placeholder="Cantidad recolectada"
+                required
+              />
+            </div>
+          </ng-container>
         </ng-container>
       </div>
 
