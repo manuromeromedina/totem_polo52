@@ -71,6 +71,7 @@ import { AuthenticationService } from '../../auth/auth.service';
         border: none;
         font-size: 0.9rem;
         transition: all 0.3s ease;
+        font-family: 'Inter', sans-serif;
       }
       .btn .material-symbols-outlined {
         font-size: 20px;
@@ -146,6 +147,7 @@ import { AuthenticationService } from '../../auth/auth.service';
         font-size: 1.2rem;
         font-weight: 600;
         margin: 0;
+        font-family: 'Inter', sans-serif;
       }
 
       .icon-btn {
@@ -162,6 +164,7 @@ import { AuthenticationService } from '../../auth/auth.service';
       .modal-body p {
         margin: 0 0 0.5rem;
         color: #333;
+        font-family: 'Inter', sans-serif;
       }
 
       .modal-actions {
