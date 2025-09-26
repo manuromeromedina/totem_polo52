@@ -654,9 +654,7 @@
 <div class="overlay" *ngIf="showVehiculoForm">
   <div class="modal modal--lg">
     <div class="modal-header">
-      <h3>
-        {{ editingVehiculo ? "Editar vehículo" : "Nuevo vehículo" }}
-      </h3>
+      <h3>{{ editingVehiculo ? "Editar vehículo" : "Nuevo vehículo" }}</h3>
       <button
         type="button"
         class="icon-btn"
@@ -667,16 +665,25 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmitVehiculo()" class="nice-form">
+    <!-- 👇 usa tu helper markAllAndSubmit(fVeh) -->
+    <form
+      (ngSubmit)="markAllAndSubmit(fVeh)"
+      #fVeh="ngForm"
+      class="nice-form"
+      novalidate
+    >
       <div class="modal-body grid-3">
+        <!-- Tipo (req) -->
         <div class="field col-3">
-          <label>Tipo</label>
+          <label>Tipo <span class="req">*</span></label>
           <select
             [(ngModel)]="vehiculoForm.id_tipo_vehiculo"
-            name="v_id_tipo_vehiculo"
+            name="v_tipo"
             (ngModelChange)="onVehiculoTipoChange()"
             required
+            #vTipo="ngModel"
           >
+            <option [ngValue]="null">—</option>
             <option
               *ngFor="let t of tiposVehiculo"
               [ngValue]="t.id_tipo_vehiculo"
@@ -684,131 +691,193 @@
               {{ t.tipo }}
             </option>
           </select>
+          <div
+            class="error"
+            *ngIf="vTipo.invalid && (vTipo.touched || fVeh.submitted)"
+          >
+            Seleccioná un tipo.
+          </div>
         </div>
 
+        <!-- Horarios (req) -->
         <div class="field">
-          <label>Horarios</label>
+          <label>Horarios <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="vehiculoForm.horarios"
             name="v_horarios"
+            required
+            #vHor="ngModel"
             placeholder="08-18"
           />
+          <div
+            class="error"
+            *ngIf="vHor.invalid && (vHor.touched || fVeh.submitted)"
+          >
+            Campo obligatorio.
+          </div>
         </div>
+
+        <!-- Frecuencia (req) -->
         <div class="field">
-          <label>Frecuencia</label>
+          <label>Frecuencia <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="vehiculoForm.frecuencia"
             name="v_frecuencia"
+            required
+            #vFreq="ngModel"
             placeholder="Diaria / Semanal"
           />
+          <div
+            class="error"
+            *ngIf="vFreq.invalid && (vFreq.touched || fVeh.submitted)"
+          >
+            Campo obligatorio.
+          </div>
         </div>
 
-        <!-- Condicionales -->
+        <!-- Reglas por tipo -->
         <ng-container [ngSwitch]="vehiculoForm.id_tipo_vehiculo">
-          <!-- 1: Corporativo -->
+          <!-- 1: Corporativo (Cantidad, Patente, Carga) -->
           <ng-container *ngSwitchCase="1">
             <div class="field">
-              <label>Cantidad</label>
+              <label>Cantidad <span class="req">*</span></label>
               <input
                 type="number"
                 [(ngModel)]="vehiculoForm.datos.cantidad"
-                name="v_datos_cantidad"
+                name="v_cant_corp"
+                min="1"
                 required
+                #vCantCorp="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="
+                  vCantCorp.invalid && (vCantCorp.touched || fVeh.submitted)
+                "
+              >
+                Ingresá una cantidad ≥ 1.
+              </div>
             </div>
+
             <div class="field">
-              <label>Patente</label>
+              <label>Patente <span class="req">*</span></label>
               <input
                 type="text"
                 [(ngModel)]="vehiculoForm.datos.patente"
-                name="v_datos_patente"
-                placeholder="ABC123"
+                name="v_pat_corp"
                 required
+                #vPatCorp="ngModel"
+                placeholder="ABC123 / AA123AA"
               />
+              <div
+                class="error"
+                *ngIf="vPatCorp.invalid && (vPatCorp.touched || fVeh.submitted)"
+              >
+                Campo obligatorio.
+              </div>
             </div>
+
             <div class="field">
-              <label>Carga</label>
+              <label>Carga <span class="req">*</span></label>
               <select
                 [(ngModel)]="vehiculoForm.datos.carga"
-                name="v_datos_carga"
+                name="v_carga_corp"
                 required
+                #vCarCorp="ngModel"
               >
                 <option [ngValue]="null">—</option>
                 <option value="baja">Baja</option>
                 <option value="mediana">Mediana</option>
                 <option value="alta">Alta</option>
               </select>
+              <div
+                class="error"
+                *ngIf="vCarCorp.invalid && (vCarCorp.touched || fVeh.submitted)"
+              >
+                Seleccioná la carga.
+              </div>
             </div>
           </ng-container>
 
-          <!-- 2: Personal -->
+          <!-- 2: Personal (Cantidad req, Patente opcional) -->
           <ng-container *ngSwitchCase="2">
             <div class="field">
-              <label>Cantidad</label>
+              <label>Cantidad <span class="req">*</span></label>
               <input
                 type="number"
                 [(ngModel)]="vehiculoForm.datos.cantidad"
-                name="v_datos_cantidad"
+                name="v_cant_per"
+                min="1"
                 required
+                #vCantPer="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="vCantPer.invalid && (vCantPer.touched || fVeh.submitted)"
+              >
+                Ingresá una cantidad ≥ 1.
+              </div>
             </div>
+
             <div class="field">
               <label>Patente</label>
               <input
                 type="text"
                 [(ngModel)]="vehiculoForm.datos.patente"
-                name="v_datos_patente"
-                placeholder="ABC123"
-                required
+                name="v_pat_per"
+                placeholder="ABC123 / AA123AA"
               />
             </div>
           </ng-container>
 
-          <!-- 3: Terceros -->
+          <!-- 3: Terceros (Cantidad y Carga req) -->
           <ng-container *ngSwitchCase="3">
             <div class="field">
-              <label>Cantidad</label>
+              <label>Cantidad <span class="req">*</span></label>
               <input
                 type="number"
                 [(ngModel)]="vehiculoForm.datos.cantidad"
-                name="v_datos_cantidad"
+                name="v_cant_ter"
+                min="1"
                 required
+                #vCantTer="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="vCantTer.invalid && (vCantTer.touched || fVeh.submitted)"
+              >
+                Ingresá una cantidad ≥ 1.
+              </div>
             </div>
+
             <div class="field">
-              <label>Carga</label>
+              <label>Carga <span class="req">*</span></label>
               <select
                 [(ngModel)]="vehiculoForm.datos.carga"
-                name="v_datos_carga"
+                name="v_carga_ter"
                 required
+                #vCarTer="ngModel"
               >
                 <option [ngValue]="null">—</option>
                 <option value="baja">Baja</option>
                 <option value="mediana">Mediana</option>
                 <option value="alta">Alta</option>
               </select>
-            </div>
-          </ng-container>
-
-          <!-- default -->
-          <ng-container *ngSwitchDefault>
-            <div class="field col-3">
-              <label>Datos (opcional)</label>
-              <input
-                type="text"
-                [(ngModel)]="vehiculoForm.datos.descripcion"
-                name="v_datos_desc"
-                placeholder="Descripción..."
-              />
+              <div
+                class="error"
+                *ngIf="vCarTer.invalid && (vCarTer.touched || fVeh.submitted)"
+              >
+                Seleccioná la carga.
+              </div>
             </div>
           </ng-container>
         </ng-container>
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit">
+        <button class="btn primary" type="submit" [disabled]="fVeh.invalid">
           {{ editingVehiculo ? "Actualizar" : "Agregar" }}
         </button>
         <button
@@ -840,17 +909,23 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmitContacto()" class="nice-form">
+    <form
+      (ngSubmit)="onSubmitContacto()"
+      class="nice-form"
+      #fCont="ngForm"
+      novalidate
+    >
       <div class="modal-body grid-3">
-        <!-- Tipo -->
         <div class="field">
-          <label>Tipo</label>
+          <label>Tipo <span class="req">*</span></label>
           <select
             [(ngModel)]="contactoForm.id_tipo_contacto"
-            (ngModelChange)="onTipoContactoChange()"
-            name="c_id_tipo_contacto"
+            name="c_tipo"
             required
+            #cTipo="ngModel"
+            (ngModelChange)="onTipoContactoChange()"
           >
+            <option [ngValue]="null">—</option>
             <option
               *ngFor="let t of tiposContacto"
               [ngValue]="t.id_tipo_contacto"
@@ -858,75 +933,95 @@
               {{ t.tipo }}
             </option>
           </select>
+          <div
+            class="error"
+            *ngIf="cTipo.invalid && (cTipo.touched || fCont.submitted)"
+          >
+            Seleccioná un tipo.
+          </div>
         </div>
 
-        <!-- Nombre -->
         <div class="field">
-          <label>Nombre</label>
+          <label>Nombre <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="contactoForm.nombre"
             name="c_nombre"
             required
+            #cNom="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="cNom.invalid && (cNom.touched || fCont.submitted)"
+          >
+            Ingresá un nombre.
+          </div>
         </div>
 
-        <!-- Teléfono -->
         <div class="field">
-          <label>Teléfono</label>
+          <label>Teléfono <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="contactoForm.telefono"
             name="c_telefono"
+            required
+            #cTel="ngModel"
             placeholder="Ej: +54 9 11 1234-5678"
           />
+          <div
+            class="error"
+            *ngIf="cTel.invalid && (cTel.touched || fCont.submitted)"
+          >
+            Ingresá un teléfono.
+          </div>
         </div>
 
-        <!-- Direccion -->
         <div class="field col-3">
-          <label>Dirección</label>
+          <label>Dirección <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="contactoForm.direccion"
             name="c_direccion"
+            required
+            #cDir="ngModel"
             placeholder="Calle 123, Ciudad"
           />
+          <div
+            class="error"
+            *ngIf="cDir.invalid && (cDir.touched || fCont.submitted)"
+          >
+            Ingresá una dirección.
+          </div>
         </div>
 
-        <!-- Campos dinámicos según tipo -->
-        <div class="field col-3" [ngSwitch]="contactoForm.id_tipo_contacto">
-          <!-- Comercial -->
-          <ng-container *ngSwitchCase="1">
-            <label>Datos comerciales</label>
-            <div class="inline-3">
-              <input
-                type="text"
-                [(ngModel)]="contactoForm.datos.pagina_web"
-                name="c_datos_web"
-                placeholder="https://empresa.com"
-                required
-              />
-              <input
-                type="email"
-                [(ngModel)]="contactoForm.datos.correo"
-                name="c_datos_correo"
-                placeholder="mail@empresa.com"
-                required
-              />
-              <input
-                type="text"
-                [(ngModel)]="contactoForm.datos.redes_sociales"
-                name="c_datos_rrss"
-                placeholder="@empresa"
-                required
-              />
-            </div>
-          </ng-container>
+        <!-- Comerciales (id=1) -->
+        <div class="field col-3" *ngIf="contactoForm.id_tipo_contacto === 1">
+          <label>Datos comerciales</label>
+          <div class="inline-3">
+            <input
+              type="url"
+              [(ngModel)]="contactoForm.datos.pagina_web"
+              name="c_web"
+              placeholder="https://empresa.com"
+            />
+            <input
+              type="email"
+              [(ngModel)]="contactoForm.datos.correo"
+              name="c_mail"
+              placeholder="mail@empresa.com"
+            />
+            <input
+              type="text"
+              [(ngModel)]="contactoForm.datos.redes_sociales"
+              name="c_rrss"
+              placeholder="@empresa"
+            />
+          </div>
         </div>
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit">
+        <button class="btn primary" type="submit" [disabled]="fCont.invalid">
           {{ editingContacto ? "Actualizar" : "Agregar" }}
         </button>
         <button
@@ -958,16 +1053,23 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmitServicio()" class="nice-form">
+    <form
+      (ngSubmit)="onSubmitServicio()"
+      #fServ="ngForm"
+      class="nice-form"
+      novalidate
+    >
       <div class="modal-body grid-3">
         <div class="field">
-          <label>Tipo</label>
+          <label>Tipo <span class="req">*</span></label>
           <select
             [(ngModel)]="servicioForm.id_tipo_servicio"
             (ngModelChange)="onTipoServicioChange()"
-            name="s_id_tipo_servicio"
+            name="s_tipo"
             required
+            #sTipo="ngModel"
           >
+            <option [ngValue]="null">—</option>
             <option
               *ngFor="let t of tiposServicio"
               [ngValue]="t.id_tipo_servicio"
@@ -975,33 +1077,49 @@
               {{ t.tipo }}
             </option>
           </select>
+          <div
+            class="error"
+            *ngIf="sTipo.invalid && (sTipo.touched || fServ.submitted)"
+          >
+            Seleccioná un tipo.
+          </div>
         </div>
 
         <ng-container [ngSwitch]="servicioForm.id_tipo_servicio">
           <!-- 1: Agua -->
           <ng-container *ngSwitchCase="1">
+            <div class="field col-3"><label>Servicio de Agua</label></div>
             <div class="field col-3">
-              <label>Servicio de Agua</label>
-            </div>
-
-            <div class="field col-3">
+              <label>Biofiltro <span class="req">*</span></label>
               <input
                 type="text"
                 [(ngModel)]="servicioForm.datos.biofiltro"
                 name="s_biofiltro"
-                placeholder="¿Cuenta con biofiltro? (sí/no)"
                 required
+                #sBio="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="sBio.invalid && (sBio.touched || fServ.submitted)"
+              >
+                Campo obligatorio.
+              </div>
             </div>
-
             <div class="field col-3">
+              <label>Tratamiento aguas grises <span class="req">*</span></label>
               <input
                 type="text"
                 [(ngModel)]="servicioForm.datos.tratamiento_aguas_grises"
                 name="s_aguas"
-                placeholder="Tratamiento aguas grises"
                 required
+                #sAguas="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="sAguas.invalid && (sAguas.touched || fServ.submitted)"
+              >
+                Campo obligatorio.
+              </div>
             </div>
           </ng-container>
 
@@ -1010,82 +1128,126 @@
             <div class="field col-3">
               <label>Servicio de Espacios Verdes</label>
             </div>
-
             <div class="field col-3">
+              <label>Abierto al público <span class="req">*</span></label>
               <input
                 type="text"
                 [(ngModel)]="servicioForm.datos.abierto"
                 name="s_abierto"
-                placeholder="¿Abierto al público? (sí/no)"
                 required
+                #sAbierto="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="
+                  sAbierto.invalid && (sAbierto.touched || fServ.submitted)
+                "
+              >
+                Campo obligatorio.
+              </div>
             </div>
-
             <div class="field col-3">
+              <label>Superficie (m²) <span class="req">*</span></label>
               <input
                 type="number"
                 [(ngModel)]="servicioForm.datos.m2"
                 name="s_m2"
-                placeholder="Superficie en m²"
+                min="1"
                 required
+                #sM2="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="sM2.invalid && (sM2.touched || fServ.submitted)"
+              >
+                Ingresá un valor ≥ 1.
+              </div>
             </div>
           </ng-container>
 
           <!-- 3: Internet -->
           <ng-container *ngSwitchCase="3">
             <div class="field col-3"><label>Servicio de Internet</label></div>
-
             <div class="field col-3">
+              <label>Tipo <span class="req">*</span></label>
               <input
                 type="text"
                 [(ngModel)]="servicioForm.datos.tipo"
-                name="s_tipo"
-                placeholder="Tipo de conexión (Fibra, ADSL, etc.)"
+                name="s_tipo_con"
                 required
+                #sTipoCon="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="
+                  sTipoCon.invalid && (sTipoCon.touched || fServ.submitted)
+                "
+              >
+                Campo obligatorio.
+              </div>
             </div>
-
             <div class="field col-3">
+              <label>Proveedor <span class="req">*</span></label>
               <input
                 type="text"
                 [(ngModel)]="servicioForm.datos.proveedor"
                 name="s_proveedor"
-                placeholder="Proveedor"
                 required
+                #sProv="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="sProv.invalid && (sProv.touched || fServ.submitted)"
+              >
+                Campo obligatorio.
+              </div>
             </div>
           </ng-container>
 
           <!-- 4: Residuos -->
           <ng-container *ngSwitchCase="4">
             <div class="field col-3"><label>Servicio de Residuos</label></div>
-
             <div class="field col-3">
+              <label>Tipo residuo <span class="req">*</span></label>
               <input
                 type="text"
                 [(ngModel)]="servicioForm.datos.tipo"
                 name="s_tipo_e"
-                placeholder="Tipo de residuo (orgánico, plástico, etc.)"
                 required
+                #sTipoRes="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="
+                  sTipoRes.invalid && (sTipoRes.touched || fServ.submitted)
+                "
+              >
+                Campo obligatorio.
+              </div>
             </div>
-
             <div class="field col-3">
+              <label>Cantidad recolectada <span class="req">*</span></label>
               <input
                 type="number"
                 [(ngModel)]="servicioForm.datos.cantidad"
                 name="s_cantidad"
-                placeholder="Cantidad recolectada"
+                min="1"
                 required
+                #sCant="ngModel"
               />
+              <div
+                class="error"
+                *ngIf="sCant.invalid && (sCant.touched || fServ.submitted)"
+              >
+                Ingresá un valor ≥ 1.
+              </div>
             </div>
           </ng-container>
         </ng-container>
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit">
+        <button class="btn primary" type="submit" [disabled]="fServ.invalid">
           {{ editingServicio ? "Actualizar" : "Agregar" }}
         </button>
         <button

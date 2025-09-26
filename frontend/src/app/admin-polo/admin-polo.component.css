@@ -113,6 +113,47 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 .nice-form select{ appearance:auto; -webkit-appearance:auto; -moz-appearance:auto; background-image:none; padding-right:.8rem; color:#111; }
 .nice-form select option{ color:#111; background:#fff; }
 
+
+/* Solo inputs/ selects/ textareas, no el <form> */
+.nice-form input.ng-invalid.ng-touched,
+.nice-form select.ng-invalid.ng-touched,
+.nice-form textarea.ng-invalid.ng-touched{
+  border-color:#d32f2f;
+  box-shadow:0 0 0 3px rgba(211,47,47,.08);
+}
+
+/* Mostrar borde rojo también cuando se envía sin tocar nada */
+.ng-submitted .nice-form input.ng-invalid,
+.ng-submitted .nice-form select.ng-invalid,
+.ng-submitted .nice-form textarea.ng-invalid{
+  border-color:#d32f2f;
+  box-shadow:0 0 0 3px rgba(211,47,47,.08);
+}
+
+/* Asegurar que el <form> nunca tome estilo de error */
+.nice-form.ng-invalid{
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+/* Asterisco rojo en campos requeridos */
+.req { color:#a20000; margin-left:4px; font-weight:700; }
+
+/* Borde rojo en inputs/selects inválidos cuando fueron tocados o tras submit */
+.ng-invalid.ng-touched,
+.ng-invalid.ng-dirty {
+  border-color:#e53935 !important;
+  box-shadow:0 0 0 2px rgba(229,57,53,.08);
+}
+
+/* Mensaje de error */
+.error{
+  margin-top:.35rem;
+  font-size:.8rem;
+  color:#a20000;
+}
+
+
+
 /* Botones */
 .btn{
   display:inline-flex; align-items:center; gap:.4rem; padding:.6rem 1.2rem; border-radius:8px;
@@ -221,3 +262,64 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   .inline-search input{ width:100%; max-width:none; }
 }
 
+/* Placeholders nítidos y alineados */
+.nice-form input::placeholder,
+.nice-form textarea::placeholder { color:#9aa0a6; opacity:1; }
+
+/* Ayudas siempre en bloque y sin desbordes */
+.hint{ display:block; margin-top:.25rem; font-size:.8rem; color:#777; line-height:1.2; }
+
+/* Quitar outline negro grueso del browser en focus */
+.nice-form input:focus,
+.nice-form select:focus,
+.nice-form textarea:focus { outline:none; }
+
+/* Asegurar que el <form> nunca tome el estilo de error global */
+.nice-form.ng-invalid{ border-color:transparent!important; box-shadow:none!important; }
+
+
+/* Altura y alineación correctas de inputs/selects (sin forzar line-height igual a la altura) */
+.nice-form input,
+.nice-form select {
+  height: 44px;        /* alto cómodo */
+  line-height: 1.25;   /* NO 44px */
+  padding: .7rem .8rem;
+}
+
+/* Placeholders nítidos y sin “brincos” */
+.nice-form input::placeholder,
+.nice-form textarea::placeholder {
+  color: #9aa0a6;
+  opacity: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El modal nunca muestra scroll horizontal */
+.modal { overflow-x: hidden; }
+
+/* La grilla interna del modal se adapta mejor y no empuja ancho */
+.modal .modal-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* antes 220/240 */
+  gap: 1rem;
+}
+
+/* Ayudas bajo campos: que envuelvan texto y no desborden */
+.hint {
+  display: block;
+  margin-top: .25rem;
+  font-size: .8rem;
+  color: #777;
+  line-height: 1.2;
+  white-space: normal;         /* permite salto de línea */
+  overflow-wrap: anywhere;     /* evita barras horizontales */
+}
+
+/* Quitar outline grueso del navegador al enfocar */
+.nice-form input:focus,
+.nice-form select:focus,
+.nice-form textarea:focus {
+  outline: none;
+}

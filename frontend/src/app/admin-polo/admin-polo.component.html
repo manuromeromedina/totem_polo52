@@ -469,10 +469,9 @@
     </section>
   </main>
 </div>
-
 <!-- ===================== MODALES ===================== -->
 
-<!-- Editar Polo -->
+<!-- Editar Polo (todos opcionales) -->
 <div class="overlay" *ngIf="showPoloEditForm">
   <div class="modal modal--md">
     <div class="modal-header">
@@ -487,7 +486,12 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmitPoloEdit()" class="nice-form">
+    <form
+      (ngSubmit)="onSubmitPoloEdit()"
+      class="nice-form"
+      #fPolo="ngForm"
+      novalidate
+    >
       <div class="modal-body grid-3">
         <div class="field">
           <label>Cant. empleados</label>
@@ -497,6 +501,7 @@
             name="p_cant_empleados"
           />
         </div>
+
         <div class="field">
           <label>Horario trabajo</label>
           <input
@@ -506,6 +511,7 @@
             placeholder="Lun–Vie 8–17"
           />
         </div>
+
         <div class="field col-3">
           <label>Observaciones</label>
           <textarea
@@ -541,35 +547,65 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmitEmpresa()" class="nice-form">
+    <form
+      (ngSubmit)="onSubmitEmpresa()"
+      class="nice-form"
+      #fEmp="ngForm"
+      novalidate
+    >
       <div class="modal-body">
         <div class="field">
-          <label>CUIL</label>
+          <label>CUIL <span class="req" *ngIf="!editingEmpresa">*</span></label>
           <input
             type="number"
             [(ngModel)]="empresaForm.cuil"
             name="e_cuil"
             [disabled]="!!editingEmpresa"
+            [required]="!editingEmpresa"
+            #eCuil="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="eCuil.invalid && (eCuil.touched || fEmp.submitted)"
+          >
+            Campo obligatorio.
+          </div>
         </div>
+
         <div class="field">
-          <label>Nombre</label>
+          <label>Nombre <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="empresaForm.nombre"
             name="e_nombre"
             required
+            #eNom="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="eNom.invalid && (eNom.touched || fEmp.submitted)"
+          >
+            Ingresá un nombre.
+          </div>
         </div>
+
         <div class="field">
-          <label>Rubro</label>
+          <label>Rubro <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="empresaForm.rubro"
             name="e_rubro"
             required
+            #eRubro="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="eRubro.invalid && (eRubro.touched || fEmp.submitted)"
+          >
+            Ingresá un rubro.
+          </div>
         </div>
+
         <div class="field">
           <label>Cant. empleados</label>
           <input
@@ -578,6 +614,7 @@
             name="e_empleados"
           />
         </div>
+
         <div class="field">
           <label>Horario trabajo</label>
           <input
@@ -586,6 +623,7 @@
             name="e_horario"
           />
         </div>
+
         <div class="field col-3">
           <label>Observaciones</label>
           <textarea
@@ -597,7 +635,7 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit">
+        <button class="btn primary" type="submit" [disabled]="fEmp.invalid">
           {{ editingEmpresa ? "Actualizar" : "Crear" }}
         </button>
         <button class="btn ghost" type="button" (click)="cancelForm('empresa')">
@@ -623,46 +661,87 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmitUsuario()" class="nice-form">
+    <form
+      (ngSubmit)="onSubmitUsuario()"
+      class="nice-form"
+      #fUsr="ngForm"
+      novalidate
+    >
       <div class="modal-body grid-3">
         <div class="field">
-          <label>Email</label>
+          <label>Email <span class="req">*</span></label>
           <input
             type="email"
             [(ngModel)]="usuarioForm.email"
             name="u_email"
             [disabled]="!!editingUsuario"
             required
+            #uEmail="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="uEmail.invalid && (uEmail.touched || fUsr.submitted)"
+          >
+            Ingresá un email válido.
+          </div>
         </div>
+
         <div class="field">
-          <label>Nombre</label>
+          <label>Nombre <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="usuarioForm.nombre"
             name="u_nombre"
             required
+            #uNom="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="uNom.invalid && (uNom.touched || fUsr.submitted)"
+          >
+            Ingresá un nombre.
+          </div>
         </div>
+
         <div class="field" *ngIf="!editingUsuario">
-          <label>Rol</label>
-          <select [(ngModel)]="usuarioForm.id_rol" name="u_rol" required>
+          <label>Rol <span class="req">*</span></label>
+          <select
+            [(ngModel)]="usuarioForm.id_rol"
+            name="u_rol"
+            required
+            #uRol="ngModel"
+          >
             <option [ngValue]="null">—</option>
             <option *ngFor="let r of roles" [ngValue]="r.id_rol">
               {{ r.tipo_rol }}
             </option>
           </select>
+          <div
+            class="error"
+            *ngIf="uRol?.invalid && (uRol?.touched || fUsr.submitted)"
+          >
+            Seleccioná un rol.
+          </div>
         </div>
+
         <div class="field">
-          <label>CUIL (empresa)</label>
+          <label>CUIL (empresa) <span class="req">*</span></label>
           <input
             type="number"
             [(ngModel)]="usuarioForm.cuil"
             name="u_cuil"
             [disabled]="!!editingUsuario || creatingForEmpresa"
             required
+            #uCuil="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="uCuil.invalid && (uCuil.touched || fUsr.submitted)"
+          >
+            Campo obligatorio.
+          </div>
         </div>
+
         <div class="field">
           <label>Estado</label>
           <select [(ngModel)]="usuarioForm.estado" name="u_estado">
@@ -670,6 +749,7 @@
             <option [ngValue]="false">Inhabilitado</option>
           </select>
         </div>
+
         <div class="field" *ngIf="editingUsuario">
           <label>Nueva contraseña (opcional)</label>
           <input
@@ -682,7 +762,7 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit">
+        <button class="btn primary" type="submit" [disabled]="fUsr.invalid">
           {{ editingUsuario ? "Actualizar" : "Crear" }}
         </button>
         <button class="btn ghost" type="button" (click)="cancelForm('usuario')">
@@ -708,31 +788,57 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmitServicioPolo()" class="nice-form">
+    <form
+      (ngSubmit)="onSubmitServicioPolo()"
+      class="nice-form"
+      #fSP="ngForm"
+      novalidate
+    >
       <div class="modal-body grid-3">
+        <!-- Nombre -->
         <div class="field">
-          <label>Nombre</label>
+          <label>Nombre <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="servicioPoloForm.nombre"
             name="sp_nombre"
             required
+            #spNombre="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="spNombre.invalid && (spNombre.touched || fSP.submitted)"
+          >
+            Ingresá un nombre.
+          </div>
         </div>
+
+        <!-- Tipo -->
         <div class="field">
-          <label>Tipo</label>
+          <label>Tipo <span class="req">*</span></label>
           <select
             [(ngModel)]="servicioPoloForm.id_tipo_servicio_polo"
             name="sp_tipo"
-            (ngModelChange)="onTipoServicioChange()"
             required
+            #spTipo="ngModel"
+            (ngModelChange)="onTipoServicioChange()"
           >
-            <option [ngValue]="1">Coworking</option>
-            <option [ngValue]="2">Espacios verdes</option>
-            <option [ngValue]="3">Internet</option>
-            <option [ngValue]="4">Residuos</option>
+            <option [ngValue]="1">coworking</option>
+            <option [ngValue]="2">nave</option>
+            <option [ngValue]="3">oficina</option>
+            <option [ngValue]="4">local comercial</option>
+            <option [ngValue]="5">container</option>
+            <option [ngValue]="6">lavadero</option>
           </select>
+          <div
+            class="error"
+            *ngIf="spTipo.invalid && (spTipo.touched || fSP.submitted)"
+          >
+            Seleccioná un tipo.
+          </div>
         </div>
+
+        <!-- Horario (opcional) -->
         <div class="field">
           <label>Horario</label>
           <input
@@ -742,6 +848,8 @@
             placeholder="08–18"
           />
         </div>
+
+        <!-- Propietario (opcional) -->
         <div class="field">
           <label>Propietario</label>
           <select
@@ -754,35 +862,100 @@
             <option value="inquilino">Inquilino</option>
           </select>
         </div>
+
+        <!-- CUIL -->
         <div class="field">
-          <label>CUIL (empresa)</label>
+          <label>CUIL (empresa) <span class="req">*</span></label>
           <input
             type="number"
             [(ngModel)]="servicioPoloForm.cuil"
             name="sp_cuil"
             [disabled]="creatingForEmpresa"
             required
+            #spCuil="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="spCuil.invalid && (spCuil.touched || fSP.submitted)"
+          >
+            Campo obligatorio.
+          </div>
         </div>
 
-        <!-- Campos dinámicos -->
-        <div class="field" *ngIf="isCantPuestosRequired()">
-          <label>Cant. puestos</label>
+        <!-- ===== Reglas del trigger ===== -->
+
+        <!-- 1) Coworking: cant_puestos OBLIGATORIO (>0) + m2 OPCIONAL -->
+        <div class="field" *ngIf="servicioPoloForm.id_tipo_servicio_polo === 1">
+          <label>Cant. puestos <span class="req">*</span></label>
           <input
             type="number"
             [(ngModel)]="servicioPoloForm.datos.cant_puestos"
             name="sp_puestos"
+            required
+            min="1"
+            #spPuestos="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="spPuestos.invalid && (spPuestos.touched || fSP.submitted)"
+          >
+            Ingresá un valor ≥ 1.
+          </div>
         </div>
-        <div class="field" *ngIf="isM2Required()">
+
+        <!-- Coworking: m2 OPCIONAL (lo pedías que aparezca) -->
+        <div class="field" *ngIf="servicioPoloForm.id_tipo_servicio_polo === 1">
           <label>Superficie (m²)</label>
           <input
             type="number"
             [(ngModel)]="servicioPoloForm.datos.m2"
-            name="sp_m2"
+            name="sp_m2_cw"
+            min="0"
+            placeholder="Opcional"
           />
         </div>
 
+        <!-- 2–6) m2 OBLIGATORIO (>0) + cant_puestos OPCIONAL -->
+        <div
+          class="field"
+          *ngIf="
+            [2, 3, 4, 5, 6].includes(servicioPoloForm.id_tipo_servicio_polo)
+          "
+        >
+          <label>Superficie (m²) <span class="req">*</span></label>
+          <input
+            type="number"
+            [(ngModel)]="servicioPoloForm.datos.m2"
+            name="sp_m2"
+            required
+            min="1"
+            #spM2="ngModel"
+          />
+          <div
+            class="error"
+            *ngIf="spM2.invalid && (spM2.touched || fSP.submitted)"
+          >
+            Ingresá un valor ≥ 1.
+          </div>
+        </div>
+
+        <div
+          class="field"
+          *ngIf="
+            [2, 3, 4, 5, 6].includes(servicioPoloForm.id_tipo_servicio_polo)
+          "
+        >
+          <label>Cant. puestos</label>
+          <input
+            type="number"
+            [(ngModel)]="servicioPoloForm.datos.cant_puestos"
+            name="sp_puestos_opt"
+            min="0"
+            placeholder="Opcional"
+          />
+        </div>
+
+        <!-- Datos propietario/inq (opcionales) -->
         <div
           class="field col-3"
           *ngIf="servicioPoloForm.propietario === 'propietario'"
@@ -829,7 +1002,9 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit">Crear</button>
+        <button class="btn primary" type="submit" [disabled]="fSP.invalid">
+          Crear
+        </button>
         <button
           class="btn ghost"
           type="button"
@@ -862,39 +1037,69 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmitLote()" class="nice-form">
+    <form
+      (ngSubmit)="onSubmitLote()"
+      class="nice-form"
+      #fLote="ngForm"
+      novalidate
+    >
       <div class="modal-body grid-3">
         <div class="field">
-          <label>Dueño</label>
+          <label>Dueño <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="loteForm.dueno"
             name="l_dueno"
             required
+            #lDueno="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="lDueno.invalid && (lDueno.touched || fLote.submitted)"
+          >
+            Campo obligatorio.
+          </div>
         </div>
+
         <div class="field">
-          <label>Manzana</label>
+          <label>Manzana <span class="req">*</span></label>
           <input
             type="number"
             [(ngModel)]="loteForm.manzana"
             name="l_manzana"
             required
+            #lManzana="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="lManzana.invalid && (lManzana.touched || fLote.submitted)"
+          >
+            Campo obligatorio.
+          </div>
         </div>
+
         <div class="field">
-          <label>Lote</label>
+          <label>Lote <span class="req">*</span></label>
           <input
             type="number"
             [(ngModel)]="loteForm.lote"
             name="l_lote"
             required
+            #lLote="ngModel"
           />
+          <div
+            class="error"
+            *ngIf="lLote.invalid && (lLote.touched || fLote.submitted)"
+          >
+            Campo obligatorio.
+          </div>
         </div>
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit">Agregar</button>
+        <button class="btn primary" type="submit" [disabled]="fLote.invalid">
+          Agregar
+        </button>
         <button class="btn ghost" type="button" (click)="cancelForm('lote')">
           Cancelar
         </button>

@@ -213,6 +213,61 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   text-overflow: ellipsis;
 }
 
+
+/* Estados de error */
+.nice-form input.ng-invalid.ng-touched,
+.nice-form select.ng-invalid.ng-touched,
+.nice-form textarea.ng-invalid.ng-touched{
+  border-color:#d32f2f;
+  box-shadow:0 0 0 3px rgba(211,47,47,.08);
+}
+
+.nice-form .error {
+  color:#d32f2f;
+  font-size:.8rem;
+  margin-top:.25rem;
+}
+
+
+/* Asterisco rojo en campos requeridos */
+.req { color:#a20000; margin-left:4px; font-weight:700; }
+
+/* Asegurar que el <form> nunca tome estilo de error */
+.nice-form.ng-invalid{
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+/* Mensaje de error */
+.error{
+  margin-top:.35rem;
+  font-size:.8rem;
+  color:#a20000;
+}
+
+/* Helpers de error */
+.nice-form .error{
+  display: none;
+  color: #a20000;
+  font-size: .8rem;
+  margin-top: .25rem;
+}
+
+/* Mostrar error cuando el control fue tocado y sigue inválido */
+input.ng-invalid.ng-touched + .error,
+select.ng-invalid.ng-touched + .error,
+textarea.ng-invalid.ng-touched + .error{
+  display: block;
+}
+
+/* O cuando el formulario fue enviado */
+.ng-submitted input.ng-invalid + .error,
+.ng-submitted select.ng-invalid + .error,
+.ng-submitted textarea.ng-invalid + .error{
+  display: block;
+}
+
+
+
 /* Selects con aspecto consistente */
 .nice-form select {
   -webkit-appearance: none;

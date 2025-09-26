@@ -4,7 +4,7 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
 import { AuthenticationService } from '../auth/auth.service';
 
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import {
   AdminEmpresaService,
@@ -1577,5 +1577,13 @@ export class EmpresaMeComponent implements OnInit {
   externalHref(u?: string): string {
     if (!u) return '#';
     return /^https?:\/\//i.test(u) ? u : `https://${u.trim()}`;
+  }
+
+  markAllAndSubmit(form: NgForm) {
+    form.form.markAllAsTouched();
+    if (form.invalid) {
+      return;
+    } // muestra errores y no envía
+    this.onSubmitVehiculo(); // tu lógica real de guardado
   }
 }
