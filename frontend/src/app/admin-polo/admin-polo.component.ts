@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 
 import { RouterModule } from '@angular/router';
 import {
@@ -1364,6 +1364,56 @@ export class AdminPoloComponent implements OnInit {
   onPasswordChanged(success: boolean) {
     if (success) {
       console.log('✅ Contraseña cambiada exitosamente');
+    }
+  }
+
+  confirmAndSubmit(
+    kind: 'polo' | 'empresa' | 'usuario' | 'servicioPolo' | 'lote',
+    formRef: NgForm
+  ) {
+    // 1) Si el form es inválido, marco controles y corto
+    if (!formRef || formRef.invalid) {
+      Object.values(formRef.controls ?? {}).forEach((c: any) =>
+        c?.markAsTouched?.()
+      );
+      return;
+    }
+
+    // 2) Mensaje específico según modal
+    const verbos: Record<typeof kind, string> = {
+      polo: 'guardar cambios del Polo',
+      empresa: this.editingEmpresa
+        ? 'actualizar la empresa'
+        : 'crear la empresa',
+      usuario: this.editingUsuario
+        ? 'actualizar el usuario'
+        : 'crear el usuario',
+      servicioPolo: 'crear el servicio del Polo',
+      lote: 'agregar el lote',
+    };
+
+    const ok = window.confirm(
+      `¿Querés ${verbos[kind]} ahora?\n\n• Aceptar: agregar/guardar\n• Cancelar: seguir editando`
+    );
+    if (!ok) return;
+
+    // 3) Llamo al submit real existente
+    switch (kind) {
+      case 'polo':
+        this.onSubmitPoloEdit();
+        break;
+      case 'empresa':
+        this.onSubmitEmpresa();
+        break;
+      case 'usuario':
+        this.onSubmitUsuario();
+        break;
+      case 'servicioPolo':
+        this.onSubmitServicioPolo();
+        break;
+      case 'lote':
+        this.onSubmitLote();
+        break;
     }
   }
 }

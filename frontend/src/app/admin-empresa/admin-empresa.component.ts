@@ -1586,4 +1586,53 @@ export class EmpresaMeComponent implements OnInit {
     } // muestra errores y no envía
     this.onSubmitVehiculo(); // tu lógica real de guardado
   }
+
+  // dentro de la clase EmpresaMeComponent
+  confirmAndSubmit(
+    kind: 'empresa' | 'vehiculo' | 'servicio' | 'contacto',
+    formRef: NgForm
+  ) {
+    // 1) Validación: marcar controles, no abrir confirm si está inválido
+    if (!formRef || formRef.invalid) {
+      Object.values(formRef.controls ?? {}).forEach((c: any) =>
+        c?.markAsTouched?.()
+      );
+      return;
+    }
+
+    // 2) Texto según el modal y si estás editando o creando
+    const verbos: Record<typeof kind, string> = {
+      empresa: 'guardar cambios de la empresa',
+      vehiculo: this.editingVehiculo
+        ? 'actualizar el vehículo'
+        : 'agregar el vehículo',
+      servicio: this.editingServicio
+        ? 'actualizar el servicio'
+        : 'agregar el servicio',
+      contacto: this.editingContacto
+        ? 'actualizar el contacto'
+        : 'agregar el contacto',
+    };
+
+    const ok = window.confirm(
+      `¿Querés ${verbos[kind]} ahora?\n\n• Aceptar: agregar/guardar\n• Cancelar: seguir editando`
+    );
+    if (!ok) return;
+
+    // 3) Ejecutar el submit real que ya tenés implementado
+    switch (kind) {
+      case 'empresa':
+        this.onSubmitEmpresaEdit();
+        break;
+      case 'vehiculo':
+        this.onSubmitVehiculo();
+        break;
+      case 'servicio':
+        this.onSubmitServicio();
+        break;
+      case 'contacto':
+        this.onSubmitContacto();
+        break;
+    }
+  }
 }

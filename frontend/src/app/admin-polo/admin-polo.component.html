@@ -487,7 +487,7 @@
     </div>
 
     <form
-      (ngSubmit)="onSubmitPoloEdit()"
+      (ngSubmit)="confirmAndSubmit('polo', fPolo)"
       class="nice-form"
       #fPolo="ngForm"
       novalidate
@@ -548,7 +548,7 @@
     </div>
 
     <form
-      (ngSubmit)="onSubmitEmpresa()"
+      (ngSubmit)="confirmAndSubmit('empresa', fEmp)"
       class="nice-form"
       #fEmp="ngForm"
       novalidate
@@ -635,7 +635,7 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit" [disabled]="fEmp.invalid">
+        <button class="btn primary" type="submit">
           {{ editingEmpresa ? "Actualizar" : "Crear" }}
         </button>
         <button class="btn ghost" type="button" (click)="cancelForm('empresa')">
@@ -662,7 +662,7 @@
     </div>
 
     <form
-      (ngSubmit)="onSubmitUsuario()"
+      (ngSubmit)="confirmAndSubmit('usuario', fUsr)"
       class="nice-form"
       #fUsr="ngForm"
       novalidate
@@ -762,7 +762,7 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit" [disabled]="fUsr.invalid">
+        <button class="btn primary" type="submit">
           {{ editingUsuario ? "Actualizar" : "Crear" }}
         </button>
         <button class="btn ghost" type="button" (click)="cancelForm('usuario')">
@@ -775,7 +775,7 @@
 
 <!-- Servicio del Polo: crear -->
 <div class="overlay" *ngIf="showServicioPoloForm">
-  <div class="modal modal--md">
+  <div class="modal modal-lg">
     <div class="modal-header">
       <h3>Nuevo servicio del Polo</h3>
       <button
@@ -789,222 +789,235 @@
     </div>
 
     <form
-      (ngSubmit)="onSubmitServicioPolo()"
+      (ngSubmit)="confirmAndSubmit('servicioPolo', fSP)"
       class="nice-form"
       #fSP="ngForm"
       novalidate
     >
-      <div class="modal-body grid-3">
-        <!-- Nombre -->
-        <div class="field">
-          <label>Nombre <span class="req">*</span></label>
-          <input
-            type="text"
-            [(ngModel)]="servicioPoloForm.nombre"
-            name="sp_nombre"
-            required
-            #spNombre="ngModel"
-          />
+      <div class="modal-body">
+        <!-- ✅ GRID FIJA (no cambia al agregar extras) -->
+        <div class="sp-base-grid">
+          <!-- Nombre -->
+          <div class="field">
+            <label>Nombre <span class="req">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="servicioPoloForm.nombre"
+              name="sp_nombre"
+              required
+              #spNombre="ngModel"
+            />
+            <div
+              class="error"
+              *ngIf="spNombre.invalid && (spNombre.touched || fSP.submitted)"
+            >
+              Ingresá un nombre.
+            </div>
+          </div>
+
+          <!-- Tipo -->
+          <div class="field">
+            <label>Tipo <span class="req">*</span></label>
+            <select
+              [(ngModel)]="servicioPoloForm.id_tipo_servicio_polo"
+              name="sp_tipo"
+              required
+              #spTipo="ngModel"
+              (ngModelChange)="onTipoServicioChange()"
+            >
+              <option [ngValue]="1">coworking</option>
+              <option [ngValue]="2">nave</option>
+              <option [ngValue]="3">oficina</option>
+              <option [ngValue]="4">local comercial</option>
+              <option [ngValue]="5">container</option>
+              <option [ngValue]="6">lavadero</option>
+            </select>
+            <div
+              class="error"
+              *ngIf="spTipo.invalid && (spTipo.touched || fSP.submitted)"
+            >
+              Seleccioná un tipo.
+            </div>
+          </div>
+
+          <!-- Horario (opcional) -->
+          <div class="field">
+            <label>Horario</label>
+            <input
+              type="text"
+              [(ngModel)]="servicioPoloForm.horario"
+              name="sp_horario"
+              placeholder="08–18"
+            />
+          </div>
+
+          <!-- Propietario (opcional) -->
+          <div class="field">
+            <label>Propietario</label>
+            <select
+              [(ngModel)]="servicioPoloForm.propietario"
+              name="sp_propietario"
+              (ngModelChange)="onPropietarioChange()"
+            >
+              <option value="">—</option>
+              <option value="propietario">Propietario</option>
+              <option value="inquilino">Inquilino</option>
+            </select>
+          </div>
+
+          <!-- CUIL -->
+          <div class="field">
+            <label>CUIL (empresa) <span class="req">*</span></label>
+            <input
+              type="number"
+              [(ngModel)]="servicioPoloForm.cuil"
+              name="sp_cuil"
+              [disabled]="creatingForEmpresa"
+              required
+              #spCuil="ngModel"
+            />
+            <div
+              class="error"
+              *ngIf="spCuil.invalid && (spCuil.touched || fSP.submitted)"
+            >
+              Campo obligatorio.
+            </div>
+          </div>
+
+          <!-- Cant. puestos (solo obligatorio en coworking) -->
           <div
-            class="error"
-            *ngIf="spNombre.invalid && (spNombre.touched || fSP.submitted)"
+            class="field"
+            *ngIf="servicioPoloForm.id_tipo_servicio_polo === 1"
           >
-            Ingresá un nombre.
+            <label>Cant. puestos <span class="req">*</span></label>
+            <input
+              type="number"
+              [(ngModel)]="servicioPoloForm.datos.cant_puestos"
+              name="sp_puestos"
+              required
+              min="1"
+              #spPuestos="ngModel"
+            />
+            <div
+              class="error"
+              *ngIf="spPuestos.invalid && (spPuestos.touched || fSP.submitted)"
+            >
+              Ingresá un valor ≥ 1.
+            </div>
+          </div>
+
+          <!-- en tipos 2–6 es opcional, pero lo dejamos en la base para conservar el lugar -->
+          <div
+            class="field"
+            *ngIf="
+              [2, 3, 4, 5, 6].includes(servicioPoloForm.id_tipo_servicio_polo)
+            "
+          >
+            <label>Cant. puestos</label>
+            <input
+              type="number"
+              [(ngModel)]="servicioPoloForm.datos.cant_puestos"
+              name="sp_puestos_opt"
+              min="0"
+              placeholder="Opcional"
+            />
           </div>
         </div>
 
-        <!-- Tipo -->
-        <div class="field">
-          <label>Tipo <span class="req">*</span></label>
-          <select
-            [(ngModel)]="servicioPoloForm.id_tipo_servicio_polo"
-            name="sp_tipo"
-            required
-            #spTipo="ngModel"
-            (ngModelChange)="onTipoServicioChange()"
-          >
-            <option [ngValue]="1">coworking</option>
-            <option [ngValue]="2">nave</option>
-            <option [ngValue]="3">oficina</option>
-            <option [ngValue]="4">local comercial</option>
-            <option [ngValue]="5">container</option>
-            <option [ngValue]="6">lavadero</option>
-          </select>
-          <div
-            class="error"
-            *ngIf="spTipo.invalid && (spTipo.touched || fSP.submitted)"
-          >
-            Seleccioná un tipo.
-          </div>
-        </div>
-
-        <!-- Horario (opcional) -->
-        <div class="field">
-          <label>Horario</label>
-          <input
-            type="text"
-            [(ngModel)]="servicioPoloForm.horario"
-            name="sp_horario"
-            placeholder="08–18"
-          />
-        </div>
-
-        <!-- Propietario (opcional) -->
-        <div class="field">
-          <label>Propietario</label>
-          <select
-            [(ngModel)]="servicioPoloForm.propietario"
-            name="sp_propietario"
-            (ngModelChange)="onPropietarioChange()"
-          >
-            <option value="">—</option>
-            <option value="propietario">Propietario</option>
-            <option value="inquilino">Inquilino</option>
-          </select>
-        </div>
-
-        <!-- CUIL -->
-        <div class="field">
-          <label>CUIL (empresa) <span class="req">*</span></label>
-          <input
-            type="number"
-            [(ngModel)]="servicioPoloForm.cuil"
-            name="sp_cuil"
-            [disabled]="creatingForEmpresa"
-            required
-            #spCuil="ngModel"
-          />
-          <div
-            class="error"
-            *ngIf="spCuil.invalid && (spCuil.touched || fSP.submitted)"
-          >
-            Campo obligatorio.
-          </div>
-        </div>
-
-        <!-- ===== Reglas del trigger ===== -->
-
-        <!-- 1) Coworking: cant_puestos OBLIGATORIO (>0) + m2 OPCIONAL -->
-        <div class="field" *ngIf="servicioPoloForm.id_tipo_servicio_polo === 1">
-          <label>Cant. puestos <span class="req">*</span></label>
-          <input
-            type="number"
-            [(ngModel)]="servicioPoloForm.datos.cant_puestos"
-            name="sp_puestos"
-            required
-            min="1"
-            #spPuestos="ngModel"
-          />
-          <div
-            class="error"
-            *ngIf="spPuestos.invalid && (spPuestos.touched || fSP.submitted)"
-          >
-            Ingresá un valor ≥ 1.
-          </div>
-        </div>
-
-        <!-- Coworking: m2 OPCIONAL (lo pedías que aparezca) -->
-        <div class="field" *ngIf="servicioPoloForm.id_tipo_servicio_polo === 1">
-          <label>Superficie (m²)</label>
-          <input
-            type="number"
-            [(ngModel)]="servicioPoloForm.datos.m2"
-            name="sp_m2_cw"
-            min="0"
-            placeholder="Opcional"
-          />
-        </div>
-
-        <!-- 2–6) m2 OBLIGATORIO (>0) + cant_puestos OPCIONAL -->
+        <!-- 🔽 EXTRAS POR TIPO (van DEBAJO, ocupando ancho completo) -->
         <div
-          class="field"
+          class="sp-extra full-row"
+          *ngIf="servicioPoloForm.id_tipo_servicio_polo === 1"
+        >
+          <div class="field">
+            <label>Superficie (m²)</label>
+            <input
+              type="number"
+              [(ngModel)]="servicioPoloForm.datos.m2"
+              name="sp_m2_cw"
+              min="0"
+              placeholder="Opcional"
+            />
+          </div>
+        </div>
+
+        <div
+          class="sp-extra full-row"
           *ngIf="
             [2, 3, 4, 5, 6].includes(servicioPoloForm.id_tipo_servicio_polo)
           "
         >
-          <label>Superficie (m²) <span class="req">*</span></label>
-          <input
-            type="number"
-            [(ngModel)]="servicioPoloForm.datos.m2"
-            name="sp_m2"
-            required
-            min="1"
-            #spM2="ngModel"
-          />
-          <div
-            class="error"
-            *ngIf="spM2.invalid && (spM2.touched || fSP.submitted)"
-          >
-            Ingresá un valor ≥ 1.
+          <div class="field">
+            <label>Superficie (m²) <span class="req">*</span></label>
+            <input
+              type="number"
+              [(ngModel)]="servicioPoloForm.datos.m2"
+              name="sp_m2"
+              required
+              min="1"
+              #spM2="ngModel"
+            />
+            <div
+              class="error"
+              *ngIf="spM2.invalid && (spM2.touched || fSP.submitted)"
+            >
+              Ingresá un valor ≥ 1.
+            </div>
           </div>
         </div>
 
+        <!-- 🔽 DATOS PROPIETARIO / INQUILINO (siempre debajo) -->
         <div
-          class="field"
-          *ngIf="
-            [2, 3, 4, 5, 6].includes(servicioPoloForm.id_tipo_servicio_polo)
-          "
-        >
-          <label>Cant. puestos</label>
-          <input
-            type="number"
-            [(ngModel)]="servicioPoloForm.datos.cant_puestos"
-            name="sp_puestos_opt"
-            min="0"
-            placeholder="Opcional"
-          />
-        </div>
-
-        <!-- Datos propietario/inq (opcionales) -->
-        <div
-          class="field col-3"
+          class="sp-extra full-row"
           *ngIf="servicioPoloForm.propietario === 'propietario'"
         >
-          <label>Datos del propietario</label>
-          <div class="inline-3">
-            <input
-              type="text"
-              [(ngModel)]="servicioPoloForm.datos.datos_prop.nombre"
-              name="sp_prop_nombre"
-              placeholder="Nombre"
-            />
-            <input
-              type="text"
-              [(ngModel)]="servicioPoloForm.datos.datos_prop.contacto"
-              name="sp_prop_contacto"
-              placeholder="Contacto"
-            />
-            <input type="text" disabled placeholder="—" />
+          <div class="field col-3">
+            <label>Datos del propietario</label>
+            <div class="inline-3">
+              <input
+                type="text"
+                [(ngModel)]="servicioPoloForm.datos.datos_prop.nombre"
+                name="sp_prop_nombre"
+                placeholder="Nombre"
+              />
+              <input
+                type="text"
+                [(ngModel)]="servicioPoloForm.datos.datos_prop.contacto"
+                name="sp_prop_contacto"
+                placeholder="Contacto"
+              />
+              <input type="text" disabled placeholder="—" />
+            </div>
           </div>
         </div>
 
         <div
-          class="field col-3"
+          class="sp-extra full-row"
           *ngIf="servicioPoloForm.propietario === 'inquilino'"
         >
-          <label>Datos del inquilino</label>
-          <div class="inline-3">
-            <input
-              type="text"
-              [(ngModel)]="servicioPoloForm.datos.datos_inquilino.nombre"
-              name="sp_inq_nombre"
-              placeholder="Nombre"
-            />
-            <input
-              type="text"
-              [(ngModel)]="servicioPoloForm.datos.datos_inquilino.contacto"
-              name="sp_inq_contacto"
-              placeholder="Contacto"
-            />
-            <input type="text" disabled placeholder="—" />
+          <div class="field col-3">
+            <label>Datos del inquilino</label>
+            <div class="inline-3">
+              <input
+                type="text"
+                [(ngModel)]="servicioPoloForm.datos.datos_inquilino.nombre"
+                name="sp_inq_nombre"
+                placeholder="Nombre"
+              />
+              <input
+                type="text"
+                [(ngModel)]="servicioPoloForm.datos.datos_inquilino.contacto"
+                name="sp_inq_contacto"
+                placeholder="Contacto"
+              />
+              <input type="text" disabled placeholder="—" />
+            </div>
           </div>
         </div>
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit" [disabled]="fSP.invalid">
-          Crear
-        </button>
+        <button class="btn primary" type="submit">Crear</button>
         <button
           class="btn ghost"
           type="button"
@@ -1038,7 +1051,7 @@
     </div>
 
     <form
-      (ngSubmit)="onSubmitLote()"
+      (ngSubmit)="confirmAndSubmit('lote', fLote)"
       class="nice-form"
       #fLote="ngForm"
       novalidate
@@ -1097,9 +1110,7 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit" [disabled]="fLote.invalid">
-          Agregar
-        </button>
+        <button class="btn primary" type="submit">Agregar</button>
         <button class="btn ghost" type="button" (click)="cancelForm('lote')">
           Cancelar
         </button>

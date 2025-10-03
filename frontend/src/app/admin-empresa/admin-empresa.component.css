@@ -79,7 +79,7 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 .activity-list .dot.warn   { background:#e07a00; }  /* tono ámbar compatible con rojo */
 .activity-list .dot.info   { background:#7a002a; }  /* azul → borgoña para mantener paleta */
 .a-title{font-weight:600}
-.a-when{font-size:.85rem; color:#777;  font-family: 'Inter', sans-serif;}
+.a-when{font-size:.80rem; color:#777;  font-family: 'Inter', sans-serif;}
 
 .quick-list{display:flex; flex-direction:column; gap:.5rem}
 .quick-btn{
@@ -165,7 +165,7 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 .card:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 
 .card h2 {
-  font-size: 1.1rem;
+  font-size: 0.8rem;
   font-weight: 600;
   margin-bottom: 1rem;
    font-family: 'Inter', sans-serif;
@@ -319,7 +319,7 @@ textarea.ng-invalid.ng-touched + .error{
   font-weight: 500;
   cursor: pointer;
   border: none;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   transition: all 0.3s ease;
 }
 
@@ -383,7 +383,7 @@ textarea.ng-invalid.ng-touched + .error{
   background: #f7f7f7;
   border: 1px solid #eee;
   border-radius: 999px;
-  font-size: .85rem;
+  font-size: .80rem;
   color: #444;
 }
 
@@ -716,3 +716,49 @@ textarea.ng-invalid.ng-touched + .error{
 .no-spin input[type="number"]::-webkit-outer-spin-button,
 .no-spin input[type="number"]::-webkit-inner-spin-button { appearance:none; -webkit-appearance:none; margin:0; }
 
+/* ====== Tipografía unificada Admin Polo & Empresa ====== */
+
+/* Base */
+html, body {
+  font-size: 18px;   /* 👈 Ajustá aquí el tamaño global (ej. 14px o 15px) */
+  font-family: 'Inter', sans-serif;
+  line-height: 1.4;
+}
+
+/* Títulos */
+.page-header h1 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.card h2,
+.modal-header h3 {
+  font-size: 1.2rem;    /* mismo tamaño para subtítulos */
+  font-weight: 600;
+}
+
+/* Texto en tablas y listas */
+.table .thead,
+.table .row,
+.data-list .chip,
+.data-stack,
+.chip-link,
+.chip-plain {
+  font-size: 0.90rem;
+}
+
+/* Formularios */
+.nice-form label {
+  font-size: 0.85rem;
+}
+
+.nice-form input,
+.nice-form select,
+.nice-form textarea {
+  font-size: 0.9rem;
+}
+
+/* Botones */
+.btn {
+  font-size: 0.9rem;
+}

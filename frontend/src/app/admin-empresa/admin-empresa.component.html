@@ -51,6 +51,14 @@
       </button>
       <button
         class="tab"
+        [class.active]="activeTab === 'serviciosPolo'"
+        (click)="goTo('serviciosPolo')"
+      >
+        Servicios del Polo
+      </button>
+
+      <button
+        class="tab"
         [class.active]="activeTab === 'perfil'"
         (click)="goTo('perfil')"
       >
@@ -533,7 +541,7 @@
 
         <div class="row" *ngFor="let sp of filteredServiciosPolo">
           <div>{{ sp.nombre }}</div>
-          <div>{{ sp.tipo_servicio_polo || "-" }}</div>
+          <div>{{ getTipoServicioPoloName(sp.id_tipo_servicio_polo) }}</div>
           <div>{{ sp.horario || "-" }}</div>
           <div>{{ sp.propietario || "-" }}</div>
           <div>
@@ -611,7 +619,12 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmitEmpresaEdit()" class="nice-form">
+    <form
+      (ngSubmit)="confirmAndSubmit('empresa', fEmp)"
+      class="nice-form"
+      #fEmp="ngForm"
+      novalidate
+    >
       <div class="modal-body grid-3">
         <div class="field">
           <label>Cant. empleados</label>
@@ -667,7 +680,7 @@
 
     <!-- 👇 usa tu helper markAllAndSubmit(fVeh) -->
     <form
-      (ngSubmit)="markAllAndSubmit(fVeh)"
+      (ngSubmit)="confirmAndSubmit('vehiculo', fVeh)"
       #fVeh="ngForm"
       class="nice-form"
       novalidate
@@ -877,7 +890,7 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit" [disabled]="fVeh.invalid">
+        <button class="btn primary" type="submit">
           {{ editingVehiculo ? "Actualizar" : "Agregar" }}
         </button>
         <button
@@ -910,7 +923,7 @@
     </div>
 
     <form
-      (ngSubmit)="onSubmitContacto()"
+      (ngSubmit)="confirmAndSubmit('contacto', fCont)"
       class="nice-form"
       #fCont="ngForm"
       novalidate
@@ -1021,7 +1034,7 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit" [disabled]="fCont.invalid">
+        <button class="btn primary" type="submit">
           {{ editingContacto ? "Actualizar" : "Agregar" }}
         </button>
         <button
@@ -1054,7 +1067,7 @@
     </div>
 
     <form
-      (ngSubmit)="onSubmitServicio()"
+      (ngSubmit)="confirmAndSubmit('servicio', fServ)"
       #fServ="ngForm"
       class="nice-form"
       novalidate
@@ -1247,7 +1260,7 @@
       </div>
 
       <div class="modal-actions">
-        <button class="btn primary" type="submit" [disabled]="fServ.invalid">
+        <button class="btn primary" type="submit">
           {{ editingServicio ? "Actualizar" : "Agregar" }}
         </button>
         <button

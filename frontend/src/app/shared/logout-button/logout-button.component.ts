@@ -99,12 +99,12 @@ import { AuthenticationService } from '../../auth/auth.service';
       }
 
       .btn.danger {
-        color: #a20000;
-        background: #fff0f0;
-        border: 1px solid #f5b5b5;
+        color: #f7e7e7ff;
+        background: #a20000;
+        border: 1px solid #f7e7e7ff;
       }
       .btn.danger:hover {
-        background: #ffe8e8;
+        background: #9b3e3eff;
       }
 
       .btn:focus-visible {
@@ -125,29 +125,28 @@ import { AuthenticationService } from '../../auth/auth.service';
       }
       .modal {
         background: #fff;
-        border-radius: 12px;
+        border-radius: 10px;
         padding: 1.5rem;
-        width: min(820px, 95vw);
+        width: min(360px, 90vw); /* modal chico */
         max-height: 90vh;
         overflow: auto;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
         animation: slideIn 0.2s ease;
+        text-align: center; /* 👈 centramos texto */
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* 👈 centramos horizontalmente */
       }
       .modal--sm {
         width: min(360px, 90vw);
       }
-
       .modal-header {
+        width: 100%;
         display: flex;
-        justify-content: space-between;
+        justify-content: center; /* 👈 centramos título */
         align-items: center;
         margin-bottom: 1rem;
-      }
-      .modal-header h3 {
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin: 0;
-        font-family: 'Inter', sans-serif;
+        position: relative;
       }
 
       .icon-btn {
@@ -161,15 +160,35 @@ import { AuthenticationService } from '../../auth/auth.service';
         transform: scale(1.08);
       }
 
-      .modal-body p {
-        margin: 0 0 0.5rem;
-        color: #333;
+      .modal-header h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0;
         font-family: 'Inter', sans-serif;
       }
 
+      /* Botón de cerrar (X) en esquina superior derecha */
+      .modal-header .icon-btn {
+        position: absolute;
+        right: 0;
+        top: 0;
+        margin: 0.2rem;
+      }
+
+      /* Texto del body centrado */
+      .modal-body p {
+        margin: 0 0 1rem;
+        color: #333;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        text-align: center;
+      }
+
+      /* Botones centrados */
       .modal-actions {
         display: flex;
-        justify-content: flex-end;
+        justify-content: center; /* 👈 centramos botones */
         gap: 0.8rem;
         margin-top: 1rem;
       }
