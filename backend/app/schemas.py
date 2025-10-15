@@ -372,6 +372,7 @@ class EmpresaOut(BaseModel):
     observaciones: Optional[str] = None
     fecha_ingreso: date
     horario_trabajo: str
+    estado: bool
 
     class Config:
            from_attributes = True

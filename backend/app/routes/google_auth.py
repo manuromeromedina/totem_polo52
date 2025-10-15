@@ -40,57 +40,63 @@ async def google_login(request: Request):
 
 @router.get("/callback")
 async def google_callback(request: Request, db: Session = Depends(get_db)):
-    """Callback de Google OAuth"""
+    """Callback de Google OAuth con bloqueos por estado de usuario/empresa"""
     try:
-        # Obtener token de Google
+        # 1) Intercambiar el code por tokens
         token = await oauth.google.authorize_access_token(request)
-        
-        # Obtener información del usuario
+
+        # 2) Obtener perfil
         user_info = token.get('userinfo')
         if not user_info:
-            # Si no viene en el token, hacer request adicional
             async with httpx.AsyncClient() as client:
-                response = await client.get(
+                r = await client.get(
                     'https://www.googleapis.com/oauth2/v2/userinfo',
                     headers={'Authorization': f'Bearer {token["access_token"]}'}
                 )
-                user_info = response.json()
-        
+                user_info = r.json()
+
         email = user_info.get('email')
         name = user_info.get('name')
-        
         if not email:
             raise HTTPException(status_code=400, detail="No se pudo obtener el email de Google")
-        
-        # Buscar usuario existente por email
+
+        # 3) Buscar usuario interno por email
         user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
-        
-        if user:
-            # Usuario existente - generar token
-            access_token = services.create_access_token(data={"sub": user.nombre})
-            
-            # Obtener rol del usuario
-            roles = (
-                db.query(models.Rol.tipo_rol)
-                .join(models.RolUsuario, models.Rol.id_rol == models.RolUsuario.id_rol)
-                .filter(models.RolUsuario.id_usuario == user.id_usuario)
-                .all()
-            )
-            rol = roles[0][0] if roles else "usuario"
-            
-            # Redireccionar al frontend con el token
-            frontend_url = f"http://localhost:4200/auth/success?token={access_token}&tipo_rol={rol}"
-            return RedirectResponse(url=frontend_url)
-        else:
-            # Usuario nuevo - mostrar mensaje de que necesita ser registrado
+
+        # 3.a) Si no existe, no loguear: redirigir a “pendiente de registro”
+        if not user:
             frontend_url = f"http://localhost:4200/auth/pending?email={email}&name={name}"
             return RedirectResponse(url=frontend_url)
-            
+
+        # 3.b) Bloquear si el usuario está inhabilitado
+        if not user.estado:
+            frontend_url = "http://localhost:4200/auth/error?message=usuario_inhabilitado"
+            return RedirectResponse(url=frontend_url)
+
+        # 3.c) Bloquear si la empresa está desactivada
+        if not user.empresa or not user.empresa.estado:
+            frontend_url = "http://localhost:4200/auth/error?message=empresa_desactivada"
+            return RedirectResponse(url=frontend_url)
+
+        # 4) OK: generar tu JWT y redirigir a éxito
+        roles = (
+            db.query(models.Rol.tipo_rol)
+            .join(models.RolUsuario, models.Rol.id_rol == models.RolUsuario.id_rol)
+            .filter(models.RolUsuario.id_usuario == user.id_usuario)
+            .all()
+        )
+        rol = roles[0][0] if roles else "usuario"
+
+        access_token = services.create_access_token(data={"sub": user.nombre})
+
+        frontend_url = f"http://localhost:4200/auth/success?token={access_token}&tipo_rol={rol}"
+        return RedirectResponse(url=frontend_url)
+
     except Exception as e:
         print(f"Error en Google callback: {str(e)}")
-        # Redireccionar al frontend con error
-        frontend_url = f"http://localhost:4200/auth/error?message=Error_de_autenticacion"
+        frontend_url = "http://localhost:4200/auth/error?message=Error_de_autenticacion"
         return RedirectResponse(url=frontend_url)
+
 
 @router.post("/register-pending")
 async def register_pending_google_user(
@@ -151,3 +157,4 @@ async def logout_google():
         "message": "Sesión cerrada. Para cambiar de cuenta, ve a accounts.google.com y cierra sesión.",
         "google_logout_url": "https://accounts.google.com/logout"
     }
+

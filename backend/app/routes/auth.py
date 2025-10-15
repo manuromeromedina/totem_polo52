@@ -48,6 +48,7 @@ def get_current_user(
         nombre = payload.get("sub")
         if not nombre:
             raise HTTPException(401, "Token inválido")
+
         user = (
             db.query(models.Usuario)
             .filter(models.Usuario.nombre == nombre)
@@ -55,17 +56,25 @@ def get_current_user(
         )
         if not user:
             raise HTTPException(401, "Usuario no encontrado")
-        
-        # VALIDACIÓN: Verificar que el usuario siga habilitado durante sesiones activas
+
+        # Usuario deshabilitado
         if not user.estado:
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail="Su cuenta ha sido deshabilitada. Contacte con el administrador."
             )
-            
+
+        # Empresa desactivada
+        if not user.empresa or not user.empresa.estado:
+            raise HTTPException(
+                status_code=403,
+                detail="La empresa asociada está desactivada."
+            )
+
         return user
     except JWTError:
         raise HTTPException(401, "Token inválido")
+
 
 # Función para obtener usuario desde cookie de "recordarme"
 def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -> models.Usuario:
@@ -73,7 +82,7 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -
     Obtiene el usuario actual desde token Bearer o cookie de "recordarme"
     Usado para endpoints que pueden funcionar con o sin autenticación
     """
-    # Primero intentar con Authorization header
+    # 1) Intentar con Authorization: Bearer
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ")[1]
@@ -82,27 +91,28 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -
             nombre = payload.get("sub")
             if nombre:
                 user = db.query(models.Usuario).filter(models.Usuario.nombre == nombre).first()
-                if user and user.estado:
+                if user and user.estado and user.empresa and user.empresa.estado:
                     return user
         except JWTError:
-            pass
-    
-    # Si no hay Bearer token, intentar con cookie de "recordarme"
+            pass  # ignorar y seguir a cookie
+
+    # 2) Intentar con cookie remember_token
     remember_token = request.cookies.get("remember_token")
     if remember_token:
         try:
             payload = jwt.decode(remember_token, SECRET_KEY, algorithms=[ALGORITHM])
             nombre = payload.get("sub")
             token_type = payload.get("type")
-            
             if nombre and token_type == "remember":
                 user = db.query(models.Usuario).filter(models.Usuario.nombre == nombre).first()
-                if user and user.estado:
+                if user and user.estado and user.empresa and user.empresa.estado:
                     return user
         except JWTError:
             pass
-    
+
+    # 3) Si nada funcionó, no hay usuario válido
     return None
+
 
 # ═══════════════════════════════════════════════════════════════════
 # >>> AGREGADO: Helpers de email para cambio de contraseña (éxito / fallo)
@@ -264,63 +274,70 @@ def login(
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
-    remember_me: bool = False  # Nuevo parámetro
+    remember_me: bool = False
 ):
-    user = (db.query(models.Usuario).filter(
-        or_(models.Usuario.nombre == form_data.username, 
-            models.Usuario.email == form_data.username)
-    ).first())
-    
+    user = (
+        db.query(models.Usuario)
+        .filter(
+            or_(models.Usuario.nombre == form_data.username,
+                models.Usuario.email == form_data.username)
+        )
+        .first()
+    )
+
     if not user or not services.verify_password(form_data.password, user.contrasena):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    
-    # VALIDACIÓN: Verificar que el usuario esté habilitado antes del login
+
+    # Usuario deshabilitado
     if not user.estado:
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Su cuenta ha sido deshabilitada. Contacte con el administrador para más información."
         )
-    
-    # Obtener roles del usuario
+
+    # Empresa desactivada
+    if not user.empresa or not user.empresa.estado:
+        raise HTTPException(
+            status_code=403,
+            detail="La empresa asociada está desactivada."
+        )
+
+    # Roles
     roles = (
         db.query(models.Rol.tipo_rol)
         .join(models.RolUsuario, models.Rol.id_rol == models.RolUsuario.id_rol)
         .filter(models.RolUsuario.id_usuario == user.id_usuario)
         .all()
     )
-
-    # Extraer primer rol o asignar un valor por defecto
     rol = roles[0][0] if roles else "usuario"
 
-    # Crear token de acceso normal
+    # Access token
     access_token = services.create_access_token(data={"sub": user.nombre})
-    
-    # Si "recordarme" está activado, crear cookie persistente
+
+    # Cookie remember opcional
     if remember_me:
-        # Token de "recordarme" con mayor duración (30 días)
         remember_data = {
             "sub": user.nombre,
             "type": "remember",
             "exp": datetime.utcnow() + timedelta(days=30)
         }
         remember_token = jwt.encode(remember_data, SECRET_KEY, algorithm=ALGORITHM)
-        
-        # Configurar cookie segura
         response.set_cookie(
             key="remember_token",
             value=remember_token,
-            max_age=30 * 24 * 60 * 60,  # 30 días en segundos
-            httponly=True,  # Solo accesible por servidor
-            secure=False,   # Cambiar a True en producción con HTTPS
-            samesite="lax"  # Protección CSRF
+            max_age=30 * 24 * 60 * 60,
+            httponly=True,
+            secure=False,   # True en prod con HTTPS
+            samesite="lax"
         )
-    
+
     return {
-        "access_token": access_token, 
-        "token_type": "bearer", 
+        "access_token": access_token,
+        "token_type": "bearer",
         "tipo_rol": rol,
         "remember_me": remember_me
     }
+
 
 @router.post("/logout", tags=["auth"], summary="Cerrar sesión")
 def logout(

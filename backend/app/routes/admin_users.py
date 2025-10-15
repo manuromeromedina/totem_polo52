@@ -608,14 +608,97 @@ def admin_update_empresa_nombre_rubro(
     db.refresh(emp)
     return emp
 
-@router.delete("/empresas/{cuil}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar una empresa")
-def delete_empresa(cuil: int, db: Session = Depends(get_db)):
-    """Eliminar empresa del sistema (elimina cascada relacionados)"""
-    empresa = db.query(Empresa).filter(Empresa.cuil == cuil).first()
+@router.put("/empresas/{cuil}/desactivar", summary="Desactivar una empresa y sus registros asociados")
+def desactivar_empresa(cuil: int, db: Session = Depends(get_db)):
+    """
+    Desactiva una empresa (baja lógica) y todos sus registros relacionados:
+    - Usuarios
+    - Servicios Polo
+    - Servicios
+    - Contactos
+    - Vehículos
+    - Lotes
+    """
+    empresa = db.query(models.Empresa).filter(models.Empresa.cuil == cuil).first()
     if not empresa:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
-    db.delete(empresa)
+
+    # Marcar empresa como inactiva
+    empresa.estado = False
+
+    # Desactivar usuarios asociados
+    for usuario in empresa.usuarios:
+        usuario.estado = False
+
+    # Desactivar servicios del polo asociados
+    for servicio_polo in empresa.servicios_polo:
+        if hasattr(servicio_polo, "estado"):
+            servicio_polo.estado = False
+
+    # Desactivar relaciones empresa-servicio
+    for emp_serv in empresa.servicios:
+        if hasattr(emp_serv, "estado"):
+            emp_serv.estado = False
+
+    # Desactivar contactos
+    for contacto in empresa.contactos:
+        if hasattr(contacto, "estado"):
+            contacto.estado = False
+
+    # Desactivar vehículos
+    for vehiculo in empresa.vehiculos_emp:
+        if hasattr(vehiculo, "estado"):
+            vehiculo.estado = False
+
     db.commit()
+    return {"message": f"Empresa '{empresa.nombre}' y sus registros relacionados fueron desactivados correctamente."}
+
+
+@router.put("/empresas/{cuil}/activar", summary="Reactivar una empresa y sus registros asociados")
+def activar_empresa(cuil: int, db: Session = Depends(get_db)):
+    """
+    Reactiva una empresa (vuelve a 'estado=True') y opcionalmente todos sus registros relacionados:
+    - Usuarios
+    - Servicios Polo
+    - Servicios
+    - Contactos
+    - Vehículos
+    - Lotes
+    """
+    empresa = db.query(models.Empresa).filter(models.Empresa.cuil == cuil).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+    # Marcar empresa como activa
+    empresa.estado = True
+
+    # Reactivar usuarios asociados
+    for usuario in empresa.usuarios:
+        usuario.estado = True
+
+    # Reactivar servicios del polo asociados
+    for servicio_polo in empresa.servicios_polo:
+        if hasattr(servicio_polo, "estado"):
+            servicio_polo.estado = True
+
+    # Reactivar relaciones empresa-servicio (si manejan estado)
+    for emp_serv in empresa.servicios:
+        if hasattr(emp_serv, "estado"):
+            emp_serv.estado = True
+
+    # Reactivar contactos (si tienen estado)
+    for contacto in empresa.contactos:
+        if hasattr(contacto, "estado"):
+            contacto.estado = True
+
+    # Reactivar vehículos (si tienen estado en la relación o entidad)
+    for vehiculo in empresa.vehiculos_emp:
+        if hasattr(vehiculo, "estado"):
+            vehiculo.estado = True
+
+    db.commit()
+    return {"message": f"Empresa '{empresa.nombre}' y sus registros relacionados fueron reactivados correctamente."}
+
 
 # ═══════════════════════════════════════════════════════════════════
 # GESTIÓN DE SERVICIOS DEL POLO

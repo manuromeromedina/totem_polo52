@@ -29,6 +29,7 @@ class Empresa(Base):
     observaciones   = Column(Text)
     fecha_ingreso   = Column(Date,    nullable=False)
     horario_trabajo = Column(String,  nullable=False)
+    estado         = Column(Boolean,  nullable=False)
 
     # relaciones con cascade delete-orphan
     usuarios        = relationship(
