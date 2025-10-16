@@ -424,3 +424,67 @@ html, body {
 .nice-form select {
   padding-right: 1rem;
 }
+
+/* Botonera “arriba a la derecha” encima de la card */
+.card-stack > .header-actions{
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .75rem;       /* separación con la card de abajo */
+}
+
+/* Si hay varias acciones, que no desborden */
+.card-stack > .header-actions{ flex-wrap: wrap; }
+
+/* En pantallas chicas: que no quede pegado a los bordes */
+@media (max-width: 700px){
+  .card-stack > .header-actions{ padding-inline: .25rem; }
+}
+
+
+/* Header con botón arriba derecha y buscador full-width debajo */
+.page-header{
+  display: grid;
+  grid-template-columns: 1fr auto;  /* contenido + acciones a la derecha */
+  grid-auto-rows: auto;
+  gap: .75rem 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* Botonera: esquina superior derecha */
+.header-actions{
+  grid-column: 2 / 3;
+  justify-self: end;
+  display: flex;
+  gap: .5rem;
+}
+
+/* Buscador: ocupa todo el ancho en la fila siguiente */
+.header-search{
+  grid-column: 1 / -1;
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  margin-bottom: 1.75rem;   /* ⬅️ antes era 1rem: más separación con la tabla */
+
+}
+.header-search input{
+  flex: 1 1 auto;      /* ocupa todo el ancho disponible */
+  width: 100%;
+  max-width: none;
+  height: 44px;
+  padding: .7rem .8rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: .95rem;
+}
+
+/* Responsive: se mantiene el mismo comportamiento */
+@media (max-width: 900px){
+  .page-header{ grid-template-columns: 1fr auto; }
+  .header-actions{ grid-column: 2 / 3; }
+  .header-search{ grid-column: 1 / -1; }
+}
+
+

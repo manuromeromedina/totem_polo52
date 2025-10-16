@@ -73,6 +73,7 @@ export class AdminPoloComponent implements OnInit {
   // PROPIEDADES PARA CONTROL DE CAMBIOS - MEJORADO
   private initialForms: { [key: string]: any } = {};
   private hasUnsavedChanges: { [key: string]: boolean } = {};
+  private empresaNombrePorCuil: Record<number, string> = {};
 
   // Sistema de errores mejorado
   formErrors: { [key: string]: FormError[] } = {};
@@ -205,6 +206,27 @@ export class AdminPoloComponent implements OnInit {
 
   // MÉTODOS PARA CONTROL DE CAMBIOS MEJORADO
 
+  // --- helpers ---
+  private rebuildEmpresaIndex(): void {
+    const map: Record<number, string> = {};
+
+    // de /polo/me (si ya vino)
+    this.poloData?.empresas?.forEach((e) => {
+      map[e.cuil] = e.nombre;
+    });
+
+    // de /empresas (si ya vino)
+    this.empresas?.forEach((e) => {
+      map[e.cuil] = e.nombre;
+    });
+
+    this.empresaNombrePorCuil = map;
+  }
+
+  getEmpresaNombre(cuil: number | null | undefined): string {
+    if (!cuil && cuil !== 0) return '—';
+    return this.empresaNombrePorCuil[cuil] ?? cuil.toString();
+  }
   // 1. MÉTODO PARA GUARDAR ESTADO INICIAL MEJORADO
   private saveInitialFormState(formName: string, formData: any): void {
     // Crear copia profunda inmediatamente
@@ -439,12 +461,14 @@ export class AdminPoloComponent implements OnInit {
     }
 
     const term = this.usuarioSearchTerm.toLowerCase().trim();
-    this.filteredUsuarios = this.usuarios.filter(
-      (usuario) =>
-        usuario.nombre.toLowerCase().includes(term) ||
-        usuario.email.toLowerCase().includes(term) ||
-        usuario.cuil.toString().includes(term)
-    );
+    this.filteredUsuarios = this.usuarios.filter((u) => {
+      const empresaNombre = this.getEmpresaNombre(u.cuil).toLowerCase();
+      return (
+        u.nombre.toLowerCase().includes(term) ||
+        u.email.toLowerCase().includes(term) ||
+        empresaNombre.includes(term) // 👈 ahora por nombre de empresa
+      );
+    });
   }
 
   clearUsuarioSearch(): void {
@@ -459,13 +483,14 @@ export class AdminPoloComponent implements OnInit {
     }
 
     const term = this.servicioSearchTerm.toLowerCase().trim();
-    this.filteredServicios = this.serviciosPolo.filter(
-      (servicio) =>
-        servicio.nombre.toLowerCase().includes(term) ||
-        servicio.cuil.toString().includes(term) ||
-        (servicio.propietario &&
-          servicio.propietario.toLowerCase().includes(term))
-    );
+    this.filteredServicios = this.serviciosPolo.filter((s) => {
+      const empresaNombre = this.getEmpresaNombre(s.cuil).toLowerCase();
+      return (
+        s.nombre.toLowerCase().includes(term) ||
+        empresaNombre.includes(term) || // 👈 nombre de empresa
+        (s.propietario && s.propietario.toLowerCase().includes(term))
+      );
+    });
   }
 
   clearServicioSearch(): void {
@@ -700,6 +725,8 @@ export class AdminPoloComponent implements OnInit {
           observaciones: data.observaciones || '',
           horario_trabajo: data.horario_trabajo,
         };
+        this.rebuildEmpresaIndex(); // 👈
+
         this.loading = false;
       },
       error: (error) => {
@@ -750,8 +777,11 @@ export class AdminPoloComponent implements OnInit {
         this.empresas = empresas;
         this.filteredEmpresas = [...empresas];
         this.filterEmpresas();
+        this.rebuildEmpresaIndex(); // 👈
+
         this.loading = false;
       },
+
       error: (error) => {
         this.handleError(error, 'general', 'cargar empresas');
         this.loading = false;

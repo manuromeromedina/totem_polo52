@@ -59,7 +59,6 @@
     </div>
 
     <div class="topbar-right">
-      <button class="pill">Panel Polo</button>
       <button
         class="ghost topbar-icon-btn"
         type="button"
@@ -138,38 +137,30 @@
 
     <!-- EMPRESAS -->
     <section *ngIf="activeTab === 'empresas'" class="card-stack">
-      <div class="card">
-        <div class="page-header">
-          <div class="actions">
-            <!-- IZQUIERDA: botón -->
-            <div class="actions-left">
-              <button
-                class="btn primary"
-                type="button"
-                (click)="openEmpresaForm()"
-              >
-                <span class="material-symbols-outlined">add_circle</span>
-                <span>Nueva empresa</span>
-              </button>
-            </div>
+      <!-- Botón arriba a la derecha -->
+      <div class="header-actions">
+        <button class="btn primary" type="button" (click)="openEmpresaForm()">
+          <span class="material-symbols-outlined">add_circle</span>
+          <span>Nueva empresa</span>
+        </button>
+      </div>
 
-            <!-- DERECHA: buscador -->
-            <div class="inline-search">
-              <input
-                type="text"
-                placeholder="Buscar por nombre, CUIL o rubro…"
-                [(ngModel)]="empresaSearchTerm"
-                (input)="filterEmpresas()"
-              />
-              <button
-                class="btn ghost"
-                type="button"
-                (click)="clearEmpresaSearch()"
-              >
-                Limpiar
-              </button>
-            </div>
-          </div>
+      <div class="card">
+        <!-- Buscador -->
+        <div class="header-search">
+          <input
+            type="text"
+            placeholder="Buscar por nombre, CUIL o rubro…"
+            [(ngModel)]="empresaSearchTerm"
+            (input)="filterEmpresas()"
+          />
+          <button
+            class="btn ghost"
+            type="button"
+            (click)="clearEmpresaSearch()"
+          >
+            Limpiar
+          </button>
         </div>
 
         <div class="table">
@@ -226,45 +217,35 @@
 
     <!-- USUARIOS -->
     <section *ngIf="activeTab === 'usuarios'" class="card-stack">
-      <div class="card">
-        <div class="page-header">
-          <div class="actions">
-            <!-- IZQUIERDA: botón principal -->
-            <div class="actions-left">
-              <button
-                class="btn primary"
-                type="button"
-                (click)="openUsuarioForm()"
-              >
-                <span class="material-symbols-outlined">person_add</span>
-                <span>Nuevo usuario</span>
-              </button>
-            </div>
+      <div class="header-actions">
+        <button class="btn primary" type="button" (click)="openUsuarioForm()">
+          <span class="material-symbols-outlined">person_add</span>
+          <span>Nuevo usuario</span>
+        </button>
+      </div>
 
-            <!-- DERECHA: buscador (más largo) -->
-            <div class="inline-search">
-              <input
-                type="text"
-                placeholder="Buscar por nombre, email o CUIL…"
-                [(ngModel)]="usuarioSearchTerm"
-                (input)="filterUsuarios()"
-              />
-              <button
-                class="btn ghost"
-                type="button"
-                (click)="clearUsuarioSearch()"
-              >
-                Limpiar
-              </button>
-            </div>
-          </div>
+      <div class="card">
+        <div class="header-search">
+          <input
+            type="text"
+            placeholder="Buscar por nombre, email o CUIL…"
+            [(ngModel)]="usuarioSearchTerm"
+            (input)="filterUsuarios()"
+          />
+          <button
+            class="btn ghost"
+            type="button"
+            (click)="clearUsuarioSearch()"
+          >
+            Limpiar
+          </button>
         </div>
 
         <div class="table">
           <div class="thead">
             <div>Email</div>
             <div>Nombre</div>
-            <div>CUIL</div>
+            <div>Empresa</div>
             <div>Estado</div>
             <div>Acciones</div>
           </div>
@@ -272,7 +253,7 @@
           <div class="row" *ngFor="let u of filteredUsuarios">
             <div>{{ u.email }}</div>
             <div>{{ u.nombre }}</div>
-            <div>{{ u.cuil }}</div>
+            <div>{{ getEmpresaNombre(u.cuil) }}</div>
             <div>
               <span
                 class="badge"
@@ -309,36 +290,32 @@
 
     <!-- SERVICIOS DEL POLO -->
     <section *ngIf="activeTab === 'servicios'" class="card-stack">
-      <div class="card">
-        <div class="page-header">
-          <div class="actions">
-            <div class="actions-left">
-              <button
-                class="btn primary"
-                type="button"
-                (click)="openServicioPoloForm()"
-              >
-                <span class="material-symbols-outlined">add_circle</span>
-                <span>Nuevo servicio</span>
-              </button>
-            </div>
+      <div class="header-actions">
+        <button
+          class="btn primary"
+          type="button"
+          (click)="openServicioPoloForm()"
+        >
+          <span class="material-symbols-outlined">add_circle</span>
+          <span>Nuevo servicio</span>
+        </button>
+      </div>
 
-            <div class="inline-search">
-              <input
-                type="text"
-                placeholder="Buscar por nombre, CUIL o propietario…"
-                [(ngModel)]="servicioSearchTerm"
-                (input)="filterServicios()"
-              />
-              <button
-                class="btn ghost"
-                type="button"
-                (click)="clearServicioSearch()"
-              >
-                Limpiar
-              </button>
-            </div>
-          </div>
+      <div class="card">
+        <div class="header-search">
+          <input
+            type="text"
+            placeholder="Buscar por nombre, CUIL o propietario…"
+            [(ngModel)]="servicioSearchTerm"
+            (input)="filterServicios()"
+          />
+          <button
+            class="btn ghost"
+            type="button"
+            (click)="clearServicioSearch()"
+          >
+            Limpiar
+          </button>
         </div>
 
         <div class="table">
@@ -346,7 +323,7 @@
             <div>Nombre</div>
             <div>Horario</div>
             <div>Propietario</div>
-            <div>CUIL</div>
+            <div>Empresa</div>
             <div>Acciones</div>
           </div>
 
@@ -354,7 +331,7 @@
             <div>{{ s.nombre }}</div>
             <div>{{ s.horario || "—" }}</div>
             <div>{{ s.propietario || "—" }}</div>
-            <div>{{ s.cuil }}</div>
+            <div>{{ getEmpresaNombre(s.cuil) }}</div>
 
             <div class="row-actions">
               <button
@@ -379,25 +356,21 @@
 
     <!-- LOTES -->
     <section *ngIf="activeTab === 'lotes'" class="card-stack">
+      <div class="header-actions">
+        <!-- si querés agregar botones luego, van acá -->
+      </div>
+
       <div class="card">
-        <div class="page-header">
-          <div class="actions">
-            <div class="inline-search">
-              <input
-                type="text"
-                placeholder="Buscar por dueño, lote o manzana…"
-                [(ngModel)]="loteSearchTerm"
-                (input)="filterLotes()"
-              />
-              <button
-                class="btn ghost"
-                type="button"
-                (click)="clearLoteSearch()"
-              >
-                Limpiar
-              </button>
-            </div>
-          </div>
+        <div class="header-search">
+          <input
+            type="text"
+            placeholder="Buscar por dueño, lote o manzana…"
+            [(ngModel)]="loteSearchTerm"
+            (input)="filterLotes()"
+          />
+          <button class="btn ghost" type="button" (click)="clearLoteSearch()">
+            Limpiar
+          </button>
         </div>
 
         <div class="table">
@@ -748,16 +721,6 @@
             <option [ngValue]="true">Habilitado</option>
             <option [ngValue]="false">Inhabilitado</option>
           </select>
-        </div>
-
-        <div class="field" *ngIf="editingUsuario">
-          <label>Nueva contraseña (opcional)</label>
-          <input
-            type="password"
-            [(ngModel)]="usuarioForm.password"
-            name="u_password"
-            placeholder="••••••"
-          />
         </div>
       </div>
 

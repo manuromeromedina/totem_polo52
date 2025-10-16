@@ -16,7 +16,9 @@
       />
       <div class="topbar-title">
         <div class="app-title">POLO 52</div>
-        <div class="app-sub">Parque Industrial</div>
+        <div class="app-sub">
+          {{ empresaData?.nombre || "Parque Industrial" }}
+        </div>
       </div>
     </div>
 
@@ -67,8 +69,6 @@
     </div>
 
     <div class="topbar-right">
-      <button class="pill">Empresa Activa</button>
-
       <button
         class="ghost topbar-icon-btn"
         (click)="goTo('config')"

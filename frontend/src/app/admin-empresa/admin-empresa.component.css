@@ -5,43 +5,35 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   font-family: 'Inter', sans-serif;
 }
 
-/* ─── Topbar (navbar) ─────────────────────────────────────────── */
+/* Topbar */
 .topbar{
   position: sticky; top:0; z-index:10;
   display:flex; align-items:center; justify-content:space-between;
   gap:1rem; padding:0.75rem 1rem; background:#fff; border-bottom:1px solid #eee;
-  font-family: 'Inter', sans-serif;
 }
-.topbar-left { display:flex; align-items:center; gap:0.75rem; }
-.topbar .brand-icon{color:#0a8f5a}
-.topbar .app-title { font-weight:900;  font-family: 'Inter', sans-serif; font-size: 30px;}
-.topbar .app-sub { font-size:.85rem; color:#777; margin-top:-2px;  font-family: 'Inter', sans-serif;}
+.topbar-left { display:flex; align-items:center; gap:.75rem; }
+.brand-logo { width:64px; height:64px; object-fit:contain; display:block; }
+.topbar-title .app-title { font-weight:900; font-size:30px;  font-family: 'Inter', sans-serif;}
+.topbar-title .app-sub { font-size:.85rem; color:#777; margin-top:-2px; }
 
 .topbar-tabs{display:flex; gap:.25rem}
 .topbar .tab{
   border:none; background:transparent; padding:.5rem .9rem; border-radius:999px;
-  color:#555; cursor:pointer
+  color:#555; cursor:pointer; transition: .2s ease;
 }
-.topbar .tab.active { background:#f0f0f0; color:#111; font-weight:600; }
+.topbar .tab:hover{ background:#f5f5f5; }
+.topbar .tab.active { background:#f0f0f0; color:#111; font-weight:600;  font-family: 'Inter', sans-serif;}
 
 .topbar-right{display:flex; align-items:center; gap:.5rem}
-.topbar-right .pill{
-  background:#fff0f0;           /* antes: #e8fff2 */
-  color:#a20000;                /* antes: verde */
-  border:1px solid #f5b5b5;     /* antes: #bdf0d5 */
-  padding:.45rem .8rem;
-  border-radius:999px
+.pill{
+  background:#fff0f0; color:#a20000; border:1px solid #f5b5b5;
+  padding:.45rem .8rem; border-radius:999px;
 }
+
+
 .topbar-right .ghost{
   background:#f5f5f5; border:none; padding:.45rem .8rem; border-radius:8px; color:#444; cursor:pointer
 }
-.brand-logo {
-  width: 64px;
-  height: 64px;
-  object-fit: contain;
-  display: block;
-}
-
 .topbar-icon-btn {
   display: inline-flex;
   align-items: center;
@@ -53,7 +45,6 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   font-size: 20px;     /* un poco más chico que el texto */
   line-height: 1;
 }
-
 
 /* ─── Resumen ─────────────────────────────────────────────────── */
 .resume-grid{
