@@ -385,6 +385,7 @@ class EmpresaCreate(BaseModel):
     observaciones: Optional[str] = None
     fecha_ingreso: Optional[date] = None
     horario_trabajo: str
+    estado: bool
 
     class Config:
            from_attributes = True
@@ -393,6 +394,7 @@ class EmpresaAdminUpdate(BaseModel):
     """Solo admin_polo puede tocar nombre y rubro"""
     nombre: Optional[str]
     rubro: Optional[str]
+    estado: Optional[str]
 
     class Config:
            from_attributes = True
@@ -401,6 +403,8 @@ class EmpresaSelfUpdate(BaseModel):
     cant_empleados: Optional[int]
     observaciones: Optional[str]
     horario_trabajo: Optional[str]
+
+
 
     class Config:
         from_attributes = True

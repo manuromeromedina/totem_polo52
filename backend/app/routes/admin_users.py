@@ -580,7 +580,8 @@ def create_empresa(dto: EmpresaCreate, db: Session = Depends(get_db)):
         cant_empleados=dto.cant_empleados,
         observaciones=dto.observaciones,
         fecha_ingreso=dto.fecha_ingreso or date.today(),
-        horario_trabajo=dto.horario_trabajo
+        horario_trabajo=dto.horario_trabajo,
+        estado=dto.estado
     )
     db.add(nueva)
     db.commit()
@@ -603,6 +604,8 @@ def admin_update_empresa_nombre_rubro(
         emp.nombre = dto.nombre
     if dto.rubro is not None:
         emp.rubro = dto.rubro
+    if dto.estado is not None:
+        emp.estado = dto.estado
 
     db.commit()
     db.refresh(emp)
