@@ -552,7 +552,6 @@ class ContactoOut(BaseModel):
     telefono: Optional[str]
     datos: Optional[dict]
     direccion: Optional[str]
-    id_servicio_polo: Optional[int]
 
     class Config:
         from_attributes = True
@@ -563,7 +562,6 @@ class ContactoCreate(BaseModel):
     telefono: Optional[str]
     datos: Optional[Dict]
     direccion: Optional[str]
-    id_servicio_polo: int
 
     class Config:
         from_attributes = True
@@ -575,7 +573,6 @@ class ContactoUpdate(BaseModel):
     telefono: Optional[str]
     datos: Optional[Dict]
     direccion: Optional[str]
-    id_servicio_polo: Optional[int]
 
     class Config:
         from_attributes = True

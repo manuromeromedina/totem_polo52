@@ -215,11 +215,6 @@ class Contacto(Base):
         ForeignKey("empresa.cuil", ondelete="CASCADE"),
         nullable=False,
     )
-    id_servicio_polo = Column(
-        Integer,
-        ForeignKey("servicio_polo.id_servicio_polo", ondelete="CASCADE"),
-        nullable=False,
-    )
     id_tipo_contacto = Column(
         Integer,
         ForeignKey("tipo_contacto.id_tipo_contacto", ondelete="CASCADE"),
@@ -227,7 +222,6 @@ class Contacto(Base):
     )
 
     empresa          = relationship("Empresa",       back_populates="contactos")
-    servicio_polo    = relationship("ServicioPolo",  back_populates="contactos")
     tipo_contacto    = relationship("TipoContacto",  back_populates="contactos")
 
 
@@ -261,7 +255,6 @@ class ServicioPolo(Base):
     cascade="all, delete-orphan",
     passive_deletes=True,
 )
-    contactos             = relationship("Contacto", back_populates="servicio_polo")
     empresa               = relationship("Empresa", back_populates="servicios_polo")  # Relación con Empresa
 
 class Lote(Base):

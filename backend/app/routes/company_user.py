@@ -86,7 +86,6 @@ def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
                 telefono=c.telefono,
                 datos=c.datos,
                 direccion=c.direccion,
-                id_servicio_polo=c.id_servicio_polo,
                 tipo_contacto=tipo_contacto
             )
         )
@@ -460,7 +459,6 @@ def create_contacto(
         telefono=dto.telefono,
         datos=dto.datos,
         direccion=dto.direccion,
-        id_servicio_polo=dto.id_servicio_polo,
     )
     db.add(contacto)
     db.commit()
