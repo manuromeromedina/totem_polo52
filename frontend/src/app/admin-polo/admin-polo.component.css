@@ -8,34 +8,201 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 .admin-layout { display: flex; flex-direction: column; min-height: 100vh; }
 .content { flex-grow: 1; padding: 2rem; }
 
-/* Topbar */
+body.dark-theme, html.dark-theme {
+  background:#1a223b !important;
+  color:#e7ecff;
+}
+
+.admin-layout.dark-mode {
+  background:#1a223b;
+  color:#e7ecff;
+}
+.admin-layout.dark-mode .topbar {
+  background:#22315a;
+  border-bottom:1px solid #2e3d6f;
+}
+.admin-layout.dark-mode .topbar .tab {
+  color:#d6dcff;
+}
+.admin-layout.dark-mode .topbar .tab:hover {
+  background:#2c3f6f;
+}
+.admin-layout.dark-mode .topbar .tab.active {
+  background:#33487c;
+  color:#ffffff;
+}
+.admin-layout.dark-mode .topbar-right .ghost {
+  background:#304270;
+  color:#f1f4ff;
+}
+.admin-layout.dark-mode .topbar-icon-btn .material-symbols-outlined {
+  color:#f1f4ff;
+}
+.admin-layout.dark-mode .card {
+  background:#25386a;
+  color:#f0f4ff;
+  box-shadow:0 12px 32px rgba(11,20,48,.55);
+}
+.admin-layout.dark-mode .muted {
+  color:#c6cff7;
+}
+.admin-layout.dark-mode .nice-form input,
+.admin-layout.dark-mode .nice-form select,
+.admin-layout.dark-mode .nice-form textarea {
+  background:#20325f;
+  border:1px solid #3b4f80;
+  color:#f6f8ff;
+}
+.admin-layout.dark-mode .nice-form input::placeholder,
+.admin-layout.dark-mode .nice-form textarea::placeholder {
+  color:#9fb1ff;
+}
+.admin-layout.dark-mode .nice-form label {
+  color:#d2dcff;
+}
+.admin-layout.dark-mode .alert--success {
+  background:#244a7a;
+  color:#cbe0ff;
+  border-color:#3a66a3;
+}
+.admin-layout.dark-mode .alert--error {
+  background:#2f3e87;
+  color:#dcd8ff;
+  border-color:#4854aa;
+}
+.admin-layout.dark-mode .table .row:nth-child(odd) {
+  background:#1f315c;
+}
+.admin-layout.dark-mode .table,
+.admin-layout.dark-mode .table .thead,
+.admin-layout.dark-mode .table .row {
+  color:#f0f4ff;
+}
+.admin-layout.dark-mode .table .thead {
+  background:#1c2a52;
+}
+.admin-layout.dark-mode .table .row {
+  border-color:#364a7d;
+}
+.admin-layout.dark-mode .card--table .table{
+  border:1px solid #2f3f6b;
+  background:#22335f;
+  box-shadow:0 14px 28px rgba(8,14,32,0.55);
+}
+.admin-layout.dark-mode .card--table .table .thead{
+  background:#1f2f58;
+  color:#e1e7ff;
+  border-bottom:1px solid #2f4273;
+}
+.admin-layout.dark-mode .card--table .table .row{
+  background:#22335f;
+  border-bottom:1px solid #2f4273;
+}
+.admin-layout.dark-mode .card--table .table .row:nth-child(odd){
+  background:#1e2d52;
+}
+.admin-layout.dark-mode .card--table .table .row:last-child{
+  border-bottom:none;
+}
+.admin-layout.dark-mode .card--table .table .row > div{
+  color:#d6dcff;
+}
+.admin-layout.dark-mode .btn.outline-primary {
+  border-color:#6a8fff;
+  color:#e1e6ff;
+}
+.admin-layout.dark-mode .btn.outline-primary:hover {
+  background:#364d82;
+}
+.admin-layout.dark-mode .btn.primary {
+  background:#4f6dff;
+  color:#ffffff;
+  border:1px solid #5f7aff;
+}
+.admin-layout.dark-mode .btn.primary:hover {
+  background:#5b79ff;
+}
+.admin-layout.dark-mode .btn.ghost {
+  color:#e7ecff;
+  border-color:#3d4f7e;
+  background:#23345e;
+}
+.admin-layout.dark-mode .overlay{
+  background:rgba(24,34,68,0.86);
+}
+.admin-layout.dark-mode .modal{
+  background:#243768;
+  color:#f0f4ff;
+  box-shadow:0 22px 46px rgba(9,16,38,.55);
+}
+
 .topbar{
-  position: sticky; top:0; z-index:10;
-  display:flex; align-items:center; justify-content:space-between;
-  gap:1rem; padding:0.75rem 1rem; background:#fff; border-bottom:1px solid #eee;
+  position:sticky;
+  top:0;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  padding:0.75rem 1rem;
+  background:#fff;
+  border-bottom:1px solid #eee;
 }
-.topbar-left { display:flex; align-items:center; gap:.75rem; }
-.brand-logo { width:64px; height:64px; object-fit:contain; display:block; }
-.topbar-title .app-title { font-weight:900; font-size:30px;  font-family: 'Inter', sans-serif;}
-.topbar-title .app-sub { font-size:.85rem; color:#777; margin-top:-2px; }
-
-.topbar-tabs{display:flex; gap:.25rem}
-.topbar .tab{
-  border:none; background:transparent; padding:.5rem .9rem; border-radius:999px;
-  color:#555; cursor:pointer; transition: .2s ease;
+.topbar-left{
+  display:flex;
+  align-items:center;
+  gap:.75rem;
 }
-.topbar .tab:hover{ background:#f5f5f5; }
-.topbar .tab.active { background:#f0f0f0; color:#111; font-weight:600;  font-family: 'Inter', sans-serif;}
-
-.topbar-right{display:flex; align-items:center; gap:.5rem}
-.pill{
-  background:#fff0f0; color:#a20000; border:1px solid #f5b5b5;
-  padding:.45rem .8rem; border-radius:999px;
+.brand-logo{
+  width:64px;
+  height:64px;
+  object-fit:contain;
+  display:block;
 }
-
+.topbar-title .app-title{
+  font-weight:900;
+  font-size:30px;
+  font-family:'Inter', sans-serif;
+}
+.topbar-title .app-sub{
+  font-size:.85rem;
+  color:#777;
+  margin-top:-2px;
+  font-family:'Inter', sans-serif;
+}
+.topbar-right{
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+}
+.alert{
+  margin-bottom:1rem;
+  padding:.75rem 1rem;
+  border-radius:10px;
+  font-weight:500;
+}
+.alert--success{
+  background:#e8f5e9;
+  color:#256029;
+  border:1px solid #a5d6a7;
+}
+.alert--error{
+  background:#fdecea;
+  color:#b71c1c;
+  border:1px solid #f5c6cb;
+}
 
 .topbar-right .ghost{
-  background:#f5f5f5; border:none; padding:.45rem .8rem; border-radius:8px; color:#444; cursor:pointer
+  background:#f5f5f5;
+  border:none;
+  padding:.45rem .8rem;
+  border-radius:8px;
+  color:#444;
+  cursor:pointer;
+}
+.topbar-right .ghost.active{
+  background:#e9efff;
+  color:#1a284b;
 }
 .topbar-icon-btn {
   display: inline-flex;
@@ -65,6 +232,75 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 .col-2 { grid-column: span 2; }
 .col-3 { grid-column: span 3; }
 
+.resume-grid{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  gap:1rem;
+}
+.kpi.card{grid-column:span 3;}
+.activity.card{grid-column:span 7;}
+.quick.card{grid-column:span 5;}
+
+.kpi .kpi-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:.5rem;
+}
+.kpi .kpi-title{font-weight:600; color:#3a4c7a;}
+.kpi .kpi-number{font-size:2rem; font-weight:700;}
+.kpi .kpi-sub{font-size:.9rem; color:#53618d; margin-top:.25rem;}
+
+.activity-list{list-style:none; padding:0; margin:0;}
+.activity-list li{
+  display:flex;
+  align-items:flex-start;
+  gap:.6rem;
+  padding:.35rem 0;
+}
+.activity-list .dot{
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  margin-top:.45rem;
+  background:#ccc;
+}
+.activity-list .dot.ok{background:#4caf50;}
+.activity-list .dot.warn{background:#e07a00;}
+.activity-list .dot.info{background:#1976d2;}
+.a-title{font-weight:600;}
+.a-when{font-size:.8rem; color:#53618d;}
+
+.quick-list{display:flex; flex-direction:column; gap:.5rem;}
+.quick-btn{
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+  background:#f8f8f8;
+  border:1px solid #e5e5e5;
+  border-radius:10px;
+  padding:.7rem .9rem;
+  cursor:pointer;
+  font-weight:500;
+  color:#1f2f55;
+}
+.quick-btn:hover{background:#f1f1f1;}
+.quick-btn .material-symbols-outlined{font-size:20px;}
+
+.resume-grid,
+.setting-card,
+.activity-list,
+.quick-list {
+  font-family: 'Inter', sans-serif;
+  color: inherit;
+}
+
+@media (max-width: 1000px){
+  .kpi.card{grid-column:span 6;}
+  .activity.card{grid-column:span 12;}
+  .quick.card{grid-column:span 12;}
+}
+
 .page-header {
   display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem;
 }
@@ -80,7 +316,7 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   align-items:center;
   gap:.75rem;
 }
-.page-header h1 { font-size:1.2rem; font-weight:600; color:#222;  font-family: 'Inter', sans-serif;}
+.page-header h1 { font-size:1.2rem; font-weight:600; color:#1a284b;  font-family: 'Inter', sans-serif;}
 
 /* Buscador inline */
 .inline-search { display:flex; gap:.5rem; align-items:center; }
@@ -97,7 +333,7 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 
 /* Formularios */
 .nice-form .field { display:flex; flex-direction:column; margin-bottom:1rem; min-width:0; }
-.nice-form label { font-size:.85rem; font-weight:500; margin-bottom:.3rem; color:#555;  font-family: 'Inter', sans-serif;}
+.nice-form label { font-size:.85rem; font-weight:500; margin-bottom:.3rem; color:#30406b;  font-family: 'Inter', sans-serif;}
 .nice-form input, .nice-form select, .nice-form textarea{
   width:100%; padding:.7rem .8rem; border:1px solid #ddd; border-radius:8px;
   font-size:.95rem; background:#fff; transition:border-color .2s ease, box-shadow .2s ease; font-family: 'Inter', sans-serif;
@@ -110,8 +346,8 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 }
 
 /* Select nativo (para evitar warnings de prefijos) */
-.nice-form select{ appearance:auto; -webkit-appearance:auto; -moz-appearance:auto; background-image:none; padding-right:.8rem; color:#111; }
-.nice-form select option{ color:#111; background:#fff; }
+.nice-form select{ appearance:auto; -webkit-appearance:auto; -moz-appearance:auto; background-image:none; padding-right:.8rem; color:#1a284b; }
+.nice-form select option{ color:#1a284b; background:#fff; }
 
 
 /* Solo inputs/ selects/ textareas, no el <form> */
@@ -160,7 +396,7 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   font-weight:500; cursor:pointer; border:none; font-size:.9rem; transition:.2s ease;
 }
 .btn.primary{ background:#a20000; color:#fff; } .btn.primary:hover{ background:#870000; }
-.btn.ghost{ background:#f5f5f5; color:#444; }
+.btn.ghost{ background:#f5f5f5; color:#2b3a62; }
 .btn.icon{ width:36px; height:36px; min-width:36px; min-height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:#f5f5f5; }
 .btn.icon:hover{ background:#eaeaea; }
 .btn.danger{ color:#a20000; background:#fff0f0; border:1px solid #f5b5b5; }
@@ -180,11 +416,44 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   align-items:center;
   font-family: 'Inter', sans-serif; font-size:15px;
 }
-.table .thead{ font-weight:600; color:#444; font-family: 'Inter', sans-serif; }
+.table .thead{ font-weight:600; color:#2b3a62; font-family: 'Inter', sans-serif; }
 
 /* 👉 Alinear "Acciones" a la derecha */
 .table .thead > div:last-child { justify-self:end; text-align:right; }
 .table .row .row-actions { display:flex; gap:.5rem; justify-self:end; }
+.card--table{
+  padding:1.5rem;
+}
+.card--table > h2,
+.card--table > .header-search{
+  margin-bottom:1.25rem;
+}
+.card--table .table{
+  border:1px solid #e3e6f2;
+  border-radius:14px;
+  overflow:hidden;
+  background:#ffffff;
+  box-shadow:0 12px 24px -12px rgba(34,47,90,0.22);
+}
+.card--table .table .thead,
+.card--table .table .row{
+  padding:0.9rem 1.25rem;
+  border-bottom:1px solid #e9ecf7;
+  gap:0.7rem;
+}
+.card--table .table .thead{
+  background:#f3f6fc;
+  color:#25325b;
+}
+.card--table .table .row{
+  background:#ffffff;
+}
+.card--table .table .row:nth-child(odd){
+  background:#f8f9ff;
+}
+.card--table .table .row:last-child{
+  border-bottom:none;
+}
 
 /* Variantes de tabla según entidad (columnas más cómodas) */
 .table--empresas .thead, .table--empresas .row { grid-template-columns: 140px 1.4fr 1fr 120px 160px 120px; }
@@ -267,7 +536,7 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 .nice-form textarea::placeholder { color:#9aa0a6; opacity:1; }
 
 /* Ayudas siempre en bloque y sin desbordes */
-.hint{ display:block; margin-top:.25rem; font-size:.8rem; color:#777; line-height:1.2; }
+.hint{ display:block; margin-top:.25rem; font-size:.8rem; color:#53618d; line-height:1.2; }
 
 /* Quitar outline negro grueso del browser en focus */
 .nice-form input:focus,
@@ -311,7 +580,7 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   display: block;
   margin-top: .25rem;
   font-size: .8rem;
-  color: #777;
+  color: #53618d;
   line-height: 1.2;
   white-space: normal;         /* permite salto de línea */
   overflow-wrap: anywhere;     /* evita barras horizontales */
@@ -488,3 +757,304 @@ html, body {
 }
 
 
+.horario-cell {
+  display: flex;
+  align-items: start;
+  gap: .5rem;
+  max-width: 320px;     /* ajustá al ancho de tu tabla */
+}
+
+.horario-cell .clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+
+  /* clamp estándar + prefijo */
+  line-clamp: 1;           /* estándar */
+  -webkit-line-clamp: 1;   /* WebKit */
+
+  overflow: hidden;
+}
+
+
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+/* ===== Tabla: espaciado cómodo y alineación coherente ===== */
+.table {
+  width: 100%;
+}
+
+/* Más aire vertical + más separación entre columnas */
+.table .thead,
+.table .row {
+  display: grid;
+  gap: 1rem;                 /* antes .5rem */
+  padding: 1rem 0;           /* antes .8rem 0 */
+  border-bottom: 1px solid #eee;
+  align-items: center;
+  font-size: 14.5px;
+}
+
+/* Zebra suave para legibilidad */
+.table .row:nth-child(odd) { background: #fafafa; }
+.table .row:nth-child(odd) > * { background: transparent; }
+
+/* Columna de acciones siempre a la derecha (encabezado y filas) */
+.table .thead > div:last-child,
+.table .row  > div:last-child {
+  justify-self: end;
+  text-align: right;
+}
+
+/* Botonera de acciones */
+.table .row .row-actions {
+  display: flex;
+  gap: .6rem;
+  justify-self: end;
+}
+
+/* ===== Anchos y alineación por tabla ===== */
+
+/* EMPRESAS: CUIL | Nombre | Rubro | Empl. | Estado | Horario | Acciones */
+.table--empresas .thead,
+.table--empresas .row {
+  grid-template-columns: 140px 1.6fr 1.2fr 110px 130px 1.2fr 140px;
+}
+
+/* centrar la columna de Empleados */
+.table--empresas .thead > div:nth-child(4),
+.table--empresas .row  > div:nth-child(4) { text-align: center; }
+
+/* USUARIOS: Email | Nombre | Empresa | Estado | Acciones */
+.table--usuarios .thead,
+.table--usuarios .row {
+  grid-template-columns: 1.6fr 1fr 1.2fr 140px 140px;
+}
+
+/* centrar Estado en usuarios */
+.table--usuarios .thead > div:nth-child(4),
+.table--usuarios .row  > div:nth-child(4) { text-align: center; }
+
+/* SERVICIOS: Nombre | Horario | Propietario | Empresa | Acciones */
+.table--servicios .thead,
+.table--servicios .row {
+  grid-template-columns: 1.4fr 1.2fr 1fr 1.2fr 140px;
+}
+
+/* LOTES: Dueño | Manzana | Lote | Servicio | Acciones */
+.table--lotes .thead,
+.table--lotes .row {
+  grid-template-columns: 1.2fr 120px 120px 1fr 140px;
+  column-gap: 1.2rem;   /* un pelín más de aire */
+}
+
+/* Celda de horario con clamp + botón “Ver más” */
+.horario-cell {
+  display: flex;
+  align-items: start;
+  gap: .5rem;
+  max-width: 360px;     /* un poco más ancho */
+}
+.horario-cell .clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  line-clamp: 1;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+}
+.link-btn {
+  background: none; border: 0; padding: 0;
+  font: inherit; cursor: pointer; text-decoration: underline; white-space: nowrap;
+}
+
+
+.horario-cell{
+  display: flex;
+  flex-direction: column;     /* texto arriba, botón abajo */
+  align-items: stretch;
+  gap: .25rem;
+  max-width: 360px;
+}
+
+.horario-full{
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.link-btn{
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.link-btn.small{
+  font-size: .85em;           /* menos invasivo */
+  opacity: .85;
+}
+
+.vermenos{
+  align-self: flex-end;       /* “Ocultar” a la derecha de la celda */
+}
+
+
+/* Columna Horario en Empresas: texto + botón en línea, alineados a la izquierda */
+.table--empresas .row > div:nth-child(6),
+.table--empresas .thead > div:nth-child(6) {
+  /* la 6ª columna es "Horario" en tu grid de Empresas */
+  display: flex;
+  align-items: center;
+  gap: .5rem;            /* separa el texto del botón */
+  justify-content: flex-start;
+  max-width: 360px;      /* evita que la columna crezca de más */
+}
+
+/* El texto colapsado en una sola línea (sin cortar palabras raras) */
+.table--empresas .row > div:nth-child(6) .clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+}
+
+/* Botón tipo enlace: siempre pegado al texto, sin flotar a la derecha */
+.table--empresas .row > div:nth-child(6) .link-btn,
+.table--empresas .row > div:nth-child(6) .btn-ver-mas {
+  margin-left: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Mismo layout que en Empresas, aplicado a Servicios del Polo */
+.sp-horario {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  max-width: 360px;
+}
+.sp-horario .clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+}
+/* Reutilizamos .btn-ver-mas ya definida (colores/hover/focus) */
+
+
+/* ===== FIX HORARIO (Empresas + Servicios) ===== */
+
+/* 1) La celda "Horario" se comporta como una fila con botón pegado al texto */
+.horario-cell{
+  display: inline-flex;       /* inline para que no ocupe todo el ancho de la celda */
+  flex-direction: row;        /* texto y botón en línea */
+  align-items: baseline;      /* alinear con el texto */
+  gap: .4rem;
+  max-width: 420px;           /* ancho cómodo */
+  flex-wrap: nowrap;          /* que el botón no salte abajo */
+}
+
+/* texto recortado en 1 línea cuando está colapsado */
+.horario-cell .clamped{
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+}
+
+/* texto expandido normal */
+.horario-full{
+  white-space: normal;
+  line-height: 1.35;
+}
+
+/* botón tipo enlace SIEMPRE al lado del texto (izquierda de la celda) */
+.horario-cell .link-btn{
+  flex: 0 0 auto;
+  white-space: nowrap;
+  margin: 0;
+  align-self: baseline;
+}
+
+/* NO empujes "Ocultar" a la derecha */
+.vermenos{ align-self: baseline !important; }
+
+/* 2) En la tabla de EMPRESAS, la 6ª columna ("Horario") alineada a la izquierda */
+.table--empresas .row > div:nth-child(6),
+.table--empresas .thead > div:nth-child(6){
+  justify-self: start !important;
+  text-align: left !important;
+}
+
+/* (por si alguna regla previa dejó .horario-cell en columna, la pisamos) */
+.table--empresas .row > div:nth-child(6) .horario-cell,
+.table--servicios .row > div:nth-child(2) .horario-cell{
+  flex-direction: row !important;
+}
+/* ===== Empresas: redistribución de columnas para dar más ancho a "Horario" ===== */
+.table--empresas .thead,
+.table--empresas .row{
+  /* CUIL | Nombre | Rubro | Empl. | Estado | Horario | Acciones */
+  grid-template-columns: 120px 1.2fr 0.9fr 90px 110px 2fr 150px !important;
+  column-gap: 1.1rem !important;   /* un poquito menos de separación */
+}
+
+/* Centrar Empleados + Estado (se mantienen) */
+.table--empresas .thead > div:nth-child(4),
+.table--empresas .row  > div:nth-child(4),
+.table--empresas .thead > div:nth-child(5),
+.table--empresas .row  > div:nth-child(5){
+  text-align:center;
+}
+
+/* Asegurar que la columna "Horario" siga alineada a la izquierda */
+.table--empresas .thead > div:nth-child(6),
+.table--empresas .row  > div:nth-child(6){
+  justify-self:start !important;
+  text-align:left !important;
+  max-width: none;                 /* que use todo el ancho asignado */
+}
+
+/* En pantallas medianas también priorizamos "Horario" */
+@media (max-width: 1000px){
+  .table--empresas .thead,
+  .table--empresas .row{
+    grid-template-columns: 110px 1.1fr 0.8fr 80px 100px 1.7fr 140px !important;
+    column-gap: .7rem !important;
+  }
+}
+.topbar-tabs{
+  display:flex;
+  align-items:center;
+  gap:.25rem;
+  flex-wrap:wrap;
+}
+.topbar .tab{
+  border:none;
+  background:transparent;
+  padding:.5rem .9rem;
+  border-radius:999px;
+  color:#555;
+  cursor:pointer;
+  transition:.2s ease;
+  white-space:nowrap;
+  font-weight:500;
+  font-size:.9rem;
+}
+.topbar .tab:hover{ background:#f5f5f5; }
+.topbar .tab.active{
+  background:#e9efff;
+  color:#1a284b;
+  font-weight:600;
+}

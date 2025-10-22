@@ -1,11 +1,159 @@
-
-/* Heredar la misma tipografía en TODOS los controles del form */
-/* Tipografía consistente en todo */
+﻿
 html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   font-family: 'Inter', sans-serif;
 }
 
-/* Topbar */
+body.dark-theme, html.dark-theme {
+  background:#1a223b !important;
+  color:#e7ecff;
+}
+
+.admin-layout.dark-mode {
+  background:#1a223b;
+  color:#e7ecff;
+}
+.admin-layout.dark-mode .topbar {
+  background:#22315a;
+  border-bottom:1px solid #2e3d6f;
+}
+.admin-layout.dark-mode .topbar .tab {
+  color:#d6dcff;
+}
+.admin-layout.dark-mode .topbar .tab:hover {
+  background:#2c3f6f;
+}
+.admin-layout.dark-mode .topbar .tab.active {
+  background:#33487c;
+  color:#ffffff;
+}
+.admin-layout.dark-mode .topbar-right .ghost {
+  background:#304270;
+  color:#f1f4ff;
+}
+.admin-layout.dark-mode .topbar-right .ghost.active {
+  background:#3a4c7f;
+  color:#ffffff;
+}
+.admin-layout.dark-mode .topbar-icon-btn .material-symbols-outlined {
+  color:#f1f4ff;
+}
+.admin-layout.dark-mode .content {
+  color:#e7ecff;
+}
+.admin-layout.dark-mode .card {
+  background:#25386a;
+  color:#f0f4ff;
+  box-shadow:0 12px 32px rgba(11,20,48,.55);
+}
+.admin-layout.dark-mode .muted {
+  color:#c6cff7;
+}
+.admin-layout.dark-mode .nice-form input,
+.admin-layout.dark-mode .nice-form select,
+.admin-layout.dark-mode .nice-form textarea {
+  background:#20325f;
+  border:1px solid #3b4f80;
+  color:#f6f8ff;
+}
+.admin-layout.dark-mode .nice-form input::placeholder,
+.admin-layout.dark-mode .nice-form textarea::placeholder {
+  color:#9fb1ff;
+}
+.admin-layout.dark-mode .nice-form label {
+  color:#d2dcff;
+}
+.admin-layout.dark-mode .alert--success {
+  background:#244a7a;
+  color:#cbe0ff;
+  border-color:#3a66a3;
+}
+.admin-layout.dark-mode .alert--error {
+  background:#2f3e87;
+  color:#dcd8ff;
+  border-color:#4854aa;
+}
+.admin-layout.dark-mode .table .row:nth-child(odd) {
+  background:#1f315c;
+}
+.admin-layout.dark-mode .table,
+.admin-layout.dark-mode .table .thead,
+.admin-layout.dark-mode .table .row {
+  color:#f0f4ff;
+}
+
+.admin-layout.dark-mode .table .thead {
+  background:#1c2a52;
+}
+.admin-layout.dark-mode .table .row {
+  border-color:#364a7d;
+}
+.admin-layout.dark-mode .card--table .table{
+  border:1px solid #2f3f6b;
+  background:#22335f;
+  box-shadow:0 14px 28px rgba(8,14,32,0.55);
+}
+.admin-layout.dark-mode .card--table .table .thead{
+  background:#1f2f58;
+  color:#e1e7ff;
+  border-bottom:1px solid #2f4273;
+}
+.admin-layout.dark-mode .card--table .table .row{
+  background:#22335f;
+  border-bottom:1px solid #2f4273;
+}
+.admin-layout.dark-mode .card--table .table .row:nth-child(odd){
+  background:#1e2d52;
+}
+.admin-layout.dark-mode .card--table .table .row:last-child{
+  border-bottom:none;
+}
+.admin-layout.dark-mode .card--table .table .row > div{
+  color:#d6dcff;
+}
+.admin-layout.dark-mode .btn.outline-primary {
+  border-color:#6a8fff;
+  color:#e1e6ff;
+}
+.admin-layout.dark-mode .btn.outline-primary:hover {
+  background:#364d82;
+}
+.admin-layout.dark-mode .link-btn{
+  color:#d6dcff;
+}
+.admin-layout.dark-mode .link-btn:hover{
+  color:#ffffff;
+}
+.admin-layout.dark-mode .det-row{
+  color:#d2dcff;
+}
+.admin-layout.dark-mode .details-cell .clamped{
+  color:#d2dcff;
+}
+.admin-layout.dark-mode .readout{
+  color:#f0f4ff;
+}
+.admin-layout.dark-mode .btn.primary {
+  background:#4f6dff;
+  color:#ffffff;
+  border:1px solid #5f7aff;
+}
+.admin-layout.dark-mode .btn.primary:hover {
+  background:#5b79ff;
+}
+.admin-layout.dark-mode .btn.ghost {
+  color:#e7ecff;
+  border-color:#3d4f7e;
+  background:#23345e;
+}
+.admin-layout.dark-mode .overlay {
+  background:rgba(24,34,68,0.86);
+}
+.admin-layout.dark-mode .modal {
+  background:#243768;
+  color:#f0f4ff;
+  box-shadow:0 22px 46px rgba(9,16,38,.55);
+}
+
 .topbar{
   position: sticky; top:0; z-index:10;
   display:flex; align-items:center; justify-content:space-between;
@@ -16,37 +164,64 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 .topbar-title .app-title { font-weight:900; font-size:30px;  font-family: 'Inter', sans-serif;}
 .topbar-title .app-sub { font-size:.85rem; color:#777; margin-top:-2px; }
 
-.topbar-tabs{display:flex; gap:.25rem}
+.topbar-tabs{
+  display:flex;
+  align-items:center;
+  gap:.25rem;
+  flex-wrap:wrap;
+}
 .topbar .tab{
-  border:none; background:transparent; padding:.5rem .9rem; border-radius:999px;
-  color:#555; cursor:pointer; transition: .2s ease;
+  border:none;
+  background:transparent;
+  padding:.5rem .9rem;
+  border-radius:999px;
+  color:#555;
+  cursor:pointer;
+  transition:.2s ease;
+  white-space:nowrap;
+  font-weight:500;
+  font-size:.9rem;
 }
 .topbar .tab:hover{ background:#f5f5f5; }
-.topbar .tab.active { background:#f0f0f0; color:#111; font-weight:600;  font-family: 'Inter', sans-serif;}
-
-.topbar-right{display:flex; align-items:center; gap:.5rem}
-.pill{
-  background:#fff0f0; color:#a20000; border:1px solid #f5b5b5;
-  padding:.45rem .8rem; border-radius:999px;
+.topbar .tab.active {
+  background:#e9efff;
+  color:#1a284b;
+  font-weight:600;
 }
 
-
+.topbar-right{display:flex; align-items:center; gap:.5rem;}
 .topbar-right .ghost{
-  background:#f5f5f5; border:none; padding:.45rem .8rem; border-radius:8px; color:#444; cursor:pointer
+  background:#f5f5f5; border:none; padding:.45rem .8rem; border-radius:8px; color:#444; cursor:pointer;
+}
+.topbar-right .ghost.active{
+  background:#e9efff;
+  color:#1a284b;
 }
 .topbar-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;          /* espacio entre icono y texto */
-  font-weight: 500;
+  display:inline-flex; align-items:center; gap:.4rem;
+  font-weight:500;
 }
-
 .topbar-icon-btn .material-symbols-outlined {
-  font-size: 20px;     /* un poco más chico que el texto */
-  line-height: 1;
+  font-size:20px; line-height:1;
 }
 
-/* ─── Resumen ─────────────────────────────────────────────────── */
+.alert{
+  margin-bottom:1rem;
+  padding:.75rem 1rem;
+  border-radius:10px;
+  font-weight:500;
+}
+.alert--success{
+  background:#e8f5e9;
+  color:#256029;
+  border:1px solid #a5d6a7;
+}
+.alert--error{
+  background:#fdecea;
+  color:#b71c1c;
+  border:1px solid #f5c6cb;
+}
+
 .resume-grid{
   display:grid; grid-template-columns:repeat(12,1fr); gap:1rem;
 }
@@ -55,22 +230,21 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 .quick.card{grid-column:span 5}
 
 .kpi .kpi-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem}
-.kpi .kpi-title{font-weight:600; color:#666 ;  font-family: 'Inter', sans-serif;}
+.kpi .kpi-title{font-weight:600; color:#3a4c7a ;  font-family: 'Inter', sans-serif;}
 .kpi .kpi-number{font-size:2rem; font-weight:700 ;  font-family: 'Inter', sans-serif;}
-.kpi .kpi-sub{font-size:.9rem; color:#777; margin-top:.25rem ;  font-family: 'Inter', sans-serif;}
+.kpi .kpi-sub{font-size:.9rem; color:#53618d; margin-top:.25rem ;  font-family: 'Inter', sans-serif;}
 
 .status { font-size:1.4rem; font-weight:700;  font-family: 'Inter', sans-serif;}
-.status.active   { color:#a20000; }  /* antes: verde */
-.status.inactive { color:#d11a1a; }
+.status.active   { color:#a20000; }  .status.inactive { color:#d11a1a; }
 
 .activity-list{list-style:none; padding:0; margin:0}
 .activity-list li{display:flex; align-items:flex-start; gap:.6rem; padding:.35rem 0}
-.activity-list .dot        { width:10px; height:10px; border-radius:999px; margin-top:.4rem; background:#ccc; }
-.activity-list .dot.ok     { background:#69a200; }  /* antes: #21b86b */
-.activity-list .dot.warn   { background:#e07a00; }  /* tono ámbar compatible con rojo */
-.activity-list .dot.info   { background:#7a002a; }  /* azul → borgoña para mantener paleta */
+.activity-list .dot        { width:10px; height:10px; border-radius:999px; margin-top:.45rem; background:#ccc; }
+.activity-list .dot.ok     { background:#4caf50; }
+.activity-list .dot.warn   { background:#e07a00; }
+.activity-list .dot.info   { background:#1976d2; }
 .a-title{font-weight:600}
-.a-when{font-size:.80rem; color:#777;  font-family: 'Inter', sans-serif;}
+.a-when{font-size:.80rem; color:#53618d;  font-family: 'Inter', sans-serif;}
 
 .quick-list{display:flex; flex-direction:column; gap:.5rem}
 .quick-btn{
@@ -80,7 +254,14 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 }
 .quick-btn:hover{background:#f1f1f1}
 
-/* responsive */
+.resume-grid,
+.setting-card,
+.activity-list,
+.quick-list {
+  font-family: 'Inter', sans-serif;
+  color: inherit;
+}
+
 @media (max-width: 1000px){
   .kpi.card{grid-column:span 6}
   .activity.card{grid-column:span 12}
@@ -88,7 +269,6 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 }
 
 
-/* menú */
 .menu {
   display: flex;
   flex-direction: column;
@@ -105,7 +285,7 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   background: transparent;
   border-radius: 8px;
   font-size: 0.95rem;
-  color: #444;
+  color: #2b3a62;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -118,7 +298,6 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   font-weight: 600;
 }
 
-/* logout abajo */
 .menu-spacer { flex-grow: 1; }
 
 .sidebar-footer {
@@ -127,7 +306,6 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   border-top: 1px solid #eee;
 }
 
-/* === MAIN CONTENT === */
 .content { flex-grow: 1; padding: 2rem; }
 
 .page-header {
@@ -140,10 +318,9 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 .page-header h1 {
   font-size: 1.4rem;
   font-weight: 600;
-  color: #222;
+  color: #1a284b;
 }
 
-/* === CARDS === */
 .card {
   background: #fff;
   border-radius: 12px;
@@ -162,22 +339,19 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
    font-family: 'Inter', sans-serif;
 }
 
-/* === FORMS === */
 .nice-form .field {
   display: flex;
   flex-direction: column;
   margin-bottom: 1rem;
-  min-width: 0; /* evita cortes en textos largos dentro de grids */
-}
+  min-width: 0; }
 
 .nice-form label {
   font-size: 0.85rem;
   font-weight: 500;
   margin-bottom: 0.3rem;
-  color: #555;
+  color: #30406b;
 }
 
-/* Controles: mismos tamaños y fuente que el resto */
 .nice-form input,
 .nice-form select,
 .nice-form textarea {
@@ -200,12 +374,10 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 .nice-form input::placeholder,
 .nice-form textarea::placeholder {
   color: #9aa0a6;
-  opacity: 1;           /* que se vea bien el placeholder */
-  text-overflow: ellipsis;
+  opacity: 1;           text-overflow: ellipsis;
 }
 
 
-/* Estados de error */
 .nice-form input.ng-invalid.ng-touched,
 .nice-form select.ng-invalid.ng-touched,
 .nice-form textarea.ng-invalid.ng-touched{
@@ -220,22 +392,18 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
 }
 
 
-/* Asterisco rojo en campos requeridos */
 .req { color:#a20000; margin-left:4px; font-weight:700; }
 
-/* Asegurar que el <form> nunca tome estilo de error */
 .nice-form.ng-invalid{
   border-color: transparent !important;
   box-shadow: none !important;
 }
-/* Mensaje de error */
 .error{
   margin-top:.35rem;
   font-size:.8rem;
   color:#a20000;
 }
 
-/* Helpers de error */
 .nice-form .error{
   display: none;
   color: #a20000;
@@ -243,14 +411,12 @@ html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   margin-top: .25rem;
 }
 
-/* Mostrar error cuando el control fue tocado y sigue inválido */
 input.ng-invalid.ng-touched + .error,
 select.ng-invalid.ng-touched + .error,
 textarea.ng-invalid.ng-touched + .error{
   display: block;
 }
 
-/* O cuando el formulario fue enviado */
 .ng-submitted input.ng-invalid + .error,
 .ng-submitted select.ng-invalid + .error,
 .ng-submitted textarea.ng-invalid + .error{
@@ -259,14 +425,13 @@ textarea.ng-invalid.ng-touched + .error{
 
 
 
-/* Selects con aspecto consistente */
 .nice-form select {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
   background-image:
-    linear-gradient(45deg, transparent 50%, #666 50%),
-    linear-gradient(135deg, #666 50%, transparent 50%),
+    linear-gradient(45deg, transparent 50%, #3a4c7a 50%),
+    linear-gradient(135deg, #3a4c7a 50%, transparent 50%),
     linear-gradient(to right, #ddd, #ddd);
   background-position:
     calc(100% - 18px) calc(50% - 3px),
@@ -284,7 +449,6 @@ textarea.ng-invalid.ng-touched + .error{
   box-shadow: 0 0 0 2px rgba(162,0,0,0.15);
 }
 
-/* grids generales en páginas */
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -297,10 +461,125 @@ textarea.ng-invalid.ng-touched + .error{
   gap: 1rem;
 }
 
+.company-info-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:1rem;
+  margin-bottom:1.25rem;
+  flex-wrap:wrap;
+}
+.company-info-head h2{
+  margin:0;
+}
+.company-info-head .muted{
+  margin:0;
+}
+.profile-readout-grid{
+  gap:1rem;
+}
+.profile-readout-grid .field{
+  min-width:0;
+}
+
 .col-2 { grid-column: span 2; }
 .col-3 { grid-column: span 3; }
 
-/* === BUTTONS === */
+.card-stack > .header-actions{
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+  margin-bottom:.75rem;
+}
+.card-stack > .header-actions .btn{
+  margin:0;
+}
+.header-actions{
+  justify-self:left;
+  display:flex;
+  gap:.5rem;
+}
+.header-search{
+  grid-column:1 / -1;
+  display:flex;
+  gap:.5rem;
+  align-items:center;
+  margin-bottom:1.75rem;
+}
+.header-search input{
+  flex:1 1 auto;
+  width:100%;
+  max-width:none;
+  height:44px;
+  padding:.7rem .8rem;
+  border:1px solid #ddd;
+  border-radius:8px;
+  font-size:.95rem;
+}
+@media (max-width: 1000px){
+  .header-actions{ grid-column: 1 / -1; }
+}
+@media (max-width: 700px){
+  .card-stack > .header-actions{
+    flex-wrap:wrap;
+    padding-inline:.25rem;
+  }
+}
+
+.details-cell{
+  display:inline-flex;
+  align-items:baseline;
+  gap:.4rem;
+  flex-wrap:nowrap;
+  max-width:360px;
+  min-width:0;
+}
+.details-cell .clamped{
+  display:-webkit-box;
+  -webkit-line-clamp:1;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  max-width:260px;
+  flex:1 1 auto;
+  min-width:0;
+}
+.det-row{
+  font-size:.85rem;
+  color:#30406b;
+  line-height:1.35;
+  width:100%;
+}
+.det-row + .det-row{
+  margin-top:.2rem;
+}
+
+.link-btn{
+  border:none;
+  background:none;
+  padding:0;
+  font:inherit;
+  font-weight:600;
+  color:#30406b;
+  cursor:pointer;
+  text-decoration:underline;
+}
+.link-btn:hover{
+  color:#1a284b;
+}
+.link-btn.small{
+  font-size:.8rem;
+}
+.details-cell .link-btn{
+  flex:0 0 auto;
+  white-space:nowrap;
+  margin:0;
+  align-self:flex-start;
+}
+
+.vermenos{
+  align-self:baseline !important;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -317,14 +596,10 @@ textarea.ng-invalid.ng-touched + .error{
 .btn.primary { background: #a20000; color: #fff; }
 .btn.primary:hover { background: #870000; }
 
-.btn.ghost { background: #f5f5f5; color: #444; }
+.btn.ghost { background: #f5f5f5; color: #2b3a62; }
 
-.btn.icon {
-  padding: 0.5rem;
-  border-radius: 50%;
-  background: #f5f5f5;
-}
-.btn.icon:hover { background: #eaeaea; }
+.btn.icon{ width:36px; height:36px; min-width:36px; min-height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:#f5f5f5; }
+.btn.icon:hover{ background:#eaeaea; }
 
 .btn.danger {
   color: #a20000;
@@ -332,8 +607,26 @@ textarea.ng-invalid.ng-touched + .error{
   border: 1px solid #f5b5b5;
 }
 
-/* === TABLE === */
-.table { width: 100%; }
+.readout{
+  width:100%;
+  border:1px solid transparent;
+  background:transparent;
+  padding:0;
+  color:#1a284b;
+  font-size:.95rem;
+  font-weight:500;
+  cursor:default;
+}
+.readout.multiline{
+  min-height:96px;
+  resize:none;
+}
+
+
+
+.table .row:nth-child(odd) {
+  background:#f6f7f8;
+}
 
 .table .thead,
 .table .row {
@@ -344,24 +637,69 @@ textarea.ng-invalid.ng-touched + .error{
   border-bottom: 1px solid #eee;
 }
 
-.table .thead { font-weight: 600; color: #444; }
+.table .thead { font-weight: 600; color: #2b3a62; }
 
 .row-actions { display: flex; gap: 0.5rem; }
 
+.card--table{
+  padding:1.5rem;
+}
+.card--table > h2,
+.card--table > .header-search{
+  margin-bottom:1.25rem;
+}
+.card--table .table{
+  border:1px solid #e3e6f2;
+  border-radius:14px;
+  overflow:hidden;
+  background:#ffffff;
+  box-shadow:0 12px 24px -12px rgba(34,47,90,0.22);
+}
+.card--table .table .thead,
+.card--table .table .row{
+  padding:0.9rem 1.25rem;
+  border-bottom:1px solid #e9ecf7;
+  gap:0.7rem;
+}
+.card--table .table .thead{
+  background:#f3f6fc;
+  color:#25325b;
+}
+.card--table .table .row{
+  background:#ffffff;
+}
+.card--table .table .row:nth-child(odd){
+  background:#f8f9ff;
+}
+.card--table .table .row:last-child{
+  border-bottom:none;
+}
+.table--serviciosPolo .thead{
+  background:#f2f5ff;
+}
 
-/* 👉 Forzar que el header de "Acciones" se vaya a la derecha */
+
+.table--serviciosPolo .row > div:last-child,
+.table--serviciosPolo .thead > div:last-child{
+  justify-self:flex-start;
+  text-align:left;
+}
+.table--serviciosPolo .row > div:last-child{
+  line-height:1.35;
+  color:#2b3a62;
+}
+
+
 .table .thead { align-items: center; }
 .table .thead > div:last-child {
   justify-self: end;
   text-align: right;
 }
 
-/* Refuerzo: filas también a la derecha */
 .table .row .row-actions {
   justify-self: end;
 }
 
-/* Presentación simpática de datos tipo “chips” si los usas */
 .data-list {
   display: flex;
   flex-wrap: wrap;
@@ -375,10 +713,9 @@ textarea.ng-invalid.ng-touched + .error{
   border: 1px solid #eee;
   border-radius: 999px;
   font-size: .80rem;
-  color: #444;
+  color: #2b3a62;
 }
 
-/* === OVERLAY (modales de formularios) === */
 .overlay {
   position: fixed;
   inset: 0;
@@ -394,22 +731,18 @@ textarea.ng-invalid.ng-touched + .error{
   background: #fff;
   border-radius: 12px;
   padding: 1.5rem;
-  width: min(820px, 95vw);      /* un poco más ancho para que no corte placeholders */
-  max-height: 90vh;
+  width: min(820px, 95vw);      max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 4px 20px rgba(0,0,0,0.25);
   animation: slideIn 0.3s ease;
 }
 
-/* grid interno de los modales:
-   auto-fit + minmax para que los campos se reacomoden y NO se corten */
 .modal .modal-body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
 }
 
-/* cuando un bloque necesita ocupar toda la fila en el modal */
 .modal .col-2 { grid-column: span 2; }
 .modal .col-3 { grid-column: span 3; }
 
@@ -442,15 +775,13 @@ textarea.ng-invalid.ng-touched + .error{
   margin-top: 1rem;
 }
 
-/* hints pequeños bajo selects/inputs si los usas */
 .hint {
   display: block;
   margin-top: .25rem;
   font-size: .8rem;
-  color: #777;
+  color: #53618d;
 }
 
-/* Animaciones */
 @keyframes fadeIn {
   from { opacity: 0; } to { opacity: 1; }
 }
@@ -459,14 +790,12 @@ textarea.ng-invalid.ng-touched + .error{
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* Responsivo: en pantallas chicas, inputs 100% y modales cómodos */
 @media (max-width: 600px) {
   .content { padding: 1rem; }
   .modal { width: 95vw; }
 }
 
 
-/* Botones de acción redondos y consistentes */
 .row-actions .btn.icon {
   width: 36px;
   height: 36px;
@@ -482,13 +811,9 @@ textarea.ng-invalid.ng-touched + .error{
   line-height: 1;
 }
 
-/* Celdas "Datos" con mejor composición cuando hay varios campos */
 .table .row > div:nth-child(5) {
-  white-space: normal;      /* permitir salto */
-  word-break: break-word;   /* cortar palabras largas (URLs) */
-}
+  white-space: normal;      word-break: break-word;   }
 
-/* Estilo del enlace “chip” para la web */
 .chip-link {
   display: inline-flex;
   align-items: center;
@@ -497,21 +822,18 @@ textarea.ng-invalid.ng-touched + .error{
   border: 1px solid #eee;
   border-radius: 999px;
   font-size: .9rem;
-  color: #444;
+  color: #2b3a62;
   text-decoration: none;
 }
 
 .chip-link:hover { background: #f1f1f1; }
 
-/* === Tabla Contactos: columnas y acciones a la derecha === */
 .table--contactos .thead,
 .table--contactos .row {
-  /* ancho fijo para columnas clave y columna Acciones bien a la derecha */
   grid-template-columns: 140px 1.1fr 160px 230px 1.6fr 120px;
   align-items: center;
 }
 
-/* En pantallas medianas, compactamos un poco */
 @media (max-width: 1100px) {
   .table--contactos .thead,
   .table--contactos .row {
@@ -519,18 +841,13 @@ textarea.ng-invalid.ng-touched + .error{
   }
 }
 
-/* En móviles: apilar algunos campos manteniendo Acciones a la derecha */
 @media (max-width: 760px) {
   .table--contactos .thead { display: none; }
   .table--contactos .row {
     grid-template-columns: 1fr auto;
     gap: .35rem .75rem;
   }
-  .table--contactos .row > div:nth-child(1), /* tipo */
-  .table--contactos .row > div:nth-child(2), /* nombre */
-  .table--contactos .row > div:nth-child(3), /* tel */
-  .table--contactos .row > div:nth-child(4), /* dir */
-  .table--contactos .row > div:nth-child(5)  /* datos */{
+  .table--contactos .row > div:nth-child(1), .table--contactos .row > div:nth-child(2), .table--contactos .row > div:nth-child(3), .table--contactos .row > div:nth-child(4), .table--contactos .row > div:nth-child(5)  {
     grid-column: 1 / -1;
   }
   .table--contactos .row .row-actions {
@@ -539,10 +856,8 @@ textarea.ng-invalid.ng-touched + .error{
   }
 }
 
-/* Asegurar que el contenedor Acciones se vaya a la derecha en desktop */
 .table .row .row-actions { justify-self: end; }
 
-/* Botones de acción: círculo perfecto y consistentes */
 .btn.icon {
   width: 36px;
   height: 36px;
@@ -556,7 +871,6 @@ textarea.ng-invalid.ng-touched + .error{
 }
 .btn.icon .material-symbols-outlined { font-size: 20px; }
 
-/* === Chips (web / mail / rrss / texto) en “Datos” === */
 .data-stack {
   display: flex;
   flex-direction: column;
@@ -570,11 +884,7 @@ textarea.ng-invalid.ng-touched + .error{
   gap: 6px;
   padding: 6px 10px;
   border-radius: 999px;
-  max-width: 320px;            /* evita desborde */
-  white-space: nowrap;         /* no corte de línea */
-  overflow: hidden;            /* oculta exceso */
-  text-overflow: ellipsis;     /* … si es largo */
-  line-height: 1;
+  max-width: 320px;            white-space: nowrap;         overflow: hidden;            text-overflow: ellipsis;     line-height: 1;
 }
 
 .chip-link {
@@ -597,32 +907,25 @@ textarea.ng-invalid.ng-touched + .error{
   flex: 0 0 auto;
 }
 
-/* El texto del chip hereda ellipsis */
 .chip-link .text,
 .chip-plain .text {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Por si algún email trae caracteres raros, evitar cortes feos */
 .chip-link .text { word-break: keep-all; }
 
 
-/* =============== Fix global de sizing y altura de controles =============== */
 *, *::before, *::after { box-sizing: border-box; }
 
 .nice-form input,
 .nice-form select {
-  height: 44px;                 /* altura consistente */
-  line-height: 44px;            /* evita que el placeholder “flote” raro */
-}
+  height: 44px;                 line-height: 44px;            }
 
 .nice-form textarea {
-  line-height: 1.35;            /* cómodo para multi-línea */
-  min-height: 120px;
+  line-height: 1.35;            min-height: 120px;
 }
 
-/* Placeholders nítidos, sin traslapes */
 .nice-form input::placeholder,
 .nice-form textarea::placeholder {
   color: #9aa0a6;
@@ -632,26 +935,21 @@ textarea.ng-invalid.ng-touched + .error{
   text-overflow: ellipsis;
 }
 
-/* Select: que el texto no se meta debajo de la “flecha” */
 .nice-form select {
-  padding-right: 2.2rem;        /* espacio para la caret */
+  padding-right: 2.2rem;
   background-position:
     calc(100% - 18px) 50%,
     calc(100% - 12px) 50%,
     calc(100% - 2.2rem) 50%;
 }
 
-/* Inputs con iconos o adornos a la derecha (por si agregás alguno) */
 .nice-form .has-right-addon { padding-right: 2.4rem; }
 
-/* =============== Modales: sin scroll horizontal y grillas más flexibles =============== */
-.modal { overflow-x: hidden; }  /* adiós barra horizontal */
-.modal .modal-body {
+.modal { overflow-x: hidden; }  .modal .modal-body {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.9rem;
 }
 
-/* Triple columna dentro de “Datos comerciales”/similares, pero que se rompa bien */
 .inline-3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(220px, 1fr));
@@ -665,36 +963,25 @@ textarea.ng-invalid.ng-touched + .error{
   .inline-3 { grid-template-columns: 1fr; }
 }
 
-/* Evitar que el contenido interno ensanche el modal */
-.nice-form .field { min-width: 0; }  /* ya lo tenías, lo reafirmamos */
-.nice-form input, .nice-form select, .nice-form textarea { min-width: 0; }
+.nice-form .field { min-width: 0; }  .nice-form input, .nice-form select, .nice-form textarea { min-width: 0; }
 
-/* Etiquetas arriba, espacio respirable */
 .nice-form label {
   margin-bottom: .4rem;
   line-height: 1.2;
 }
 
-/* Controles: foco más visible pero sin mover el layout */
 .nice-form input:focus,
 .nice-form select:focus,
-/* 👇 Pega esto debajo de tu bloque .nice-form select actual */
 .nice-form select{
-  appearance: auto !important;     /* vuelve al nativo */
-  -webkit-appearance: auto !important;
+  appearance: auto !important;     -webkit-appearance: auto !important;
   -moz-appearance: auto !important;
-  background-image: none !important; /* quita los gradients */
-  padding-right: .8rem;               /* sin solapar el texto */
-  color: #111 !important;             /* asegura legibilidad */
-}
+  background-image: none !important; padding-right: .8rem;               color: #1a284b !important;          }
 
-/* color de las opciones en la lista desplegable */
 .nice-form select option{
-  color:#111;
+  color:#1a284b;
   background:#fff;
 }
 
-/* si usas placeholder con :invalid */
 .nice-form select:invalid{ color:#9aa0a6; }
 
 .nice-form textarea:focus {
@@ -702,21 +989,15 @@ textarea.ng-invalid.ng-touched + .error{
   box-shadow: 0 0 0 2px rgba(162,0,0,0.12);
 }
 
-/* Solo los number dentro de .no-spin */
 .no-spin input[type="number"] { appearance: textfield; -moz-appearance: textfield; -webkit-appearance: textfield; }
 .no-spin input[type="number"]::-webkit-outer-spin-button,
 .no-spin input[type="number"]::-webkit-inner-spin-button { appearance:none; -webkit-appearance:none; margin:0; }
 
-/* ====== Tipografía unificada Admin Polo & Empresa ====== */
-
-/* Base */
 html, body {
-  font-size: 18px;   /* 👈 Ajustá aquí el tamaño global (ej. 14px o 15px) */
-  font-family: 'Inter', sans-serif;
+  font-size: 18px;   font-family: 'Inter', sans-serif;
   line-height: 1.4;
 }
 
-/* Títulos */
 .page-header h1 {
   font-size: 1.2rem;
   font-weight: 600;
@@ -724,11 +1005,9 @@ html, body {
 
 .card h2,
 .modal-header h3 {
-  font-size: 1.2rem;    /* mismo tamaño para subtítulos */
-  font-weight: 600;
+  font-size: 1.2rem;    font-weight: 600;
 }
 
-/* Texto en tablas y listas */
 .table .thead,
 .table .row,
 .data-list .chip,
@@ -738,7 +1017,6 @@ html, body {
   font-size: 0.90rem;
 }
 
-/* Formularios */
 .nice-form label {
   font-size: 0.85rem;
 }
@@ -749,7 +1027,11 @@ html, body {
   font-size: 0.9rem;
 }
 
-/* Botones */
 .btn {
   font-size: 0.9rem;
 }
+
+
+
+
+

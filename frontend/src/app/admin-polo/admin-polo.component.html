@@ -4,7 +4,7 @@
   rel="stylesheet"
 />
 
-<div class="admin-layout">
+<div class="admin-layout" [class.dark-mode]="isDarkMode">
   <!-- Topbar -->
   <nav class="topbar">
     <div class="topbar-left">
@@ -23,10 +23,10 @@
     <div class="topbar-tabs">
       <button
         class="tab"
-        [class.active]="activeTab === 'perfil'"
-        (click)="setActiveTab('perfil')"
+        [class.active]="activeTab === 'dashboard'"
+        (click)="setActiveTab('dashboard')"
       >
-        Perfil
+        Dashboard
       </button>
       <button
         class="tab"
@@ -62,6 +62,14 @@
       <button
         class="ghost topbar-icon-btn"
         type="button"
+        (click)="setActiveTab('perfil')"
+        aria-label="Ver información del polo"
+      >
+        <span class="material-symbols-outlined">account_circle</span>
+      </button>
+      <button
+        class="ghost topbar-icon-btn"
+        type="button"
         (click)="setActiveTab('config')"
         aria-label="Abrir configuración"
       >
@@ -73,9 +81,120 @@
 
   <!-- Main -->
   <main class="content">
+    <div
+      class="alert"
+      [class.alert--error]="messageType === 'error'"
+      [class.alert--success]="messageType === 'success'"
+      *ngIf="message"
+    >
+      {{ message }}
+    </div>
+    <div
+      class="alert alert--error"
+      *ngIf="formErrors['general']?.length"
+    >
+      <div *ngFor="let err of formErrors['general']">
+        {{ err.message }}
+      </div>
+    </div>
+    <!-- DASHBOARD -->
+    <section *ngIf="activeTab === 'dashboard'" class="resume-grid">
+      <div class="kpi card">
+        <div class="kpi-head">
+          <div class="kpi-title">Empresas activas</div>
+          <span class="material-symbols-outlined">apartment</span>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('usuario', 'id_rol')"
+          >
+            {{ err.message }}
+          </div>
+        </div>
+        <div class="kpi-number">{{ empresasActivas }}</div>
+        <div class="kpi-sub">de {{ totalEmpresas }} registradas</div>
+      </div>
+
+      <div class="kpi card">
+        <div class="kpi-head">
+          <div class="kpi-title">Usuarios habilitados</div>
+          <span class="material-symbols-outlined">group</span>
+        </div>
+        <div class="kpi-number">{{ usuariosActivos }}</div>
+        <div class="kpi-sub">de {{ totalUsuarios }} usuarios</div>
+      </div>
+
+      <div class="kpi card">
+        <div class="kpi-head">
+          <div class="kpi-title">Servicios del polo</div>
+          <span class="material-symbols-outlined">room_service</span>
+        </div>
+        <div class="kpi-number">{{ totalServiciosPolo }}</div>
+        <div class="kpi-sub">servicios disponibles</div>
+      </div>
+
+      <div class="kpi card">
+        <div class="kpi-head">
+          <div class="kpi-title">Lotes registrados</div>
+          <span class="material-symbols-outlined">grid_view</span>
+        </div>
+        <div class="kpi-number">{{ totalLotes }}</div>
+        <div class="kpi-sub">lotes asociados</div>
+      </div>
+
+      <div class="card activity">
+        <h2>Actividad reciente</h2>
+        <ul
+          class="activity-list"
+          *ngIf="actividadReciente.length; else noActividad"
+        >
+          <li *ngFor="let a of actividadReciente">
+            <span
+              class="dot"
+              [class.ok]="a.tipo === 'ok'"
+              [class.warn]="a.tipo === 'warn'"
+              [class.info]="a.tipo === 'info'"
+            ></span>
+            <div class="a-texts">
+              <div class="a-title">{{ a.titulo }}</div>
+              <div class="a-when">{{ a.cuando }}</div>
+            </div>
+          </li>
+        </ul>
+        <ng-template #noActividad>
+          <div class="muted">Sin actividad registrada todavía.</div>
+        </ng-template>
+      </div>
+
+      <div class="card quick">
+        <h2>Accesos rápidos</h2>
+        <div class="quick-list">
+          <button class="quick-btn" type="button" (click)="quickAddEmpresa()">
+            <span class="material-symbols-outlined">add</span>
+            Nueva empresa
+          </button>
+          <button class="quick-btn" type="button" (click)="quickAddUsuario()">
+            <span class="material-symbols-outlined">add</span>
+            Nuevo usuario
+          </button>
+          <button
+            class="quick-btn"
+            type="button"
+            (click)="quickAddServicioPolo()"
+          >
+            <span class="material-symbols-outlined">add</span>
+            Servicio del polo
+          </button>
+          <button class="quick-btn" type="button" (click)="quickAddLote()">
+            <span class="material-symbols-outlined">add</span>
+            Registrar lote
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- PERFIL POLO -->
     <section *ngIf="activeTab === 'perfil'" class="card-grid">
-      <div class="card">
+      <div class="card card--table">
         <h2>Datos del Polo</h2>
         <div class="grid-3 nice-form">
           <div class="field">
@@ -145,7 +264,7 @@
         </button>
       </div>
 
-      <div class="card">
+      <div class="card card--table">
         <!-- Buscador -->
         <div class="header-search">
           <input
@@ -163,12 +282,14 @@
           </button>
         </div>
 
-        <div class="table">
+        <!-- Empresas -->
+        <div class="table table--empresas">
           <div class="thead">
             <div>CUIL</div>
             <div>Nombre</div>
             <div>Rubro</div>
             <div>Empleados</div>
+            <div>Estado</div>
             <div>Horario</div>
             <div>Acciones</div>
           </div>
@@ -178,9 +299,53 @@
             <div>{{ e.nombre }}</div>
             <div>{{ e.rubro }}</div>
             <div>{{ e.cant_empleados }}</div>
-            <div>{{ e.horario_trabajo || "—" }}</div>
+            <div>
+              <span
+                class="badge"
+                [class.badge--ok]="e.estado"
+                [class.badge--off]="!e.estado"
+              >
+                {{ e.estado ? "Activa" : "Inactiva" }}
+              </span>
+            </div>
+            <div class="horario-cell">
+              <ng-container
+                *ngIf="isHorarioEmpExpanded(e.cuil); else empCollapsed"
+              >
+                <div class="horario-full">{{ e.horario_trabajo }}</div>
+                <button
+                  type="button"
+                  class="link-btn small vermenos"
+                  (click)="toggleHorarioEmp(e.cuil)"
+                >
+                  Ocultar
+                </button>
+              </ng-container>
+
+              <ng-template #empCollapsed>
+                <button
+                  *ngIf="e.horario_trabajo; else guionEmp"
+                  type="button"
+                  class="link-btn"
+                  (click)="toggleHorarioEmp(e.cuil)"
+                >
+                  Ver mas
+                </button>
+                <ng-template #guionEmp>—</ng-template>
+              </ng-template>
+            </div>
 
             <div class="row-actions">
+              <button
+                class="btn icon"
+                [class.danger]="e.estado"
+                [title]="e.estado ? 'Desactivar empresa' : 'Activar empresa'"
+                (click)="toggleEmpresaEstado(e)"
+              >
+                <span class="material-symbols-outlined">
+                  {{ e.estado ? "block" : "check_circle" }}
+                </span>
+              </button>
               <button
                 class="btn icon"
                 title="Editar"
@@ -202,13 +367,6 @@
               >
                 <span class="material-symbols-outlined">add_business</span>
               </button>
-              <button
-                class="btn icon danger"
-                title="Eliminar"
-                (click)="deleteEmpresa(e.cuil)"
-              >
-                <span class="material-symbols-outlined">delete</span>
-              </button>
             </div>
           </div>
         </div>
@@ -224,7 +382,7 @@
         </button>
       </div>
 
-      <div class="card">
+      <div class="card card--table">
         <div class="header-search">
           <input
             type="text"
@@ -241,7 +399,8 @@
           </button>
         </div>
 
-        <div class="table">
+        <!-- Usuarios -->
+        <div class="table table--usuarios">
           <div class="thead">
             <div>Email</div>
             <div>Nombre</div>
@@ -301,7 +460,7 @@
         </button>
       </div>
 
-      <div class="card">
+      <div class="card card--table">
         <div class="header-search">
           <input
             type="text"
@@ -318,7 +477,8 @@
           </button>
         </div>
 
-        <div class="table">
+        <!-- Servicios -->
+        <div class="table table--servicios">
           <div class="thead">
             <div>Nombre</div>
             <div>Horario</div>
@@ -329,7 +489,35 @@
 
           <div class="row" *ngFor="let s of filteredServicios">
             <div>{{ s.nombre }}</div>
-            <div>{{ s.horario || "—" }}</div>
+            <div class="horario-cell">
+              <ng-container
+                *ngIf="
+                  isHorarioServExpanded(s.id_servicio_polo);
+                  else servCollapsed
+                "
+              >
+                <div class="horario-full">{{ s.horario }}</div>
+                <button
+                  type="button"
+                  class="link-btn small vermenos"
+                  (click)="toggleHorarioServ(s.id_servicio_polo)"
+                >
+                  Ocultar
+                </button>
+              </ng-container>
+
+              <ng-template #servCollapsed>
+                <button
+                  *ngIf="s.horario; else guionServ"
+                  type="button"
+                  class="link-btn"
+                  (click)="toggleHorarioServ(s.id_servicio_polo)"
+                >
+                  Ver mas
+                </button>
+                <ng-template #guionServ>—</ng-template>
+              </ng-template>
+            </div>
             <div>{{ s.propietario || "—" }}</div>
             <div>{{ getEmpresaNombre(s.cuil) }}</div>
 
@@ -360,7 +548,7 @@
         <!-- si querés agregar botones luego, van acá -->
       </div>
 
-      <div class="card">
+      <div class="card card--table">
         <div class="header-search">
           <input
             type="text"
@@ -373,7 +561,8 @@
           </button>
         </div>
 
-        <div class="table">
+        <!-- Lotes -->
+        <div class="table table--lotes">
           <div class="thead">
             <div>Dueño</div>
             <div>Manzana</div>
@@ -386,7 +575,7 @@
             <div>{{ l.dueno }}</div>
             <div>{{ l.manzana }}</div>
             <div>{{ l.lote }}</div>
-            <div>{{ l.id_servicio_polo }}</div>
+            <div>{{ getServicioPoloNombre(l.id_servicio_polo) }}</div>
             <div class="row-actions">
               <button
                 class="btn icon danger"
@@ -427,6 +616,27 @@
         ></app-password-change-modal>
       </div>
 
+      <!-- Tema -->
+      <div class="card setting-card">
+        <div class="setting-header">
+          <span class="material-symbols-outlined setting-icon">dark_mode</span>
+          <div>
+            <h2>Modo oscuro</h2>
+            <p class="muted">Modifica el esquema de colores de la app</p>
+          </div>
+        </div>
+        <button
+          class="btn outline-primary"
+          type="button"
+          (click)="toggleDarkMode()"
+        >
+          <span class="material-symbols-outlined">
+            {{ isDarkMode ? "light_mode" : "dark_mode" }}
+          </span>
+          <span>{{ isDarkMode ? "Modo claro" : "Modo oscuro" }}</span>
+        </button>
+      </div>
+
       <div class="card setting-card">
         <div class="setting-header">
           <span class="material-symbols-outlined setting-icon danger"
@@ -465,6 +675,12 @@
       #fPolo="ngForm"
       novalidate
     >
+      <div class="alert alert--error" *ngIf="formErrors['polo']?.length">
+        <div *ngFor="let err of formErrors['polo']">
+          {{ err.message }}
+        </div>
+      </div>
+
       <div class="modal-body grid-3">
         <div class="field">
           <label>Cant. empleados</label>
@@ -473,6 +689,12 @@
             [(ngModel)]="poloEditForm.cant_empleados"
             name="p_cant_empleados"
           />
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('polo', 'cant_empleados')"
+          >
+            {{ err.message }}
+          </div>
         </div>
 
         <div class="field">
@@ -481,8 +703,14 @@
             type="text"
             [(ngModel)]="poloEditForm.horario_trabajo"
             name="p_horario"
-            placeholder="Lun–Vie 8–17"
+            placeholder="Lun-Vie 8-17"
           />
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('polo', 'horario_trabajo')"
+          >
+            {{ err.message }}
+          </div>
         </div>
 
         <div class="field col-3">
@@ -492,6 +720,12 @@
             [(ngModel)]="poloEditForm.observaciones"
             name="p_obs"
           ></textarea>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('polo', 'observaciones')"
+          >
+            {{ err.message }}
+          </div>
         </div>
       </div>
 
@@ -526,6 +760,12 @@
       #fEmp="ngForm"
       novalidate
     >
+      <div class="alert alert--error" *ngIf="formErrors['empresa']?.length">
+        <div *ngFor="let err of formErrors['empresa']">
+          {{ err.message }}
+        </div>
+      </div>
+
       <div class="modal-body">
         <div class="field">
           <label>CUIL <span class="req" *ngIf="!editingEmpresa">*</span></label>
@@ -542,6 +782,12 @@
             *ngIf="eCuil.invalid && (eCuil.touched || fEmp.submitted)"
           >
             Campo obligatorio.
+          </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('empresa', 'cuil')"
+          >
+            {{ err.message }}
           </div>
         </div>
 
@@ -560,6 +806,12 @@
           >
             Ingresá un nombre.
           </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('empresa', 'nombre')"
+          >
+            {{ err.message }}
+          </div>
         </div>
 
         <div class="field">
@@ -577,6 +829,12 @@
           >
             Ingresá un rubro.
           </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('empresa', 'rubro')"
+          >
+            {{ err.message }}
+          </div>
         </div>
 
         <div class="field">
@@ -586,6 +844,12 @@
             [(ngModel)]="empresaForm.cant_empleados"
             name="e_empleados"
           />
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('empresa', 'cant_empleados')"
+          >
+            {{ err.message }}
+          </div>
         </div>
 
         <div class="field">
@@ -595,6 +859,36 @@
             [(ngModel)]="empresaForm.horario_trabajo"
             name="e_horario"
           />
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('empresa', 'horario_trabajo')"
+          >
+            {{ err.message }}
+          </div>
+        </div>
+        <div class="field">
+          <label>Estado <span class="req">*</span></label>
+          <select
+            [(ngModel)]="empresaForm.estado"
+            name="e_estado"
+            required
+            #eEstado="ngModel"
+          >
+            <option [ngValue]="true">Activa</option>
+            <option [ngValue]="false">Inactiva</option>
+          </select>
+          <div
+            class="error"
+            *ngIf="eEstado.invalid && (eEstado.touched || fEmp.submitted)"
+          >
+            Seleccioná un estado.
+          </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('empresa', 'estado')"
+          >
+            {{ err.message }}
+          </div>
         </div>
 
         <div class="field col-3">
@@ -604,6 +898,12 @@
             [(ngModel)]="empresaForm.observaciones"
             name="e_obs"
           ></textarea>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('empresa', 'observaciones')"
+          >
+            {{ err.message }}
+          </div>
         </div>
       </div>
 
@@ -640,6 +940,12 @@
       #fUsr="ngForm"
       novalidate
     >
+      <div class="alert alert--error" *ngIf="formErrors['usuario']?.length">
+        <div *ngFor="let err of formErrors['usuario']">
+          {{ err.message }}
+        </div>
+      </div>
+
       <div class="modal-body grid-3">
         <div class="field">
           <label>Email <span class="req">*</span></label>
@@ -657,6 +963,12 @@
           >
             Ingresá un email válido.
           </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('usuario', 'email')"
+          >
+            {{ err.message }}
+          </div>
         </div>
 
         <div class="field">
@@ -673,6 +985,12 @@
             *ngIf="uNom.invalid && (uNom.touched || fUsr.submitted)"
           >
             Ingresá un nombre.
+          </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('usuario', 'nombre')"
+          >
+            {{ err.message }}
           </div>
         </div>
 
@@ -713,6 +1031,12 @@
           >
             Campo obligatorio.
           </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('usuario', 'cuil')"
+          >
+            {{ err.message }}
+          </div>
         </div>
 
         <div class="field">
@@ -721,6 +1045,12 @@
             <option [ngValue]="true">Habilitado</option>
             <option [ngValue]="false">Inhabilitado</option>
           </select>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('usuario', 'estado')"
+          >
+            {{ err.message }}
+          </div>
         </div>
       </div>
 
@@ -757,6 +1087,15 @@
       #fSP="ngForm"
       novalidate
     >
+      <div
+        class="alert alert--error"
+        *ngIf="formErrors['servicioPolo']?.length"
+      >
+        <div *ngFor="let err of formErrors['servicioPolo']">
+          {{ err.message }}
+        </div>
+      </div>
+
       <div class="modal-body">
         <!-- ✅ GRID FIJA (no cambia al agregar extras) -->
         <div class="sp-base-grid">
@@ -770,13 +1109,19 @@
               required
               #spNombre="ngModel"
             />
-            <div
-              class="error"
-              *ngIf="spNombre.invalid && (spNombre.touched || fSP.submitted)"
-            >
-              Ingresá un nombre.
-            </div>
+          <div
+            class="error"
+            *ngIf="spNombre.invalid && (spNombre.touched || fSP.submitted)"
+          >
+            Ingresá un nombre.
           </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('servicioPolo', 'nombre')"
+          >
+            {{ err.message }}
+          </div>
+        </div>
 
           <!-- Tipo -->
           <div class="field">
@@ -795,13 +1140,24 @@
               <option [ngValue]="5">container</option>
               <option [ngValue]="6">lavadero</option>
             </select>
-            <div
-              class="error"
-              *ngIf="spTipo.invalid && (spTipo.touched || fSP.submitted)"
-            >
-              Seleccioná un tipo.
-            </div>
+          <div
+            class="error"
+            *ngIf="spTipo.invalid && (spTipo.touched || fSP.submitted)"
+          >
+            Seleccioná un tipo.
           </div>
+          <div
+            class="error"
+            *ngFor="
+              let err of getFieldErrors(
+                'servicioPolo',
+                'id_tipo_servicio_polo'
+              )
+            "
+          >
+            {{ err.message }}
+          </div>
+        </div>
 
           <!-- Horario (opcional) -->
           <div class="field">
@@ -810,8 +1166,14 @@
               type="text"
               [(ngModel)]="servicioPoloForm.horario"
               name="sp_horario"
-              placeholder="08–18"
+              placeholder="08-18"
             />
+            <div
+              class="error"
+              *ngFor="let err of getFieldErrors('servicioPolo', 'horario')"
+            >
+              {{ err.message }}
+            </div>
           </div>
 
           <!-- Propietario (opcional) -->
@@ -826,6 +1188,12 @@
               <option value="propietario">Propietario</option>
               <option value="inquilino">Inquilino</option>
             </select>
+            <div
+              class="error"
+              *ngFor="let err of getFieldErrors('servicioPolo', 'propietario')"
+            >
+              {{ err.message }}
+            </div>
           </div>
 
           <!-- CUIL -->
@@ -839,13 +1207,19 @@
               required
               #spCuil="ngModel"
             />
-            <div
-              class="error"
-              *ngIf="spCuil.invalid && (spCuil.touched || fSP.submitted)"
-            >
-              Campo obligatorio.
-            </div>
+          <div
+            class="error"
+            *ngIf="spCuil.invalid && (spCuil.touched || fSP.submitted)"
+          >
+            Campo obligatorio.
           </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('servicioPolo', 'cuil')"
+          >
+            {{ err.message }}
+          </div>
+        </div>
 
           <!-- Cant. puestos (solo obligatorio en coworking) -->
           <div
@@ -869,7 +1243,7 @@
             </div>
           </div>
 
-          <!-- en tipos 2–6 es opcional, pero lo dejamos en la base para conservar el lugar -->
+          <!-- en tipos 2-6 es opcional, pero lo dejamos en la base para conservar el lugar -->
           <div
             class="field"
             *ngIf="
@@ -1019,6 +1393,12 @@
       #fLote="ngForm"
       novalidate
     >
+      <div class="alert alert--error" *ngIf="formErrors['lote']?.length">
+        <div *ngFor="let err of formErrors['lote']">
+          {{ err.message }}
+        </div>
+      </div>
+
       <div class="modal-body grid-3">
         <div class="field">
           <label>Dueño <span class="req">*</span></label>
@@ -1034,6 +1414,12 @@
             *ngIf="lDueno.invalid && (lDueno.touched || fLote.submitted)"
           >
             Campo obligatorio.
+          </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('lote', 'dueno')"
+          >
+            {{ err.message }}
           </div>
         </div>
 
@@ -1052,6 +1438,12 @@
           >
             Campo obligatorio.
           </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('lote', 'manzana')"
+          >
+            {{ err.message }}
+          </div>
         </div>
 
         <div class="field">
@@ -1069,6 +1461,12 @@
           >
             Campo obligatorio.
           </div>
+          <div
+            class="error"
+            *ngFor="let err of getFieldErrors('lote', 'lote')"
+          >
+            {{ err.message }}
+          </div>
         </div>
       </div>
 
@@ -1081,3 +1479,6 @@
     </form>
   </div>
 </div>
+
+
+

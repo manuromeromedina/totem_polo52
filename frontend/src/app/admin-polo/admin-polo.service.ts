@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-
+// 1) Interfaz Empresa con estado
 export interface Empresa {
   cuil: number;
   nombre: string;
@@ -11,6 +11,7 @@ export interface Empresa {
   observaciones?: string;
   fecha_ingreso: string;
   horario_trabajo: string;
+  estado: boolean; // ← NUEVO
 }
 
 export interface EmpresaCreate {
@@ -21,11 +22,16 @@ export interface EmpresaCreate {
   observaciones?: string;
   fecha_ingreso?: string;
   horario_trabajo: string;
+  estado: boolean;
 }
 
 export interface EmpresaUpdate {
   nombre?: string;
   rubro?: string;
+  estado?: boolean;
+  cant_empleados?: number;
+  observaciones?: string;
+  horario_trabajo?: string;
 }
 
 export interface Usuario {
@@ -142,8 +148,9 @@ export class AdminPoloService {
     return this.http.get<Usuario[]>(`${this.apiUrl}/usuarios`);
   }
 
+  // 2) getUser (corregir URL)
   getUser(userId: string): Observable<Usuario> {
-    return this.http.get<Usuario>(`${this.apiUrl}/${userId}`);
+    return this.http.get<Usuario>(`${this.apiUrl}/usuarios/${userId}`); // ← FIX
   }
 
   createUser(usuario: UsuarioCreate): Observable<Usuario> {
@@ -202,5 +209,13 @@ export class AdminPoloService {
 
   deleteLote(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/lotes/${id}`);
+  }
+  // 3) Activar / Desactivar empresa (reemplazar 'base' por this.apiUrl)
+  activarEmpresa(cuil: number): Observable<any> {
+    return this.http.put(`${this.apiUrl}/empresas/${cuil}/activar`, {}); // ← FIX
+  }
+
+  desactivarEmpresa(cuil: number): Observable<any> {
+    return this.http.put(`${this.apiUrl}/empresas/${cuil}/desactivar`, {}); // ← FIX
   }
 }

@@ -26,6 +26,26 @@ export interface Servicio {
   tipo_servicio?: string;
 }
 
+export interface Lote {
+  id_lotes: number;
+  dueno: string;
+  lote: number;
+  manzana: number;
+  id_servicio_polo: number;
+}
+
+export interface ServicioPolo {
+  id_servicio_polo: number;
+  nombre: string;
+  horario?: string;
+  datos?: any;
+  propietario?: string;
+  id_tipo_servicio_polo: number;
+  cuil: number;
+  tipo_servicio_polo?: string;
+  lotes: Lote[];
+}
+
 export interface ServicioCreate {
   datos: any;
   id_tipo_servicio: number;
@@ -73,7 +93,7 @@ export interface EmpresaDetail {
   vehiculos: Vehiculo[];
   contactos: Contacto[];
   servicios: Servicio[];
-  servicios_polo: any[];
+  servicios_polo: ServicioPolo[];
 }
 
 export interface UserUpdateCompany {

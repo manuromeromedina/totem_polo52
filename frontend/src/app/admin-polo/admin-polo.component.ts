@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 
 import { RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import {
   AdminPoloService,
   Empresa,
@@ -36,6 +37,15 @@ interface ErrorResponse {
   status?: number;
 }
 
+type AdminPoloTab =
+  | 'dashboard'
+  | 'empresas'
+  | 'usuarios'
+  | 'servicios'
+  | 'lotes'
+  | 'perfil'
+  | 'config';
+
 @Component({
   selector: 'app-empresas',
   standalone: true,
@@ -52,7 +62,15 @@ interface ErrorResponse {
 export class AdminPoloComponent implements OnInit {
   showPasswordModal = false;
 
-  activeTab = 'perfil';
+  activeTab: AdminPoloTab = 'dashboard';
+
+  private readonly MAX_ACTIVIDADES = 6;
+  private dashboardDataLoaded = false;
+  actividadReciente: Array<{
+    tipo: 'ok' | 'warn' | 'info';
+    titulo: string;
+    cuando: string;
+  }> = [];
 
   // PROPIEDADES PARA EL POLO
   poloData: PoloDetail | null = null;
@@ -74,6 +92,7 @@ export class AdminPoloComponent implements OnInit {
   private initialForms: { [key: string]: any } = {};
   private hasUnsavedChanges: { [key: string]: boolean } = {};
   private empresaNombrePorCuil: Record<number, string> = {};
+  private servicioNombrePorId: Record<number, string> = {};
 
   // Sistema de errores mejorado
   formErrors: { [key: string]: FormError[] } = {};
@@ -89,7 +108,9 @@ export class AdminPoloComponent implements OnInit {
     cant_empleados: 0,
     observaciones: '',
     horario_trabajo: '',
+    estado: true,
   };
+  empresaEstadoActual: boolean | null = null;
 
   selectedEmpresa: Empresa | null = null;
   creatingForEmpresa = false;
@@ -169,18 +190,61 @@ export class AdminPoloComponent implements OnInit {
     this.loadData();
     const savedTheme = localStorage.getItem('theme');
     this.isDarkMode = savedTheme === 'dark';
+    this.applyThemeClass();
   }
 
   toggleDarkMode(): void {
     this.isDarkMode = !this.isDarkMode;
     localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
+    this.applyThemeClass();
   }
 
-  setActiveTab(tab: string): void {
+  private applyThemeClass(): void {
+    const body = document.body;
+    const html = document.documentElement;
+    body.classList.toggle('dark-theme', this.isDarkMode);
+    html.classList.toggle('dark-theme', this.isDarkMode);
+    if (this.isDarkMode) {
+      body.style.background = '#1a223b';
+      body.style.margin = '0';
+      body.style.padding = '0';
+      html.style.background = '#1a223b';
+    } else {
+      body.style.background = '#f8f9fa';
+      html.style.background = '#ffffff';
+      body.style.margin = '';
+      body.style.padding = '';
+    }
+  }
+
+  setActiveTab(tab: AdminPoloTab): void {
     this.activeTab = tab;
     // Cerrar formularios sin confirmación al cambiar de tab
     this.closeAllFormsWithoutConfirmation();
     this.loadData();
+  }
+
+  quickAddEmpresa(): void {
+    this.setActiveTab('empresas');
+    this.openEmpresaForm();
+  }
+
+  quickAddUsuario(): void {
+    this.setActiveTab('usuarios');
+    this.openUsuarioForm();
+  }
+
+  quickAddServicioPolo(): void {
+    this.setActiveTab('servicios');
+    this.openServicioPoloForm();
+  }
+
+  quickAddLote(): void {
+    this.setActiveTab('servicios');
+    if (this.serviciosPolo.length > 0) {
+      const servicio = this.serviciosPolo[0];
+      this.openLoteForm(servicio.id_servicio_polo, servicio.nombre);
+    }
   }
 
   // MÉTODO PARA CERRAR TODOS LOS FORMULARIOS SIN CONFIRMACIÓN
@@ -223,9 +287,61 @@ export class AdminPoloComponent implements OnInit {
     this.empresaNombrePorCuil = map;
   }
 
+  private rebuildServicioPoloIndex(): void {
+    const map: Record<number, string> = {};
+    this.serviciosPolo.forEach((servicio) => {
+      const baseNombre =
+        servicio.nombre?.trim() ||
+        servicio.tipo_servicio_polo?.trim() ||
+        `Servicio #${servicio.id_servicio_polo}`;
+      map[servicio.id_servicio_polo] = baseNombre;
+    });
+    this.servicioNombrePorId = map;
+  }
+
+  get totalEmpresas(): number {
+    return this.empresas.length;
+  }
+
+  get empresasActivas(): number {
+    return this.empresas.filter((e) => e.estado).length;
+  }
+
+  get empresasInactivas(): number {
+    return this.empresas.filter((e) => !e.estado).length;
+  }
+
+  get totalUsuarios(): number {
+    return this.usuarios.length;
+  }
+
+  get usuariosActivos(): number {
+    return this.usuarios.filter((u) => u.estado).length;
+  }
+
+  get totalServiciosPolo(): number {
+    return this.serviciosPolo.length;
+  }
+
+  get totalLotes(): number {
+    return this.lotes.length;
+  }
+
   getEmpresaNombre(cuil: number | null | undefined): string {
     if (!cuil && cuil !== 0) return '—';
     return this.empresaNombrePorCuil[cuil] ?? cuil.toString();
+  }
+  getServicioPoloNombre(id: number | null | undefined): string {
+    if (id === null || id === undefined) return '-';
+    const direct =
+      this.servicioNombrePorId[id] ??
+      this.serviciosPolo.find(
+        (s) => s.id_servicio_polo === id
+      )?.nombre?.trim() ??
+      this.serviciosPolo
+        .find((s) => s.id_servicio_polo === id)
+        ?.tipo_servicio_polo?.trim();
+    return direct && direct.length > 0 ? direct : `Servicio #${id}`;
   }
   // 1. MÉTODO PARA GUARDAR ESTADO INICIAL MEJORADO
   private saveInitialFormState(formName: string, formData: any): void {
@@ -285,6 +401,7 @@ export class AdminPoloComponent implements OnInit {
           cant_empleados: originalData.cant_empleados,
           observaciones: originalData.observaciones,
           horario_trabajo: originalData.horario_trabajo,
+          estado: originalData.estado,
         };
         console.log('Empresa restaurada:', this.empresaForm);
         break;
@@ -509,7 +626,10 @@ export class AdminPoloComponent implements OnInit {
       (lote) =>
         lote.dueno.toLowerCase().includes(term) ||
         lote.lote.toString().includes(term) ||
-        lote.manzana.toString().includes(term)
+        lote.manzana.toString().includes(term) ||
+        this.getServicioPoloNombre(lote.id_servicio_polo)
+          .toLowerCase()
+          .includes(term)
     );
   }
 
@@ -725,7 +845,8 @@ export class AdminPoloComponent implements OnInit {
           observaciones: data.observaciones || '',
           horario_trabajo: data.horario_trabajo,
         };
-        this.rebuildEmpresaIndex(); // 👈
+        this.rebuildEmpresaIndex();
+        this.buildDashboardActivity();
 
         this.loading = false;
       },
@@ -751,6 +872,9 @@ export class AdminPoloComponent implements OnInit {
     this.loading = true;
 
     switch (this.activeTab) {
+      case 'dashboard':
+        this.loadDashboardData();
+        break;
       case 'perfil':
         this.loading = false;
         break;
@@ -771,13 +895,199 @@ export class AdminPoloComponent implements OnInit {
     }
   }
 
+  private loadDashboardData(): void {
+    if (this.dashboardDataLoaded) {
+      this.buildDashboardActivity();
+      this.loading = false;
+      return;
+    }
+
+    forkJoin({
+      empresas: this.adminPoloService.getEmpresas(),
+      usuarios: this.adminPoloService.getUsers(),
+      servicios: this.adminPoloService.getServiciosPolo(),
+      lotes: this.adminPoloService.getLotes(),
+    }).subscribe({
+      next: ({ empresas, usuarios, servicios, lotes }) => {
+        this.empresas = empresas;
+        this.usuarios = usuarios;
+        this.serviciosPolo = servicios;
+        this.lotes = lotes;
+
+        this.rebuildEmpresaIndex();
+        this.rebuildServicioPoloIndex();
+
+        this.filterEmpresas();
+        this.filterUsuarios();
+        this.filterServicios();
+        this.filterLotes();
+
+        this.dashboardDataLoaded = true;
+        this.buildDashboardActivity();
+        this.loading = false;
+      },
+      error: (error) => {
+        this.handleError(error, 'general', 'cargar resumen del polo');
+        this.loading = false;
+      },
+    });
+  }
+
+  private buildDashboardActivity(): void {
+    const actividades: Array<{
+      tipo: 'ok' | 'warn' | 'info';
+      titulo: string;
+      cuando: string;
+      timestamp: number;
+    }> = [];
+
+    const pushActividad = (
+      tipo: 'ok' | 'warn' | 'info',
+      titulo: string,
+      item: any
+    ) => {
+      actividades.push({
+        tipo,
+        titulo,
+        cuando: this.getActivityLabel(item),
+        timestamp: this.getItemTimestamp(item),
+      });
+    };
+
+    [...this.empresas]
+      .sort((a, b) => this.getItemTimestamp(b) - this.getItemTimestamp(a))
+      .slice(0, 3)
+      .forEach((empresa) => {
+        const estadoLabel = empresa.estado ? 'activa' : 'inactiva';
+        const tipo = empresa.estado ? 'ok' : 'warn';
+        pushActividad(tipo, `Empresa ${empresa.nombre} ${estadoLabel}`, empresa);
+      });
+
+    [...this.usuarios]
+      .sort((a, b) => this.getItemTimestamp(b) - this.getItemTimestamp(a))
+      .slice(0, 3)
+      .forEach((usuario) => {
+        const estadoLabel = usuario.estado ? 'habilitado' : 'inhabilitado';
+        const tipo = usuario.estado ? 'ok' : 'warn';
+        pushActividad(tipo, `Usuario ${usuario.nombre} ${estadoLabel}`, usuario);
+      });
+
+    [...this.serviciosPolo]
+      .sort((a, b) => this.getItemTimestamp(b) - this.getItemTimestamp(a))
+      .slice(0, 2)
+      .forEach((servicio) => {
+        pushActividad(
+          'info',
+          `Servicio ${servicio.nombre || servicio.tipo_servicio_polo || ''} actualizado`,
+          servicio
+        );
+      });
+
+    [...this.lotes]
+      .sort((a, b) => this.getItemTimestamp(b) - this.getItemTimestamp(a))
+      .slice(0, 2)
+      .forEach((lote) => {
+        pushActividad(
+          'info',
+          `Lote M${lote.manzana} - ${lote.lote} actualizado`,
+          lote
+        );
+      });
+
+    this.actividadReciente = actividades
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, this.MAX_ACTIVIDADES)
+      .map(({ timestamp, ...rest }) => ({
+        ...rest,
+        cuando: rest.cuando || '-',
+      }));
+  }
+
+  private getActivityLabel(item: any): string {
+    const raw = this.getItemDateSource(item);
+    return this.formatActivityMoment(raw ?? undefined);
+  }
+
+  private getItemDateSource(item: any): string | null {
+    if (!item) return null;
+    return (
+      item.updated_at ??
+      item.created_at ??
+      item.fecha_ingreso ??
+      item.fecha_registro ??
+      item.fecha ??
+      null
+    );
+  }
+
+  private getItemTimestamp(item: any): number {
+    const raw = this.getItemDateSource(item);
+    if (!raw) return 0;
+    const date = new Date(raw);
+    const value = date.getTime();
+    return Number.isNaN(value) ? 0 : value;
+  }
+
+  private formatActivityMoment(raw?: string): string {
+    if (!raw) return '-';
+    try {
+      const date = new Date(raw);
+      if (Number.isNaN(date.getTime())) {
+        return '-';
+      }
+
+      const timeZone = 'America/Argentina/Buenos_Aires';
+      const dateFormatter = new Intl.DateTimeFormat('es-AR', {
+        timeZone,
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+      const dateTimeFormatter = new Intl.DateTimeFormat('es-AR', {
+        timeZone,
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const trimmed = String(raw).trim();
+      const isDateOnly =
+        /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ||
+        /^\d{4}-\d{2}-\d{2}T00:00(?::00)?(?:\.000)?(?:Z)?$/.test(trimmed);
+
+      return isDateOnly
+        ? dateFormatter.format(date)
+        : dateTimeFormatter.format(date);
+    } catch {
+      return '-';
+    }
+  }
+
+  formatDate(dateString?: string): string {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      const value = date.getTime();
+      if (Number.isNaN(value)) return '-';
+      return date.toLocaleDateString('es-AR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+    } catch {
+      return '-';
+    }
+  }
+
   loadEmpresas(): void {
     this.adminPoloService.getEmpresas().subscribe({
       next: (empresas) => {
         this.empresas = empresas;
         this.filteredEmpresas = [...empresas];
         this.filterEmpresas();
-        this.rebuildEmpresaIndex(); // 👈
+        this.rebuildEmpresaIndex();
+        this.buildDashboardActivity();
 
         this.loading = false;
       },
@@ -795,6 +1105,7 @@ export class AdminPoloComponent implements OnInit {
         this.usuarios = usuarios;
         this.filteredUsuarios = [...usuarios];
         this.filterUsuarios();
+        this.buildDashboardActivity();
         this.loading = false;
       },
       error: (error) => {
@@ -809,7 +1120,9 @@ export class AdminPoloComponent implements OnInit {
       next: (servicios) => {
         this.serviciosPolo = servicios;
         this.filteredServicios = [...servicios];
+        this.rebuildServicioPoloIndex();
         this.filterServicios();
+        this.buildDashboardActivity();
         this.loading = false;
       },
       error: (error) => {
@@ -825,6 +1138,7 @@ export class AdminPoloComponent implements OnInit {
         this.lotes = lotes;
         this.filteredLotes = [...lotes];
         this.filterLotes();
+        this.buildDashboardActivity();
         this.loading = false;
       },
       error: (error) => {
@@ -861,7 +1175,9 @@ export class AdminPoloComponent implements OnInit {
       cant_empleados: 0,
       observaciones: '',
       horario_trabajo: '',
+      estado: true,
     };
+    this.empresaEstadoActual = null; // ← NUEVO
 
     this.usuarioForm = {
       email: '',
@@ -922,6 +1238,28 @@ export class AdminPoloComponent implements OnInit {
       this.saveInitialFormState('polo', this.poloEditForm);
     }, 0);
   }
+  activarEmpresa(cuil: number): void {
+    if (!confirm('¿Activar esta empresa y sus registros relacionados?')) return;
+    this.adminPoloService.activarEmpresa(cuil).subscribe({
+      next: () => {
+        this.showMessage('Empresa activada correctamente', 'success');
+        this.loadEmpresas();
+      },
+      error: (err) => this.handleError(err, 'general', 'activar empresa'),
+    });
+  }
+
+  desactivarEmpresa(cuil: number): void {
+    if (!confirm('¿Desactivar esta empresa y sus registros relacionados?'))
+      return;
+    this.adminPoloService.desactivarEmpresa(cuil).subscribe({
+      next: () => {
+        this.showMessage('Empresa desactivada correctamente', 'success');
+        this.loadEmpresas();
+      },
+      error: (err) => this.handleError(err, 'general', 'desactivar empresa'),
+    });
+  }
 
   onSubmitPoloEdit(): void {
     this.loading = true;
@@ -954,7 +1292,9 @@ export class AdminPoloComponent implements OnInit {
         cant_empleados: empresa.cant_empleados,
         observaciones: empresa.observaciones || '',
         horario_trabajo: empresa.horario_trabajo,
+        estado: empresa.estado,
       };
+      this.empresaEstadoActual = empresa.estado ?? null; // ← NUEVO
     } else {
       this.editingEmpresa = null;
       this.empresaForm = {
@@ -964,7 +1304,9 @@ export class AdminPoloComponent implements OnInit {
         cant_empleados: 0,
         observaciones: '',
         horario_trabajo: '',
+        estado: true,
       };
+      this.empresaEstadoActual = null; // ← NUEVO
     }
 
     this.showEmpresaForm = true;
@@ -984,6 +1326,10 @@ export class AdminPoloComponent implements OnInit {
       const updateData: EmpresaUpdate = {
         nombre: this.empresaForm.nombre,
         rubro: this.empresaForm.rubro,
+        estado: this.empresaForm.estado,
+        cant_empleados: this.empresaForm.cant_empleados,
+        observaciones: this.empresaForm.observaciones,
+        horario_trabajo: this.empresaForm.horario_trabajo,
       };
 
       this.adminPoloService
@@ -1446,4 +1792,56 @@ export class AdminPoloComponent implements OnInit {
         break;
     }
   }
+
+  // --- EMPRESAS ---
+  private horarioEmpState: Record<number, boolean> = {};
+  isHorarioEmpExpanded(cuil: number): boolean {
+    return !!this.horarioEmpState[cuil];
+  }
+  toggleHorarioEmp(cuil: number): void {
+    this.horarioEmpState[cuil] = !this.horarioEmpState[cuil];
+  }
+
+  // --- SERVICIOS DEL POLO ---
+  private horarioServState: Record<number, boolean> = {};
+  isHorarioServExpanded(idServ: number): boolean {
+    return !!this.horarioServState[idServ];
+  }
+  toggleHorarioServ(idServ: number): void {
+    this.horarioServState[idServ] = !this.horarioServState[idServ];
+  }
+
+  toggleEmpresaEstado(empresa: Empresa): void {
+    const accion = empresa.estado ? 'desactivar' : 'activar';
+    const confirmar = confirm(
+      `¿Seguro que deseas ${accion} la empresa "${empresa.nombre}"?`
+    );
+
+    if (!confirmar) return;
+
+    if (empresa.estado) {
+      // Desactivar
+      this.adminPoloService.desactivarEmpresa(empresa.cuil).subscribe({
+        next: () => {
+          this.showMessage('Empresa desactivada correctamente', 'success');
+          this.loadEmpresas(); // recarga la lista
+        },
+        error: (error) => {
+          this.handleError(error, 'general', 'desactivar empresa');
+        },
+      });
+    } else {
+      // Activar
+      this.adminPoloService.activarEmpresa(empresa.cuil).subscribe({
+        next: () => {
+          this.showMessage('Empresa activada correctamente', 'success');
+          this.loadEmpresas();
+        },
+        error: (error) => {
+          this.handleError(error, 'general', 'activar empresa');
+        },
+      });
+    }
+  }
 }
+

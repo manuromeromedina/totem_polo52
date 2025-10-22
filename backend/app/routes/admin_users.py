@@ -606,6 +606,12 @@ def admin_update_empresa_nombre_rubro(
         emp.rubro = dto.rubro
     if dto.estado is not None:
         emp.estado = dto.estado
+    if dto.cant_empleados is not None:
+        emp.cant_empleados = dto.cant_empleados
+    if dto.observaciones is not None:
+        emp.observaciones = dto.observaciones
+    if dto.horario_trabajo is not None:
+        emp.horario_trabajo = dto.horario_trabajo
 
     db.commit()
     db.refresh(emp)

@@ -391,10 +391,13 @@ class EmpresaCreate(BaseModel):
            from_attributes = True
 
 class EmpresaAdminUpdate(BaseModel):
-    """Solo admin_polo puede tocar nombre y rubro"""
+    """Solo admin_polo puede tocar nombre, rubro y estado"""
     nombre: Optional[str]
     rubro: Optional[str]
-    estado: Optional[str]
+    estado: Optional[bool]
+    cant_empleados: Optional[int]
+    observaciones: Optional[str]
+    horario_trabajo: Optional[str]
 
     class Config:
            from_attributes = True
@@ -441,6 +444,7 @@ class ServicioPoloOut(BaseModel):
     id_tipo_servicio_polo: int
     cuil: int
     tipo_servicio_polo: Optional[str] = None
+    lotes: List["LoteOut"] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

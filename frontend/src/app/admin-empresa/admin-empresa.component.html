@@ -1,10 +1,10 @@
-<!-- admin-empresa.component.html -->
+﻿<!-- admin-empresa.component.html -->
 <link
   href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:FILL@0..1"
   rel="stylesheet"
 />
 
-<div class="admin-layout">
+<div class="admin-layout" [class.dark-mode]="isDarkMode">
   <!-- NAVBAR SUPERIOR -->
   <!-- TOP NAV -->
   <nav class="topbar">
@@ -25,17 +25,17 @@
     <div class="topbar-tabs">
       <button
         class="tab"
-        [class.active]="activeTab === 'resumen'"
-        (click)="goTo('resumen')"
+        [class.active]="activeTab === 'dashboard'"
+        (click)="goTo('dashboard')"
       >
-        Resumen
+        Dashboard
       </button>
       <button
         class="tab"
         [class.active]="activeTab === 'vehiculos'"
         (click)="goTo('vehiculos')"
       >
-        Vehículos
+        Vehiculos
       </button>
       <button
         class="tab"
@@ -59,20 +59,22 @@
         Servicios del Polo
       </button>
 
-      <button
-        class="tab"
-        [class.active]="activeTab === 'perfil'"
-        (click)="goTo('perfil')"
-      >
-        Mi Información
-      </button>
     </div>
 
     <div class="topbar-right">
       <button
+        type="button"
+        class="ghost topbar-icon-btn"
+        [class.active]="activeTab === 'perfil'"
+        (click)="goTo('perfil')"
+        aria-label="Ver informacion de la empresa"
+      >
+        <span class="material-symbols-outlined">account_circle</span>
+      </button>
+      <button
         class="ghost topbar-icon-btn"
         (click)="goTo('config')"
-        aria-label="Abrir configuración"
+        aria-label="Abrir configuracion"
       >
         <span class="material-symbols-outlined">settings</span>
       </button>
@@ -83,13 +85,29 @@
 
   <!-- MAIN -->
   <main class="content">
-    <!-- ========== RESUMEN ============================================================================ -->
-    <!-- RESUMEN -->
-    <section *ngIf="activeTab === 'resumen'" class="resume-grid">
-      <!-- Métricas -->
+    <div
+      class="alert"
+      [class.alert--error]="messageType === 'error'"
+      [class.alert--success]="messageType === 'success'"
+      *ngIf="message"
+    >
+      {{ message }}
+    </div>
+    <div
+      class="alert alert--error"
+      *ngIf="formErrors['general']?.length"
+    >
+      <div *ngFor="let err of formErrors['general']">
+        {{ err.message }}
+      </div>
+    </div>
+    <!-- ========== DASHBOARD ============================================================================ -->
+    <!-- DASHBOARD -->
+    <section *ngIf="activeTab === 'dashboard'" class="resume-grid">
+      <!-- Metricas -->
       <div class="kpi card">
         <div class="kpi-head">
-          <div class="kpi-title">Vehículos Activos</div>
+          <div class="kpi-title">Vehiculos Activos</div>
           <span class="material-symbols-outlined">local_shipping</span>
         </div>
         <div class="kpi-number">{{ vehiculosActivos }}</div>
@@ -131,7 +149,7 @@
 
       <!-- Actividad reciente -->
       <div class="card activity">
-        <h2>Actividad Reciente</h2>
+        <h2>Actividad reciente</h2>
         <ul class="activity-list" *ngIf="actividadReciente.length; else noAct">
           <li *ngFor="let a of actividadReciente">
             <span
@@ -146,17 +164,17 @@
             </div>
           </li>
         </ul>
-        <ng-template #noAct
-          ><div class="muted">Sin actividad por ahora.</div></ng-template
-        >
+        <ng-template #noAct>
+          <div class="muted">Sin actividad registrada todavia.</div>
+        </ng-template>
       </div>
 
-      <!-- Accesos rápidos -->
+      <!-- Accesos rapidos -->
       <div class="card quick">
-        <h2>Accesos Rápidos</h2>
+        <h2>Accesos Rapidos</h2>
         <div class="quick-list">
           <button class="quick-btn" (click)="quickAddVehiculo()">
-            <span class="material-symbols-outlined">add</span> Agregar Vehículo
+            <span class="material-symbols-outlined">add</span> Agregar Vehiculo
           </button>
           <button class="quick-btn" (click)="quickAddServicio()">
             <span class="material-symbols-outlined">add</span> Nuevo Servicio
@@ -168,96 +186,110 @@
       </div>
     </section>
 
-    <!-- PERFIL =========================================================================== -->
+    <!-- PERFIL -->
     <section *ngIf="activeTab === 'perfil'" class="card-grid">
-      <!-- Datos solo-lectura -->
       <div class="card">
-        <h2>Datos</h2>
-        <div class="grid-2 nice-form">
-          <div class="field">
-            <label>CUIL</label>
-            <input type="text" [value]="empresaData?.cuil" disabled />
+        <div class="company-info-head">
+          <div>
+            <h2>{{ empresaData?.nombre || "Perfil de empresa" }}</h2>
+            <p class="muted">Revisa o edita los datos principales de tu empresa.</p>
           </div>
-          <div class="field">
-            <label>Nombre</label>
-            <input type="text" [value]="empresaData?.nombre" disabled />
-          </div>
-          <div class="field">
-            <label>Rubro</label>
-            <input type="text" [value]="empresaData?.rubro" disabled />
-          </div>
-          <div class="field">
-            <label>Fecha ingreso</label>
-            <input
-              type="text"
-              [value]="formatDate(empresaData?.fecha_ingreso || '')"
-              disabled
-            />
-          </div>
-          <!-- NUEVOS (solo lectura en esta vista) -->
-          <div class="field">
-            <label>Cant. empleados</label>
-            <input
-              class="readout"
-              type="text"
-              [value]="empresaData?.cant_empleados || '—'"
-              disabled
-            />
-          </div>
-          <div class="field">
-            <label>Horario trabajo</label>
-            <input
-              class="readout"
-              type="text"
-              [value]="empresaData?.horario_trabajo || '—'"
-              disabled
-            />
-          </div>
-          <div class="field col-2">
-            <label>Observaciones</label>
-            <textarea
-              class="readout"
-              rows="3"
-              [value]="empresaData?.observaciones || '—'"
-              disabled
-            ></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- Editar empresa (self) -->
-      <div class="card">
-        <div class="actions">
           <button
-            class="btn primary"
+            class="btn outline-primary"
             type="button"
+            [disabled]="!empresaData"
             (click)="openEmpresaEditForm()"
           >
             <span class="material-symbols-outlined">edit</span>
             <span>Editar datos</span>
           </button>
         </div>
+
+        <ng-container *ngIf="empresaData; else perfilSinDatos">
+          <div class="grid-2 nice-form profile-readout-grid">
+            <div class="field">
+              <label>CUIL</label>
+              <input class="readout" type="text" [value]="empresaData.cuil || '-'" readonly />
+            </div>
+            <div class="field">
+              <label>Rubro</label>
+              <input class="readout" type="text" [value]="empresaData.rubro || '-'" readonly />
+            </div>
+            <div class="field">
+              <label>Fecha de ingreso</label>
+              <input
+                class="readout"
+                type="text"
+                [value]="formatDate(empresaData.fecha_ingreso || '')"
+                readonly
+              />
+            </div>
+            <div class="field">
+              <label>Cantidad de empleados</label>
+              <input
+                class="readout"
+                type="text"
+                [value]="empresaData.cant_empleados !== null && empresaData.cant_empleados !== undefined ? empresaData.cant_empleados : '-'"
+                readonly
+              />
+            </div>
+            <div class="field">
+              <label>Horario de trabajo</label>
+              <input
+                class="readout"
+                type="text"
+                [value]="empresaData.horario_trabajo || '-'"
+                readonly
+              />
+            </div>
+            <div class="field">
+              <label>Estado</label>
+              <input
+                class="readout"
+                type="text"
+                [value]="estaActiva ? 'Activa' : 'Inactiva'"
+                readonly
+              />
+            </div>
+            <div class="field col-2">
+              <label>Observaciones</label>
+              <textarea
+                class="readout multiline"
+                readonly
+                [value]="empresaData.observaciones || 'Sin observaciones registradas.'"
+              ></textarea>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #perfilSinDatos>
+          <div class="muted">Aun no hay informacion disponible de la empresa.</div>
+        </ng-template>
       </div>
     </section>
 
     <!-- VEHICULOS ============================================================ -->
     <section *ngIf="activeTab === 'vehiculos'" class="card-stack">
-      <div class="card">
-        <div class="actions">
-          <button
-            class="btn primary"
-            type="button"
-            (click)="openVehiculoForm()"
-          >
-            <span class="material-symbols-outlined">add_circle</span>
-            <span>Nuevo vehículo</span>
-          </button>
-        </div>
+      <div class="header-actions">
+        <button class="btn primary" type="button" (click)="openVehiculoForm()">
+          <span class="material-symbols-outlined">add_circle</span>
+          <span>Nuevo vehiculo</span>
+        </button>
       </div>
 
       <!-- Listado -->
-      <div class="card">
+      <div class="card card--table">
         <h2>Listado</h2>
+        <div class="header-search">
+          <input
+            type="text"
+            placeholder="Buscar por tipo, patente o datos..."
+            [(ngModel)]="vehiculoSearchTerm"
+            (input)="filterVehiculos()"
+          />
+          <button class="btn ghost" type="button" (click)="clearVehiculoSearch()">
+            Limpiar
+          </button>
+        </div>
         <div class="table">
           <div class="thead">
             <div>Tipo</div>
@@ -278,21 +310,37 @@
 
             <div>{{ v.horarios || "-" }}</div>
             <div>{{ v.frecuencia || "-" }}</div>
-            <div>
-              <ng-container *ngIf="v.datos">
-                <span *ngIf="v.datos.cantidad"
-                  >Cantidad: {{ v.datos.cantidad }}</span
-                ><br />
-                <span *ngIf="v.datos.patente"
-                  >Patente: {{ v.datos.patente }}</span
-                ><br />
-                <span *ngIf="v.datos.carga">Carga: {{ v.datos.carga }}</span
-                ><br />
-                <span *ngIf="v.datos.descripcion">{{
-                  v.datos.descripcion
-                }}</span>
+            <div class="details-cell">
+              <ng-container *ngIf="v.datos && hasKeys(v.datos); else vehiculoSinDatos">
+                <ng-container *ngIf="isVehiculoExpanded(v.id_vehiculo); else vehiculoResumen">
+                  <div class="det-row" *ngIf="v.datos.cantidad !== undefined && v.datos.cantidad !== null && v.datos.cantidad !== ''">
+                    Cantidad: {{ v.datos.cantidad }}
+                  </div>
+                  <div class="det-row" *ngIf="v.datos.patente">Patente: {{ v.datos.patente }}</div>
+                  <div class="det-row" *ngIf="v.datos.carga !== undefined && v.datos.carga !== null && v.datos.carga !== ''">
+                    Carga: {{ v.datos.carga }}
+                  </div>
+                  <div class="det-row" *ngIf="v.datos.descripcion">{{ v.datos.descripcion }}</div>
+                  <button
+                    class="link-btn small vermenos"
+                    type="button"
+                    (click)="toggleVehiculoDatos(v.id_vehiculo)"
+                  >
+                    Ocultar
+                  </button>
+                </ng-container>
+                <ng-template #vehiculoResumen>
+                  <span class="clamped">{{ getVehiculoDatosResumen(v.datos) }}</span>
+                  <button
+                    class="link-btn"
+                    type="button"
+                    (click)="toggleVehiculoDatos(v.id_vehiculo)"
+                  >
+                    Ver mas
+                  </button>
+                </ng-template>
               </ng-container>
-              <span *ngIf="!v.datos || !hasKeys(v.datos)">–</span>
+              <ng-template #vehiculoSinDatos>-</ng-template>
             </div>
 
             <div class="row-actions">
@@ -318,28 +366,33 @@
 
     <!-- CONTACTOS ===================================================================================-->
     <section *ngIf="activeTab === 'contactos'" class="card-stack">
-      <div class="card">
-        <div class="actions">
-          <button
-            class="btn primary"
-            type="button"
-            (click)="openContactoForm()"
-          >
-            <span class="material-symbols-outlined">add_circle</span>
-            <span>Nuevo contacto</span>
+      <div class="header-actions">
+        <button class="btn primary" type="button" (click)="openContactoForm()">
+          <span class="material-symbols-outlined">add_circle</span>
+          <span>Nuevo contacto</span>
+        </button>
+      </div>
+      <div class="card card--table">
+        <h2>Listado</h2>
+        <div class="header-search">
+          <input
+            type="text"
+            placeholder="Buscar por nombre, telefono o datos..."
+            [(ngModel)]="contactoSearchTerm"
+            (input)="filterContactos()"
+          />
+          <button class="btn ghost" type="button" (click)="clearContactoSearch()">
+            Limpiar
           </button>
         </div>
-      </div>
-      <div class="card">
-        <h2>Listado</h2>
 
         <!-- tabla contactos con layout propio -->
         <div class="table table--contactos">
           <div class="thead">
             <div>Tipo</div>
             <div>Nombre</div>
-            <div>Teléfono</div>
-            <div>Dirección</div>
+            <div>Telefono</div>
+            <div>Direccion</div>
             <div>Datos</div>
             <div>Acciones</div>
           </div>
@@ -357,7 +410,7 @@
             <div>{{ c.telefono || "-" }}</div>
             <div>{{ c.direccion || "-" }}</div>
 
-            <!-- DATOS: chips en columna; cada chip es 1 línea con ellipsis -->
+            <!-- DATOS: chips en columna; cada chip es 1 linea con ellipsis -->
             <div>
               <div class="data-stack">
                 <a
@@ -405,7 +458,7 @@
                   <span class="text">{{ c.datos.descripcion }}</span>
                 </span>
 
-                <span *ngIf="!c.datos || !hasKeys(c.datos)">–</span>
+                <span *ngIf="!c.datos || !hasKeys(c.datos)">-</span>
               </div>
             </div>
 
@@ -433,21 +486,26 @@
 
     <!-- SERVICIOS PROPIOS ==============================================================================-->
     <section *ngIf="activeTab === 'servicios'" class="card-stack">
-      <div class="card">
-        <div class="actions">
-          <button
-            class="btn primary"
-            type="button"
-            (click)="openServicioForm()"
-          >
-            <span class="material-symbols-outlined">add_circle</span>
-            <span>Nuevo servicio</span>
-          </button>
-        </div>
+      <div class="header-actions">
+        <button class="btn primary" type="button" (click)="openServicioForm()">
+          <span class="material-symbols-outlined">add_circle</span>
+          <span>Nuevo servicio</span>
+        </button>
       </div>
 
-      <div class="card">
+      <div class="card card--table">
         <h2>Listado</h2>
+        <div class="header-search">
+          <input
+            type="text"
+            placeholder="Buscar por tipo o datos..."
+            [(ngModel)]="servicioSearchTerm"
+            (input)="filterServicios()"
+          />
+          <button class="btn ghost" type="button" (click)="clearServicioSearch()">
+            Limpiar
+          </button>
+        </div>
         <div class="table">
           <div class="thead">
             <div>Tipo</div>
@@ -464,47 +522,60 @@
               }}
             </div>
 
-            <div>
-              <div>
-                <ng-container *ngIf="s.datos">
-                  <!-- Agua -->
-                  <ng-container *ngIf="s.id_tipo_servicio === 1">
-                    <span>Biofiltro: {{ s.datos.biofiltro }}</span
-                    ><br />
-                    <span
-                      >Tratamiento: {{ s.datos.tratamiento_aguas_grises }}</span
-                    >
+            <div class="details-cell">
+              <ng-container *ngIf="s.datos && hasKeys(s.datos); else servicioSinDatos">
+                <ng-container *ngIf="isServicioExpanded(s.id_servicio); else servicioResumen">
+                  <ng-container [ngSwitch]="s.id_tipo_servicio">
+                    <ng-container *ngSwitchCase="1">
+                      <div class="det-row" *ngIf="s.datos.biofiltro !== undefined && s.datos.biofiltro !== null">
+                        Biofiltro: {{ formatBoolean(s.datos.biofiltro) }}
+                      </div>
+                      <div class="det-row" *ngIf="s.datos.tratamiento_aguas_grises">
+                        Tratamiento: {{ s.datos.tratamiento_aguas_grises }}
+                      </div>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="2">
+                      <div class="det-row" *ngIf="s.datos.abierto !== undefined && s.datos.abierto !== null">
+                        Abierto: {{ formatBoolean(s.datos.abierto) }}
+                      </div>
+                      <div class="det-row" *ngIf="s.datos.m2">
+                        Superficie: {{ s.datos.m2 }} m²
+                      </div>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="3">
+                      <div class="det-row" *ngIf="s.datos.tipo">Tipo: {{ s.datos.tipo }}</div>
+                      <div class="det-row" *ngIf="s.datos.proveedor">Proveedor: {{ s.datos.proveedor }}</div>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="4">
+                      <div class="det-row" *ngIf="s.datos.tipo">Tipo: {{ s.datos.tipo }}</div>
+                      <div class="det-row" *ngIf="s.datos.cantidad">
+                        Cantidad: {{ s.datos.cantidad }}
+                      </div>
+                    </ng-container>
+                    <ng-container *ngSwitchDefault>
+                      <div class="det-row" *ngIf="s.datos.descripcion">{{ s.datos.descripcion }}</div>
+                    </ng-container>
                   </ng-container>
-
-                  <!-- Espacios verdes -->
-                  <ng-container *ngIf="s.id_tipo_servicio === 2">
-                    <span>Abierto: {{ s.datos.abierto }}</span
-                    ><br />
-                    <span>Superficie: {{ s.datos.m2 }} m²</span>
-                  </ng-container>
-
-                  <!-- Internet -->
-                  <ng-container *ngIf="s.id_tipo_servicio === 3">
-                    <span>Tipo: {{ s.datos.tipo }}</span
-                    ><br />
-                    <span>Proveedor: {{ s.datos.proveedor }}</span>
-                  </ng-container>
-
-                  <!-- Residuos -->
-                  <ng-container *ngIf="s.id_tipo_servicio === 4">
-                    <span>Tipo: {{ s.datos.tipo }}</span
-                    ><br />
-                    <span>Cantidad: {{ s.datos.cantidad }}</span>
-                  </ng-container>
-
-                  <!-- Default -->
-                  <ng-container *ngIf="!s.id_tipo_servicio">
-                    <span>{{ s.datos.descripcion }}</span>
-                  </ng-container>
+                  <button
+                    class="link-btn small vermenos"
+                    type="button"
+                    (click)="toggleServicioDatos(s.id_servicio)"
+                  >
+                    Ocultar
+                  </button>
                 </ng-container>
-
-                <span *ngIf="!s.datos || !hasKeys(s.datos)">–</span>
-              </div>
+                <ng-template #servicioResumen>
+                  <span class="clamped">{{ getServicioDatosResumen(s) }}</span>
+                  <button
+                    class="link-btn"
+                    type="button"
+                    (click)="toggleServicioDatos(s.id_servicio)"
+                  >
+                    Ver mas
+                  </button>
+                </ng-template>
+              </ng-container>
+              <ng-template #servicioSinDatos>-</ng-template>
             </div>
             <div class="row-actions">
               <button
@@ -528,43 +599,56 @@
     </section>
 
     <!-- SERVICIOS POLO (solo lectura) ==================================================================-->
-    <section *ngIf="activeTab === 'serviciosPolo'" class="card">
-      <h2>Servicios del Polo asociados</h2>
-      <div class="table">
-        <div class="thead">
-          <div>Nombre</div>
-          <div>Tipo</div>
-          <div>Horario</div>
-          <div>Propietario</div>
-          <div>Lotes</div>
+    <section *ngIf="activeTab === 'serviciosPolo'" class="card-stack">
+      <div class="card card--table">
+        <h2>Servicios del Polo asociados</h2>
+        <div class="header-search">
+          <input
+            type="text"
+            placeholder="Buscar por nombre, tipo o lote..."
+            [(ngModel)]="servicioPoloSearchTerm"
+            (input)="filterServiciosPolo()"
+          />
+          <button class="btn ghost" type="button" (click)="clearServicioPoloSearch()">
+            Limpiar
+          </button>
         </div>
+        <div class="table table--serviciosPolo">
+          <div class="thead">
+            <div>Nombre</div>
+            <div>Tipo</div>
+            <div>Horario</div>
+            <div>Propietario</div>
+            <div>Lotes</div>
+          </div>
 
-        <div class="row" *ngFor="let sp of filteredServiciosPolo">
-          <div>{{ sp.nombre }}</div>
-          <div>{{ getTipoServicioPoloName(sp.id_tipo_servicio_polo) }}</div>
-          <div>{{ sp.horario || "-" }}</div>
-          <div>{{ sp.propietario || "-" }}</div>
-          <div>
-            <ng-container *ngIf="sp.lotes?.length; else sinLotes">
-              <span *ngFor="let l of sp.lotes"
-                >M{{ l.manzana }}-L{{ l.lote }}&nbsp;</span
-              >
-            </ng-container>
-            <ng-template #sinLotes>–</ng-template>
+          <div class="row" *ngFor="let sp of filteredServiciosPolo">
+            <div>{{ sp.nombre }}</div>
+            <div>{{ getTipoServicioPoloName(sp.id_tipo_servicio_polo) }}</div>
+            <div>{{ sp.horario || "-" }}</div>
+            <div>{{ sp.propietario || "-" }}</div>
+            <div>
+              <ng-container *ngIf="sp.lotes?.length; else sinLotes">
+                <span *ngFor="let l of sp.lotes">
+                  M{{ l.manzana }}-L{{ l.lote }}&nbsp;
+                </span>
+              </ng-container>
+              <ng-template #sinLotes>-</ng-template>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- CONFIGURACIÓN  ==============================================================================-->
+    <!-- CONFIGURACION  ==============================================================================-->
     <section *ngIf="activeTab === 'config'" class="card-grid">
-      <!-- Contraseña -->
+      <!-- Contrasena -->
       <div class="card setting-card">
         <div class="setting-header">
           <span class="material-symbols-outlined setting-icon">vpn_key</span>
           <div>
-            <h2>Contraseña</h2>
-            <p class="muted">Actualiza tu contraseña de acceso</p>
+            <h2>Contrasena</h2>
+            <p class="muted">Actualiza tu contrasena de acceso</p>
           </div>
         </div>
         <button
@@ -573,7 +657,7 @@
           (click)="openPasswordModal()"
         >
           <span class="material-symbols-outlined">edit</span>
-          <span>Cambiar contraseña</span>
+          <span>Cambiar contrasena</span>
         </button>
         <app-password-change-modal
           #passwordModal
@@ -584,14 +668,35 @@
         </app-password-change-modal>
       </div>
 
-      <!-- Sesión -->
+      <!-- Tema -->
+      <div class="card setting-card">
+        <div class="setting-header">
+          <span class="material-symbols-outlined setting-icon">dark_mode</span>
+          <div>
+            <h2>Modo oscuro</h2>
+            <p class="muted">Modifica el esquema de colores de la app</p>
+          </div>
+        </div>
+        <button
+          class="btn outline-primary"
+          type="button"
+          (click)="toggleDarkMode()"
+        >
+          <span class="material-symbols-outlined">
+            {{ isDarkMode ? "light_mode" : "dark_mode" }}
+          </span>
+          <span>{{ isDarkMode ? "Modo claro" : "Modo oscuro" }}</span>
+        </button>
+      </div>
+
+      <!-- Sesion -->
       <div class="card setting-card">
         <div class="setting-header">
           <span class="material-symbols-outlined setting-icon danger"
             >logout</span
           >
           <div>
-            <h2>Sesión</h2>
+            <h2>Sesion</h2>
             <p class="muted">Salir de la cuenta de empresa</p>
           </div>
         </div>
@@ -625,6 +730,14 @@
       #fEmp="ngForm"
       novalidate
     >
+      <div class="alert alert--error" *ngIf="formErrors['empresa']?.length">
+        <div *ngFor="let err of formErrors['empresa']">
+          <span *ngIf="err.field && err.field !== 'general'">
+            <strong>{{ err.field }}</strong>:
+          </span>
+          {{ err.message }}
+        </div>
+      </div>
       <div class="modal-body grid-3">
         <div class="field">
           <label>Cant. empleados</label>
@@ -640,7 +753,7 @@
             type="text"
             [(ngModel)]="empresaEditForm.horario_trabajo"
             name="horario_trabajo"
-            placeholder="Lun–Vie 8–17"
+            placeholder="Lun-Vie 8-17"
           />
         </div>
         <div class="field col-3">
@@ -663,11 +776,11 @@
   </div>
 </div>
 
-<!-- Vehículo: crear/editar -->
+<!-- Vehiculo: crear/editar -->
 <div class="overlay" *ngIf="showVehiculoForm">
   <div class="modal modal--lg">
     <div class="modal-header">
-      <h3>{{ editingVehiculo ? "Editar vehículo" : "Nuevo vehículo" }}</h3>
+      <h3>{{ editingVehiculo ? "Editar vehiculo" : "Nuevo vehiculo" }}</h3>
       <button
         type="button"
         class="icon-btn"
@@ -685,6 +798,14 @@
       class="nice-form"
       novalidate
     >
+      <div class="alert alert--error" *ngIf="formErrors['vehiculo']?.length">
+        <div *ngFor="let err of formErrors['vehiculo']">
+          <span *ngIf="err.field && err.field !== 'general'">
+            <strong>{{ err.field }}</strong>:
+          </span>
+          {{ err.message }}
+        </div>
+      </div>
       <div class="modal-body grid-3">
         <!-- Tipo (req) -->
         <div class="field col-3">
@@ -708,7 +829,7 @@
             class="error"
             *ngIf="vTipo.invalid && (vTipo.touched || fVeh.submitted)"
           >
-            Seleccioná un tipo.
+            Selecciona un tipo.
           </div>
         </div>
 
@@ -770,7 +891,7 @@
                   vCantCorp.invalid && (vCantCorp.touched || fVeh.submitted)
                 "
               >
-                Ingresá una cantidad ≥ 1.
+                Ingresa una cantidad ≥ 1.
               </div>
             </div>
 
@@ -809,7 +930,7 @@
                 class="error"
                 *ngIf="vCarCorp.invalid && (vCarCorp.touched || fVeh.submitted)"
               >
-                Seleccioná la carga.
+                Selecciona la carga.
               </div>
             </div>
           </ng-container>
@@ -830,7 +951,7 @@
                 class="error"
                 *ngIf="vCantPer.invalid && (vCantPer.touched || fVeh.submitted)"
               >
-                Ingresá una cantidad ≥ 1.
+                Ingresa una cantidad ≥ 1.
               </div>
             </div>
 
@@ -861,7 +982,7 @@
                 class="error"
                 *ngIf="vCantTer.invalid && (vCantTer.touched || fVeh.submitted)"
               >
-                Ingresá una cantidad ≥ 1.
+                Ingresa una cantidad ≥ 1.
               </div>
             </div>
 
@@ -882,7 +1003,7 @@
                 class="error"
                 *ngIf="vCarTer.invalid && (vCarTer.touched || fVeh.submitted)"
               >
-                Seleccioná la carga.
+                Selecciona la carga.
               </div>
             </div>
           </ng-container>
@@ -928,6 +1049,14 @@
       #fCont="ngForm"
       novalidate
     >
+      <div class="alert alert--error" *ngIf="formErrors['contacto']?.length">
+        <div *ngFor="let err of formErrors['contacto']">
+          <span *ngIf="err.field && err.field !== 'general'">
+            <strong>{{ err.field }}</strong>:
+          </span>
+          {{ err.message }}
+        </div>
+      </div>
       <div class="modal-body grid-3">
         <div class="field">
           <label>Tipo <span class="req">*</span></label>
@@ -950,7 +1079,7 @@
             class="error"
             *ngIf="cTipo.invalid && (cTipo.touched || fCont.submitted)"
           >
-            Seleccioná un tipo.
+            Selecciona un tipo.
           </div>
         </div>
 
@@ -967,12 +1096,12 @@
             class="error"
             *ngIf="cNom.invalid && (cNom.touched || fCont.submitted)"
           >
-            Ingresá un nombre.
+            Ingresa un nombre.
           </div>
         </div>
 
         <div class="field">
-          <label>Teléfono <span class="req">*</span></label>
+          <label>telefono <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="contactoForm.telefono"
@@ -985,12 +1114,12 @@
             class="error"
             *ngIf="cTel.invalid && (cTel.touched || fCont.submitted)"
           >
-            Ingresá un teléfono.
+            Ingresa un telefono.
           </div>
         </div>
 
         <div class="field col-3">
-          <label>Dirección <span class="req">*</span></label>
+          <label>Direccion <span class="req">*</span></label>
           <input
             type="text"
             [(ngModel)]="contactoForm.direccion"
@@ -1003,7 +1132,7 @@
             class="error"
             *ngIf="cDir.invalid && (cDir.touched || fCont.submitted)"
           >
-            Ingresá una dirección.
+            Ingresa una direccion.
           </div>
         </div>
 
@@ -1072,6 +1201,14 @@
       class="nice-form"
       novalidate
     >
+      <div class="alert alert--error" *ngIf="formErrors['servicio']?.length">
+        <div *ngFor="let err of formErrors['servicio']">
+          <span *ngIf="err.field && err.field !== 'general'">
+            <strong>{{ err.field }}</strong>:
+          </span>
+          {{ err.message }}
+        </div>
+      </div>
       <div class="modal-body grid-3">
         <div class="field">
           <label>Tipo <span class="req">*</span></label>
@@ -1094,7 +1231,7 @@
             class="error"
             *ngIf="sTipo.invalid && (sTipo.touched || fServ.submitted)"
           >
-            Seleccioná un tipo.
+            Selecciona un tipo.
           </div>
         </div>
 
@@ -1142,7 +1279,7 @@
               <label>Servicio de Espacios Verdes</label>
             </div>
             <div class="field col-3">
-              <label>Abierto al público <span class="req">*</span></label>
+              <label>Abierto al publico <span class="req">*</span></label>
               <input
                 type="text"
                 [(ngModel)]="servicioForm.datos.abierto"
@@ -1173,7 +1310,7 @@
                 class="error"
                 *ngIf="sM2.invalid && (sM2.touched || fServ.submitted)"
               >
-                Ingresá un valor ≥ 1.
+                Ingresa un valor ≥ 1.
               </div>
             </div>
           </ng-container>
@@ -1252,7 +1389,7 @@
                 class="error"
                 *ngIf="sCant.invalid && (sCant.touched || fServ.submitted)"
               >
-                Ingresá un valor ≥ 1.
+                Ingresa un valor ≥ 1.
               </div>
             </div>
           </ng-container>
@@ -1274,3 +1411,7 @@
     </form>
   </div>
 </div>
+
+
+
+
