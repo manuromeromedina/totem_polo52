@@ -333,6 +333,7 @@
             </div>
 
             <div class="row-actions">
+              <!-- Activar/Desactivar -->
               <button
                 class="btn icon"
                 [class.danger]="e.estado"
@@ -343,24 +344,33 @@
                   {{ e.estado ? "block" : "check_circle" }}
                 </span>
               </button>
+
+              <!-- Editar -->
               <button
                 class="btn icon"
                 title="Editar"
                 (click)="openEmpresaForm(e)"
+                [disabled]="!e.estado"
               >
                 <span class="material-symbols-outlined">edit</span>
               </button>
+
+              <!-- Crear usuario -->
               <button
                 class="btn icon"
                 title="Usuario para empresa"
                 (click)="createUsuarioForEmpresa(e)"
+                [disabled]="!e.estado"
               >
                 <span class="material-symbols-outlined">person_add</span>
               </button>
+
+              <!-- Crear servicio -->
               <button
                 class="btn icon"
                 title="Servicio del Polo para empresa"
                 (click)="createServicioPoloForEmpresa(e)"
+                [disabled]="!e.estado"
               >
                 <span class="material-symbols-outlined">add_business</span>
               </button>

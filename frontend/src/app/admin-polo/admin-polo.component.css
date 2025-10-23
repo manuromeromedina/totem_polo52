@@ -1107,3 +1107,52 @@ html, body {
   color:#1a284b;
   font-weight:600;
 }
+
+
+/* ===== USUARIOS: Email | Nombre | Empresa | Rol | Estado | Acciones ===== */
+.table--usuarios .thead,
+.table--usuarios .row {
+  /* distribuye bien el espacio, dejando las acciones alineadas a la derecha */
+  grid-template-columns: 1.6fr 1.2fr 1.2fr 130px 130px 120px;
+  align-items: center;
+  column-gap: 0.8rem;
+}
+
+/* Centrar "Estado" (columna 5) */
+.table--usuarios .thead > div:nth-child(5),
+.table--usuarios .row  > div:nth-child(5) {
+  text-align: center;
+}
+
+/* Alinear "Acciones" completamente a la derecha */
+.table--usuarios .thead > div:last-child,
+.table--usuarios .row  > div:last-child {
+  justify-self: end;
+  text-align: right;
+  width: 120px;
+}
+
+/* Botonera dentro de la celda de acciones */
+.table--usuarios .row .row-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Asegura que los íconos no cambien de tamaño */
+.table--usuarios .row .btn.icon {
+  min-width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* En pantallas más pequeñas, mantener la proporción */
+@media (max-width: 1000px) {
+  .table--usuarios .thead,
+  .table--usuarios .row {
+    grid-template-columns: 1.4fr 1.1fr 1.1fr 100px 100px 100px;
+  }
+}
