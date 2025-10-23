@@ -1,3 +1,5 @@
 /backend/.env
 __pycache__/
 *.pycbackend/.env
+/backend/Keys
+backend/Keys/*.json
