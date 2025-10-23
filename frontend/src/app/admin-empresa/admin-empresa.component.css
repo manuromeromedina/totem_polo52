@@ -1031,7 +1031,19 @@ html, body {
   font-size: 0.9rem;
 }
 
+/* Que el layout ocupe toda la altura de la ventana */
+.admin-layout{
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 
 
 
+/* Asegurá que el main no pinte blanco */
+.content{ background: transparent; }
 
+/* Por si el body tenía otro color, lo igualamos */
+html:not(.dark-theme), body:not(.dark-theme){
+  background: #fceaea;
+}

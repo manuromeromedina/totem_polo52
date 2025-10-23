@@ -985,17 +985,25 @@
         </div>
 
         <div class="field">
-          <label>Nombre <span class="req">*</span></label>
+          <label>
+            Nombre
+            <span class="req" *ngIf="!editingUsuario">*</span>
+          </label>
           <input
             type="text"
             [(ngModel)]="usuarioForm.nombre"
             name="u_nombre"
-            required
+            [disabled]="!!editingUsuario"
+            [required]="!editingUsuario"
             #uNom="ngModel"
           />
           <div
             class="error"
-            *ngIf="uNom.invalid && (uNom.touched || fUsr.submitted)"
+            *ngIf="
+              !editingUsuario &&
+              uNom.invalid &&
+              (uNom.touched || fUsr.submitted)
+            "
           >
             Ingresá un nombre.
           </div>
