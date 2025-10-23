@@ -41,6 +41,7 @@ export interface Usuario {
   estado: boolean;
   fecha_registro: string;
   cuil: number;
+  roles?: Rol[];
 }
 
 export interface UsuarioCreate {

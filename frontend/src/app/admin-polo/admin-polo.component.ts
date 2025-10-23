@@ -335,9 +335,9 @@ export class AdminPoloComponent implements OnInit {
     if (id === null || id === undefined) return '-';
     const direct =
       this.servicioNombrePorId[id] ??
-      this.serviciosPolo.find(
-        (s) => s.id_servicio_polo === id
-      )?.nombre?.trim() ??
+      this.serviciosPolo
+        .find((s) => s.id_servicio_polo === id)
+        ?.nombre?.trim() ??
       this.serviciosPolo
         .find((s) => s.id_servicio_polo === id)
         ?.tipo_servicio_polo?.trim();
@@ -583,7 +583,8 @@ export class AdminPoloComponent implements OnInit {
       return (
         u.nombre.toLowerCase().includes(term) ||
         u.email.toLowerCase().includes(term) ||
-        empresaNombre.includes(term) // 👈 ahora por nombre de empresa
+        empresaNombre.includes(term) || // 👈 ahora por nombre de empresa
+        this.getUsuarioRoleLabel(u).toLowerCase().includes(term)
       );
     });
   }
@@ -960,7 +961,11 @@ export class AdminPoloComponent implements OnInit {
       .forEach((empresa) => {
         const estadoLabel = empresa.estado ? 'activa' : 'inactiva';
         const tipo = empresa.estado ? 'ok' : 'warn';
-        pushActividad(tipo, `Empresa ${empresa.nombre} ${estadoLabel}`, empresa);
+        pushActividad(
+          tipo,
+          `Empresa ${empresa.nombre} ${estadoLabel}`,
+          empresa
+        );
       });
 
     [...this.usuarios]
@@ -969,7 +974,11 @@ export class AdminPoloComponent implements OnInit {
       .forEach((usuario) => {
         const estadoLabel = usuario.estado ? 'habilitado' : 'inhabilitado';
         const tipo = usuario.estado ? 'ok' : 'warn';
-        pushActividad(tipo, `Usuario ${usuario.nombre} ${estadoLabel}`, usuario);
+        pushActividad(
+          tipo,
+          `Usuario ${usuario.nombre} ${estadoLabel}`,
+          usuario
+        );
       });
 
     [...this.serviciosPolo]
@@ -978,7 +987,9 @@ export class AdminPoloComponent implements OnInit {
       .forEach((servicio) => {
         pushActividad(
           'info',
-          `Servicio ${servicio.nombre || servicio.tipo_servicio_polo || ''} actualizado`,
+          `Servicio ${
+            servicio.nombre || servicio.tipo_servicio_polo || ''
+          } actualizado`,
           servicio
         );
       });
@@ -1683,7 +1694,53 @@ export class AdminPoloComponent implements OnInit {
 
   getRoleName(id: number): string {
     const rol = this.roles.find((r) => r.id_rol === id);
-    return rol ? rol.tipo_rol : 'Desconocido';
+    return rol ? this.formatRoleDisplay(rol.tipo_rol) : 'Desconocido';
+  }
+
+  getUsuarioRoleLabel(usuario: Usuario): string {
+    const rol = this.getUsuarioPrimaryRole(usuario);
+    if (!rol) return 'Sin rol';
+
+    switch (rol.tipo_rol) {
+      case 'admin_polo':
+        return 'Polo';
+      case 'admin_empresa':
+        return 'Empresa';
+      case 'publico':
+        return 'Público';
+      default:
+        return 'Sin rol';
+    }
+  }
+
+  getUsuarioRoleBadgeClass(usuario: Usuario): string {
+    const rol = this.getUsuarioPrimaryRole(usuario);
+    if (!rol) return 'badge--rol-default';
+
+    switch (rol.tipo_rol) {
+      case 'admin_polo':
+        return 'badge--rol-admin-polo';
+      case 'admin_empresa':
+        return 'badge--rol-admin-empresa';
+      case 'publico':
+        return 'badge--rol-publico';
+      default:
+        return 'badge--rol-default';
+    }
+  }
+
+  private getUsuarioPrimaryRole(usuario: Usuario): Rol | null {
+    if (usuario?.roles && usuario.roles.length > 0) {
+      return usuario.roles[0];
+    }
+    return null;
+  }
+
+  private formatRoleDisplay(value: string): string {
+    return value
+      .split('_')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
   }
 
   createUsuarioForEmpresa(empresa: Empresa): void {
@@ -1844,4 +1901,3 @@ export class AdminPoloComponent implements OnInit {
     }
   }
 }
-

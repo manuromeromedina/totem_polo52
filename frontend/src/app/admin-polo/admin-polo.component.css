@@ -1,4 +1,4 @@
-/* Tipografía y reset mínimo */
+﻿/* Tipografía y reset mínimo */
 html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label {
   font-family: 'Inter', sans-serif;
 }
@@ -406,6 +406,55 @@ body.dark-theme, html.dark-theme {
 .badge { display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.8rem; line-height:1; }
 .badge--ok { background:#eef8ea; color:#2e7d32; border:1px solid #cde8c3; }
 .badge--off { background:#fff3f3; color:#a20000; border:1px solid #f5b5b5; }
+
+/* Badges de Rol */
+.badge--rol-admin-polo {
+  background: #e8f0ff;
+  color: #1e40af;            /* azul oscuro */
+  border: 1px solid #bfd3ff;
+}
+
+.badge--rol-admin-empresa {
+  background: #f3e8ff;
+  color: #7e22ce;            /* violeta */
+  border: 1px solid #e0c8ff;
+}
+
+.badge--rol-publico {
+  background: #eef2f7;
+  color: #334155;            /* gris azulado */
+  border: 1px solid #dde3ea;
+}
+
+/* Fallback */
+.badge--rol-default {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+/* (Opcional) Dark mode si usás .dark-mode en el layout */
+.dark-mode .badge--rol-admin-polo {
+  background: #1e3a8a;
+  color: #c7d2fe;
+  border-color: #334155;
+}
+.dark-mode .badge--rol-admin-empresa {
+  background: #5b21b6;
+  color: #e9d5ff;
+  border-color: #4c1d95;
+}
+.dark-mode .badge--rol-publico {
+  background: #334155;
+  color: #e2e8f0;
+  border-color: #475569;
+}
+.dark-mode .badge--rol-default {
+  background: #374151;
+  color: #e5e7eb;
+  border-color: #4b5563;
+}
+
 
 /* Tablas */
 .table { width:100%; }

@@ -1,4 +1,4 @@
-<!-- admin-polo.component.html -->
+﻿<!-- admin-polo.component.html -->
 <link
   href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:FILL@0..1"
   rel="stylesheet"
@@ -89,10 +89,7 @@
     >
       {{ message }}
     </div>
-    <div
-      class="alert alert--error"
-      *ngIf="formErrors['general']?.length"
-    >
+    <div class="alert alert--error" *ngIf="formErrors['general']?.length">
       <div *ngFor="let err of formErrors['general']">
         {{ err.message }}
       </div>
@@ -405,6 +402,7 @@
             <div>Email</div>
             <div>Nombre</div>
             <div>Empresa</div>
+            <div>Rol</div>
             <div>Estado</div>
             <div>Acciones</div>
           </div>
@@ -413,6 +411,11 @@
             <div>{{ u.email }}</div>
             <div>{{ u.nombre }}</div>
             <div>{{ getEmpresaNombre(u.cuil) }}</div>
+            <div>
+              <span class="badge" [ngClass]="getUsuarioRoleBadgeClass(u)">
+                {{ getUsuarioRoleLabel(u) }}
+              </span>
+            </div>
             <div>
               <span
                 class="badge"
@@ -1109,19 +1112,19 @@
               required
               #spNombre="ngModel"
             />
-          <div
-            class="error"
-            *ngIf="spNombre.invalid && (spNombre.touched || fSP.submitted)"
-          >
-            Ingresá un nombre.
+            <div
+              class="error"
+              *ngIf="spNombre.invalid && (spNombre.touched || fSP.submitted)"
+            >
+              Ingresá un nombre.
+            </div>
+            <div
+              class="error"
+              *ngFor="let err of getFieldErrors('servicioPolo', 'nombre')"
+            >
+              {{ err.message }}
+            </div>
           </div>
-          <div
-            class="error"
-            *ngFor="let err of getFieldErrors('servicioPolo', 'nombre')"
-          >
-            {{ err.message }}
-          </div>
-        </div>
 
           <!-- Tipo -->
           <div class="field">
@@ -1140,24 +1143,24 @@
               <option [ngValue]="5">container</option>
               <option [ngValue]="6">lavadero</option>
             </select>
-          <div
-            class="error"
-            *ngIf="spTipo.invalid && (spTipo.touched || fSP.submitted)"
-          >
-            Seleccioná un tipo.
+            <div
+              class="error"
+              *ngIf="spTipo.invalid && (spTipo.touched || fSP.submitted)"
+            >
+              Seleccioná un tipo.
+            </div>
+            <div
+              class="error"
+              *ngFor="
+                let err of getFieldErrors(
+                  'servicioPolo',
+                  'id_tipo_servicio_polo'
+                )
+              "
+            >
+              {{ err.message }}
+            </div>
           </div>
-          <div
-            class="error"
-            *ngFor="
-              let err of getFieldErrors(
-                'servicioPolo',
-                'id_tipo_servicio_polo'
-              )
-            "
-          >
-            {{ err.message }}
-          </div>
-        </div>
 
           <!-- Horario (opcional) -->
           <div class="field">
@@ -1207,19 +1210,19 @@
               required
               #spCuil="ngModel"
             />
-          <div
-            class="error"
-            *ngIf="spCuil.invalid && (spCuil.touched || fSP.submitted)"
-          >
-            Campo obligatorio.
+            <div
+              class="error"
+              *ngIf="spCuil.invalid && (spCuil.touched || fSP.submitted)"
+            >
+              Campo obligatorio.
+            </div>
+            <div
+              class="error"
+              *ngFor="let err of getFieldErrors('servicioPolo', 'cuil')"
+            >
+              {{ err.message }}
+            </div>
           </div>
-          <div
-            class="error"
-            *ngFor="let err of getFieldErrors('servicioPolo', 'cuil')"
-          >
-            {{ err.message }}
-          </div>
-        </div>
 
           <!-- Cant. puestos (solo obligatorio en coworking) -->
           <div
@@ -1461,10 +1464,7 @@
           >
             Campo obligatorio.
           </div>
-          <div
-            class="error"
-            *ngFor="let err of getFieldErrors('lote', 'lote')"
-          >
+          <div class="error" *ngFor="let err of getFieldErrors('lote', 'lote')">
             {{ err.message }}
           </div>
         </div>
@@ -1479,6 +1479,3 @@
     </form>
   </div>
 </div>
-
-
-
