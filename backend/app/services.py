@@ -1,4 +1,5 @@
 #app/services.py
+
 import unicodedata
 import os
 import json
@@ -8,6 +9,8 @@ import uuid
 import secrets
 import string
 import smtplib
+import io
+import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import List, Dict, Optional, Set
@@ -56,6 +59,31 @@ model = genai.GenerativeModel(
         candidate_count=1
     )
 )
+
+# ═══════════════════════════════════════════════════════════════════
+# CONFIGURACIÓN DE SERVICIOS DE VOZ (SOLO GOOGLE CLOUD)
+# ═══════════════════════════════════════════════════════════════════
+
+try:
+    from google.cloud import speech_v1 as speech
+    from google.cloud import texttospeech
+
+    google_credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if google_credentials_path and os.path.exists(google_credentials_path):
+        speech_client = speech.SpeechClient()
+        tts_client = texttospeech.TextToSpeechClient()
+        VOICE_PROVIDER = "google"
+        print(" Google Cloud Speech/TTS configurado")
+    else:
+        speech_client = None
+        tts_client = None
+        VOICE_PROVIDER = None
+        print(" Credenciales de Google Cloud no encontradas")
+except ImportError:
+    speech_client = None
+    tts_client = None
+    VOICE_PROVIDER = None
+    print(" google-cloud-speech/texttospeech no instalados")
 
 # ═══════════════════════════════════════════════════════════════════
 # UTILIDADES DE AUTENTICACIÓN Y CONTRASEÑAS
@@ -573,6 +601,225 @@ Administración Polo 52
         print(f"Error enviando email: {str(e)}")
         return False
 
+
+# ═══════════════════════════════════════════════════════════════════
+# PROCESAMIENTO DE VOZ - SPEECH TO TEXT
+# ═══════════════════════════════════════════════════════════════════
+
+def transcribe_audio_google(audio_content: bytes, language_code: str = "es-ES") -> str:
+    """
+    Convertir audio a texto usando Google Speech-to-Text
+    
+    Args:
+        audio_content: Bytes del archivo de audio
+        language_code: Código de idioma (español por defecto)
+    
+    Returns:
+        Texto transcrito
+    """
+    try:
+        if not speech_client:
+            raise HTTPException(
+                status_code=503,
+                detail="Servicio de transcripción no disponible"
+            )
+        
+        audio = speech.RecognitionAudio(content=audio_content)
+        
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
+            sample_rate_hertz=48000,
+            language_code=language_code,
+            enable_automatic_punctuation=True,
+            model="default",
+            use_enhanced=True
+        )
+        
+        response = speech_client.recognize(config=config, audio=audio)
+        
+        if not response.results:
+            return ""
+        
+        transcript = ""
+        for result in response.results:
+            transcript += result.alternatives[0].transcript + " "
+        
+        final_transcript = transcript.strip()
+        print(f" Transcripción Google: {final_transcript}")
+        return final_transcript
+        
+    except Exception as e:
+        print(f" Error en transcripción Google: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al transcribir audio: {str(e)}"
+        )
+
+def transcribe_audio(audio_content: bytes, language_code: str = "es-ES") -> str:
+    """
+    Transcribir audio usando Google Cloud
+    """
+    if VOICE_PROVIDER == "google" and speech_client:
+        return transcribe_audio_google(audio_content, language_code)
+
+    raise HTTPException(
+        status_code=503,
+        detail="No hay servicio de transcripción configurado. Configura GOOGLE_APPLICATION_CREDENTIALS."
+    )
+
+# -------------------------------------------------------------------
+# STREAMING (Opcional)
+# -------------------------------------------------------------------
+# Las siguientes referencias quedan comentadas para habilitar audio
+# en streaming cuando se necesite. Requiere crear un cliente de
+# streaming (`speech.SpeechClient().streaming_recognize`) y gestionar
+# un generador de fragmentos de audio desde el frontend (WebSocket o
+# HTTP chunked). Ejemplo orientativo:
+#
+# from collections import deque
+# from google.cloud.speech_v1 import StreamingRecognizeRequest
+# 
+# class StreamingBuffer:
+#     """Buffer simple para combinar frames recibidos desde el cliente."""
+#     def __init__(self) -> None:
+#         self._frames = deque()
+# 
+#     def push(self, frame: bytes) -> None:
+#         self._frames.append(frame)
+# 
+#     def flush(self) -> bytes:
+#         if not self._frames:
+#             return b""
+#         joined = b"".join(self._frames)
+#         self._frames.clear()
+#         return joined
+# 
+# def generate_streaming_requests(language_code: str = "es-ES"):
+#     """Ejemplo de generador para speech.streaming_recognize."""
+#     config_request = StreamingRecognizeRequest(
+#         streaming_config=speech.StreamingRecognitionConfig(
+#             config=speech.RecognitionConfig(
+#                 encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+#                 language_code=language_code,
+#                 enable_automatic_punctuation=True,
+#             ),
+#             interim_results=True,
+#         )
+#     )
+#     yield config_request
+#     # Los siguientes yield deben enviar frames recibidos en tiempo real:
+#     # while True:
+#     #     frame = streaming_buffer.flush()
+#     #     if frame:
+#     #         yield StreamingRecognizeRequest(audio_content=frame)
+# 
+# def consume_streaming_results(responses):
+#     """Procesa resultados parciales y finales."""
+#     for response in responses:
+#         for result in response.results:
+#             if result.is_final:
+#                 print("✳️ Final:", result.alternatives[0].transcript)
+#             else:
+#                 print("🟡 Parcial:", result.alternatives[0].transcript)
+#
+# ═══════════════════════════════════════════════════════════════════
+# PROCESAMIENTO DE VOZ - TEXT TO SPEECH
+# ═══════════════════════════════════════════════════════════════════
+
+def text_to_speech_google(text: str, language_code: str = "es-ES", voice_name: str = "es-ES-Neural2-A") -> bytes:
+    """
+    Convertir texto a voz usando Google Text-to-Speech
+    
+    Args:
+        text: Texto a convertir
+        language_code: Código de idioma
+        voice_name: Nombre de la voz
+    
+    Returns:
+        Bytes del audio en formato MP3
+    """
+    try:
+        if not tts_client:
+            raise HTTPException(
+                status_code=503,
+                detail="Servicio de síntesis de voz no disponible"
+            )
+        
+        synthesis_input = texttospeech.SynthesisInput(text=text)
+        
+        voice = texttospeech.VoiceSelectionParams(
+            language_code=language_code,
+            name=voice_name,
+            ssml_gender=texttospeech.SsmlVoiceGender.FEMALE
+        )
+        
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.MP3,
+            speaking_rate=1.0,
+            pitch=0.0,
+            volume_gain_db=0.0,
+            effects_profile_id=["headphone-class-device"]
+        )
+        
+        response = tts_client.synthesize_speech(
+            input=synthesis_input,
+            voice=voice,
+            audio_config=audio_config
+        )
+        
+        print(f" Audio Google generado: {len(response.audio_content)} bytes")
+        return response.audio_content
+        
+    except Exception as e:
+        print(f" Error en síntesis Google: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al generar audio: {str(e)}"
+        )
+
+def text_to_speech(text: str, voice_provider: str = None) -> bytes:
+    """
+    Sintetizar voz usando Google Cloud
+    
+    Args:
+        text: Texto a sintetizar
+        voice_provider: Proveedor específico (solo se admite 'google')
+    
+    Returns:
+        Bytes del audio MP3
+    """
+    if voice_provider and voice_provider != "google":
+        raise HTTPException(
+            status_code=400,
+            detail="Proveedor de voz no soportado. Usa 'google'."
+        )
+
+    if VOICE_PROVIDER == "google" and tts_client:
+        return text_to_speech_google(text)
+
+    raise HTTPException(
+        status_code=503,
+        detail="No hay servicio de síntesis de voz configurado. Configura GOOGLE_APPLICATION_CREDENTIALS."
+    )
+
+# -------------------------------------------------------------------
+# STREAMING TTS (Opcional)
+# -------------------------------------------------------------------
+# Google Text-to-Speech responde con un único payload. Si se desea
+# enviar audio por fragmentos al frontend, se puede dividir el MP3
+# en chunks antes de transmitirlo (por ejemplo, via WebSocket):
+#
+# import math
+# 
+# def chunk_audio_payload(audio_bytes: bytes, chunk_size: int = 32_768):
+#     """Divide el MP3 en fragmentos listos para transmisión iterativa."""
+#     total = len(audio_bytes)
+#     for index in range(0, total, chunk_size):
+#         yield audio_bytes[index:index + chunk_size]
+# 
+# El cliente podría reproducir cada fragmento a medida que llega
+# utilizando la API Web Audio o MediaSource Extensions.
+
 # ═══════════════════════════════════════════════════════════════════
 # UTILIDADES DEL CHATBOT CON GEMINI
 # ═══════════════════════════════════════════════════════════════════
@@ -695,6 +942,7 @@ Historial:
 {chat_history}
 
 INSTRUCCIONES IMPORTANTES:
+- Solo responde consultas relacionadas a mi base de datos , en caso contrario brindar un mensaje que especifique que solo respondes cosas relacionadas al parque industrial
 - Responde de forma natural, directa y conversacional.
 - No hagas respuestas muy extensas, se más directo
 - Si hay más de 6 resultados, di cuántos encontraste y pide más especificidad
@@ -712,3 +960,220 @@ Responde naturalmente:"""
 
     except Exception as e:
         return f"Error al procesar el mensaje: {str(e)}", [], None
+    
+
+# ═══════════════════════════════════════════════════════════════════
+# CHATBOT CON VOZ - FUNCIÓN INTEGRADA
+# ═══════════════════════════════════════════════════════════════════
+
+def get_chat_response_with_audio(
+    db: Session, 
+    audio_content: bytes = None,
+    text_message: str = None,
+    history: List[Dict[str, str]] = None
+) -> dict:
+    """
+    Procesar mensaje de voz o texto y devolver respuesta con audio
+    
+    Args:
+        db: Sesión de base de datos
+        audio_content: Audio en bytes (opcional)
+        text_message: Mensaje de texto (opcional)
+        history: Historial de conversación
+    
+    Returns:
+        dict con:
+        - text: Respuesta en texto
+        - audio_base64: Audio de respuesta en base64
+        - db_results: Resultados de la base de datos
+        - transcript: Transcripción del audio del usuario (si aplica)
+        - corrected_entity: Entidad corregida (si aplica)
+    """
+    try:
+        transcript = None
+        
+        # 1. Si viene audio, transcribir a texto
+        if audio_content:
+            print(f" Procesando audio: {len(audio_content)} bytes")
+            transcript = transcribe_audio(audio_content)
+            
+            if not transcript or len(transcript.strip()) == 0:
+                error_message = "No pude entender el audio. ¿Podrías repetir más claro?"
+                error_audio = text_to_speech(error_message)
+                error_audio_base64 = base64.b64encode(error_audio).decode('utf-8')
+                
+                return {
+                    "text": error_message,
+                    "audio_base64": error_audio_base64,
+                    "db_results": [],
+                    "transcript": None,
+                    "corrected_entity": None,
+                    "error": True
+                }
+            
+            message = transcript
+            print(f" Transcripción: {message}")
+            
+        elif text_message:
+            message = text_message
+            print(f" Mensaje de texto: {message}")
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="Se requiere audio o texto"
+            )
+        
+        # 2. Obtener respuesta del chatbot
+        print(f" Procesando con Gemini...")
+        response_text, db_results, corrected_entity = get_chat_response(
+            db, message, history
+        )
+        
+        print(f" Respuesta generada: {response_text[:100]}...")
+        
+        # 3. Convertir respuesta a audio
+        print(f"🔊 Generando audio de respuesta...")
+        audio_bytes = text_to_speech(response_text)
+        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+        
+        print(f" Audio generado: {len(audio_base64)} caracteres en base64")
+        
+        return {
+            "text": response_text,
+            "audio_base64": audio_base64,
+            "db_results": db_results,
+            "transcript": transcript,
+            "corrected_entity": corrected_entity,
+            "error": False
+        }
+        
+    except HTTPException as he:
+        # Re-lanzar excepciones HTTP
+        raise he
+    except Exception as e:
+        error_msg = f"Error procesando consulta: {str(e)}"
+        print(f" {error_msg}")
+        
+        # Intentar generar respuesta de error con audio
+        try:
+            error_response = "Disculpa, tuve un problema técnico. ¿Podrías intentar de nuevo?"
+            error_audio = text_to_speech(error_response)
+            error_audio_base64 = base64.b64encode(error_audio).decode('utf-8')
+            
+            return {
+                "text": error_response,
+                "audio_base64": error_audio_base64,
+                "db_results": [],
+                "transcript": transcript,
+                "corrected_entity": None,
+                "error": True,
+                "error_detail": str(e)
+            }
+        except:
+            # Si falla todo, devolver solo texto
+            raise HTTPException(
+                status_code=500,
+                detail=error_msg
+            )
+
+# ═══════════════════════════════════════════════════════════════════
+# UTILIDADES DE DIAGNÓSTICO Y CONFIGURACIÓN
+# ═══════════════════════════════════════════════════════════════════
+
+def get_voice_services_status() -> dict:
+    """
+    Obtener estado de los servicios de voz configurados
+    
+    Returns:
+        dict con el estado de cada servicio
+    """
+    status = {
+        "provider": VOICE_PROVIDER,
+        "services": {}
+    }
+    
+    # Verificar Google Cloud
+    if speech_client and tts_client:
+        status["services"]["google_cloud"] = {
+            "speech_to_text": " Disponible",
+            "text_to_speech": " Disponible"
+        }
+    else:
+        status["services"]["google_cloud"] = {
+            "speech_to_text": " No disponible",
+            "text_to_speech": " No disponible",
+            "note": "Configura GOOGLE_APPLICATION_CREDENTIALS"
+        }
+    
+    return status
+
+def test_voice_pipeline(db: Session, test_text: str = "Hola, soy POLO Bot del Parque Industrial Polo 52") -> dict:
+    """
+    Probar pipeline completo de voz
+    
+    Args:
+        db: Sesión de base de datos
+        test_text: Texto de prueba
+    
+    Returns:
+        dict con resultados de las pruebas
+    """
+    results = {
+        "text_to_speech": None,
+        "chat_response": None,
+        "errors": []
+    }
+    
+    # Test 1: Text-to-Speech
+    try:
+        audio_bytes = text_to_speech(test_text)
+        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+        results["text_to_speech"] = {
+            "status": " OK",
+            "audio_size_bytes": len(audio_bytes),
+            "audio_base64_length": len(audio_base64)
+        }
+    except Exception as e:
+        results["text_to_speech"] = {
+            "status": " ERROR",
+            "error": str(e)
+        }
+        results["errors"].append(f"TTS: {str(e)}")
+    
+    # Test 2: Chat Response
+    try:
+        response_text, db_results, _ = get_chat_response(
+            db, 
+            "¿Qué servicios ofrece el parque?",
+            None
+        )
+        results["chat_response"] = {
+            "status": " OK",
+            "response_length": len(response_text),
+            "db_results_count": len(db_results)
+        }
+    except Exception as e:
+        results["chat_response"] = {
+            "status": " ERROR",
+            "error": str(e)
+        }
+        results["errors"].append(f"Chat: {str(e)}")
+    
+    # Resumen
+    results["summary"] = " Todos los tests pasaron" if len(results["errors"]) == 0 else f" {len(results['errors'])} errores encontrados"
+    
+    return results
+
+# ═══════════════════════════════════════════════════════════════════
+# LIMPIEZA Y MANTENIMIENTO
+# ═══════════════════════════════════════════════════════════════════
+
+def cleanup_used_tokens():
+    """Limpiar cache de tokens usados"""
+    global USED_RESET_TOKENS
+    USED_RESET_TOKENS.clear()
+    print(" Cache de tokens usados limpiado")
+
+def get_used_tokens_count() -> int:
+    """Obtener cantidad de tokens usados en memoria"""
+    return len(USED_RESET_TOKENS)
