@@ -75,6 +75,7 @@
       >
         <span class="material-symbols-outlined">settings</span>
       </button>
+      <app-logout-button></app-logout-button>
     </div>
   </nav>
 
@@ -392,7 +393,7 @@
         <div class="header-search">
           <input
             type="text"
-            placeholder="Buscar por nombre, email o CUIL…"
+            placeholder="Buscar por nombre, email o empresa"
             [(ngModel)]="usuarioSearchTerm"
             (input)="filterUsuarios()"
           />
@@ -476,7 +477,7 @@
         <div class="header-search">
           <input
             type="text"
-            placeholder="Buscar por nombre, CUIL o propietario…"
+            placeholder="Buscar por nombre o empresa…"
             [(ngModel)]="servicioSearchTerm"
             (input)="filterServicios()"
           />
@@ -564,7 +565,7 @@
         <div class="header-search">
           <input
             type="text"
-            placeholder="Buscar por dueño, lote o manzana…"
+            placeholder="Buscar por dueño, lote, manzana o servicio de polo…"
             [(ngModel)]="loteSearchTerm"
             (input)="filterLotes()"
           />
@@ -579,7 +580,7 @@
             <div>Dueño</div>
             <div>Manzana</div>
             <div>Lote</div>
-            <div>Servicio</div>
+            <div>Servicio de Polo</div>
             <div>Acciones</div>
           </div>
 

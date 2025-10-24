@@ -230,13 +230,21 @@ export class EmpresaMeComponent implements OnInit {
 
     const parts: string[] = [];
 
-    if (datos.cantidad !== undefined && datos.cantidad !== null && datos.cantidad !== '') {
+    if (
+      datos.cantidad !== undefined &&
+      datos.cantidad !== null &&
+      datos.cantidad !== ''
+    ) {
       parts.push(`Cant: ${datos.cantidad}`);
     }
     if (datos.patente) {
       parts.push(`Pat: ${datos.patente}`);
     }
-    if (datos.carga !== undefined && datos.carga !== null && datos.carga !== '') {
+    if (
+      datos.carga !== undefined &&
+      datos.carga !== null &&
+      datos.carga !== ''
+    ) {
       parts.push(`Carga: ${datos.carga}`);
     }
     if (datos.descripcion) {
@@ -281,7 +289,11 @@ export class EmpresaMeComponent implements OnInit {
         if (datos.tipo) {
           parts.push(`Tipo: ${datos.tipo}`);
         }
-        if (datos.cantidad !== undefined && datos.cantidad !== null && datos.cantidad !== '') {
+        if (
+          datos.cantidad !== undefined &&
+          datos.cantidad !== null &&
+          datos.cantidad !== ''
+        ) {
           parts.push(`Cantidad: ${datos.cantidad}`);
         }
         break;
@@ -515,7 +527,9 @@ export class EmpresaMeComponent implements OnInit {
       .forEach((vehiculo) =>
         pushActividad(
           'ok',
-          `Vehiculo ${this.getTipoVehiculoName(vehiculo.id_tipo_vehiculo)} actualizado`,
+          `Vehiculo ${this.getTipoVehiculoName(
+            vehiculo.id_tipo_vehiculo
+          )} actualizado`,
           vehiculo
         )
       );
@@ -526,7 +540,9 @@ export class EmpresaMeComponent implements OnInit {
       .forEach((servicio) =>
         pushActividad(
           'info',
-          `Servicio ${this.getTipoServicioName(servicio.id_tipo_servicio)} actualizado`,
+          `Servicio ${this.getTipoServicioName(
+            servicio.id_tipo_servicio
+          )} actualizado`,
           servicio
         )
       );
@@ -676,7 +692,11 @@ export class EmpresaMeComponent implements OnInit {
   }
 
   private describeServicio(
-    source?: { id_tipo_servicio?: number; tipo_servicio?: string; datos?: any } | null
+    source?: {
+      id_tipo_servicio?: number;
+      tipo_servicio?: string;
+      datos?: any;
+    } | null
   ): string {
     const tipoNombreRaw =
       typeof source?.tipo_servicio === 'string' && source.tipo_servicio.trim()
@@ -700,7 +720,11 @@ export class EmpresaMeComponent implements OnInit {
   }
 
   private describeContacto(
-    source?: { nombre?: string; telefono?: string; id_tipo_contacto?: number } | null
+    source?: {
+      nombre?: string;
+      telefono?: string;
+      id_tipo_contacto?: number;
+    } | null
   ): string {
     if (source?.nombre && source.nombre.trim()) {
       return source.nombre.trim();
@@ -1242,7 +1266,6 @@ export class EmpresaMeComponent implements OnInit {
     this.editingVehiculo = null;
     this.editingServicio = null;
     this.editingContacto = null;
-    this.message = '';
     this.expandedVehiculos.clear();
     this.expandedServicios.clear();
 
@@ -2063,17 +2086,3 @@ export class EmpresaMeComponent implements OnInit {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
