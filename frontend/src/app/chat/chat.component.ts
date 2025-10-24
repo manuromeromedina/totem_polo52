@@ -6,7 +6,7 @@ import {
   ViewChild,
   AfterViewChecked,
 } from '@angular/core';
-import { ChatService } from './chat.service';
+import { ChatService, VoiceChatResponse } from './chat.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
@@ -175,6 +175,8 @@ interface Message {
   `,
   styles: [
     `
+      @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+
       .chat-wrapper {
         height: 100vh;
         display: flex;
@@ -855,14 +857,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   @ViewChild('messageInput') messageInput!: ElementRef;
 
   messages: Message[] = [];
-  userMessage: string = '';
-  isTyping: boolean = false;
-  isDarkMode: boolean = false;
-  isListening: boolean = false;
+  userMessage = '';
+  isTyping = false;
+  isDarkMode = false;
+  isListening = false;
+
   private shouldScrollToBottom = false;
   private audioContext: AudioContext | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
+  private recorderMimeType: string | undefined;
 
   constructor(private chatService: ChatService, private http: HttpClient) {}
 
@@ -888,38 +892,62 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
   async toggleSpeechRecognition() {
     if (this.isListening) {
-      // Detener grabación
-      if (this.mediaRecorder) {
-        this.mediaRecorder.stop();
-      }
-      if (this.audioContext) {
-        this.audioContext.close();
-      }
+      if (this.mediaRecorder) this.mediaRecorder.stop();
+      if (this.audioContext) this.audioContext.close();
       this.isListening = false;
-    } else {
-      // Iniciar grabación
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        this.audioContext = new AudioContext();
-        this.audioChunks = [];
-        this.mediaRecorder = new MediaRecorder(stream);
+      return;
+    }
 
-        this.mediaRecorder.ondataavailable = (event) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      this.audioContext = new AudioContext();
+      this.audioChunks = [];
+
+      const chosenMime = this.pickSupportedMimeType();
+      this.recorderMimeType = chosenMime;
+
+      this.mediaRecorder = chosenMime
+        ? new MediaRecorder(stream, { mimeType: chosenMime })
+        : new MediaRecorder(stream);
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0)
           this.audioChunks.push(event.data);
-        };
+      };
 
-        this.mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+      this.mediaRecorder.onstop = async () => {
+        try {
+          const finalType =
+            this.recorderMimeType ||
+            (this.audioChunks[0] ? this.audioChunks[0].type : 'audio/webm');
+
+          const audioBlob = new Blob(this.audioChunks, { type: finalType });
+          const ext = finalType.includes('ogg')
+            ? 'ogg'
+            : finalType.includes('webm')
+            ? 'webm'
+            : 'bin';
+
           const formData = new FormData();
-          formData.append('audio', audioBlob, 'temp_audio.wav');
+          formData.append('audio', audioBlob, `recording.${ext}`);
+          formData.append('mime_type', finalType);
 
           this.chatService.sendAudio(formData).subscribe({
-            next: (response) => {
-              this.userMessage = response.reply;
-              if (this.userMessage.trim()) {
-                this.sendMessage();
+            next: (resp: VoiceChatResponse) => {
+              // Mostrar transcript como mensaje del usuario
+              const transcript = resp?.data?.transcript?.trim();
+              if (transcript) this.addUserMessage(transcript);
+
+              // Mostrar respuesta del bot
+              const botText = resp?.data?.text || 'No se obtuvo respuesta.';
+              this.simulateTyping(botText);
+
+              // Reproducir TTS si vino
+              const b64 = resp?.data?.audio_base64;
+              if (b64) {
+                const audio = new Audio(`data:audio/mpeg;base64,${b64}`);
+                audio.play().catch(console.error);
               }
             },
             error: (error) => {
@@ -929,26 +957,28 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
               );
             },
           });
+        } finally {
+          stream.getTracks().forEach((t) => t.stop());
+          this.isListening = false;
+        }
+      };
 
-          stream.getTracks().forEach((track) => track.stop());
-        };
+      this.mediaRecorder.start(250); // pequeño timeslice ayuda en algunos navegadores
+      this.isListening = true;
 
-        this.mediaRecorder.start();
-        this.isListening = true;
-        console.log('Grabación de voz iniciada');
-
-        // Detener después de 5 segundos (igual que el backend)
-        setTimeout(() => {
-          if (this.mediaRecorder && this.isListening) {
-            this.mediaRecorder.stop();
-          }
-        }, 5000);
-      } catch (error) {
-        console.error('Error al iniciar grabación:', error);
-        this.showVoiceError(
-          'No se pudo acceder al micrófono. Verifique los permisos.'
-        );
-      }
+      // Auto-stop a los 5s (alineado con tu back)
+      setTimeout(() => {
+        if (this.mediaRecorder && this.isListening) this.mediaRecorder.stop();
+      }, 5000);
+    } catch (err: any) {
+      console.error('Error al iniciar grabación:', err);
+      const msg =
+        err?.name === 'NotAllowedError'
+          ? 'Permiso de micrófono denegado. Habilítelo en el navegador.'
+          : err?.name === 'NotFoundError'
+          ? 'No se encontró un dispositivo de audio.'
+          : 'No se pudo acceder al micrófono.';
+      this.showVoiceError(msg);
     }
   }
 
@@ -1015,9 +1045,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     let lastUserMessage: string | null = null;
 
     for (const message of this.messages) {
-      if (message.sender === 'user') {
-        lastUserMessage = message.content;
-      } else if (message.sender === 'bot' && lastUserMessage) {
+      if (message.sender === 'user') lastUserMessage = message.content;
+      else if (message.sender === 'bot' && lastUserMessage) {
         history.push({ user: lastUserMessage, assistant: message.content });
         lastUserMessage = null;
       }
@@ -1026,59 +1055,62 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   }
 
   async sendMessage() {
-    if (!this.userMessage.trim() || this.isTyping) {
-      return;
-    }
+    if (!this.userMessage.trim() || this.isTyping) return;
 
     const messageToSend = this.userMessage.trim();
     this.addUserMessage(messageToSend);
     this.userMessage = '';
     this.isTyping = true;
 
-    // Delay antes de comenzar a "escribir" - más rápido
     const initialDelay = Math.min(300 + messageToSend.length * 10, 800);
 
     setTimeout(() => {
       const history = this.getChatHistory();
 
       this.chatService.sendMessage(messageToSend, history).subscribe({
-        next: (response) => {
-          if (response && 'reply' in response) {
-            this.simulateTyping(response.reply);
-          } else {
-            this.simulateTyping(
-              'Lo siento, recibí una respuesta inválida del servidor. Por favor, intente reformular su consulta.'
-            );
+        next: (resp: VoiceChatResponse) => {
+          const text = resp?.data?.text || 'Respuesta inválida.';
+          this.simulateTyping(text);
+
+          const b64 = resp?.data?.audio_base64;
+          if (b64) {
+            const audio = new Audio(`data:audio/mpeg;base64,${b64}`);
+            audio.play().catch(console.error);
           }
         },
         error: (error) => {
           console.error('Error en la solicitud:', error);
-          let errorMessage =
-            'Lo siento, hubo un problema técnico. Por favor, intente nuevamente.';
-
-          if (error.status === 0) {
-            errorMessage =
-              'No se pudo conectar con el servidor. Verifique la conexión.';
-          } else if (error.status >= 500) {
-            errorMessage =
-              'El servidor está experimentando problemas. Intente más tarde.';
-          }
-
-          this.simulateTyping(errorMessage);
+          const msg =
+            error.status === 0
+              ? 'No se pudo conectar con el servidor. Verifique la conexión.'
+              : error.status >= 500
+              ? 'El servidor está experimentando problemas. Intente más tarde.'
+              : 'Lo siento, hubo un problema técnico. Por favor, intente nuevamente.';
+          this.simulateTyping(msg);
         },
       });
     }, initialDelay);
 
-    // Auto-focus para facilitar uso en tótem
     setTimeout(() => {
-      if (this.messageInput) {
-        this.messageInput.nativeElement.focus();
-      }
+      if (this.messageInput) this.messageInput.nativeElement.focus();
     }, 100);
   }
 
+  private pickSupportedMimeType(): string | undefined {
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+    ];
+    for (const c of candidates) {
+      if ((window as any).MediaRecorder && MediaRecorder.isTypeSupported(c))
+        return c;
+    }
+    return undefined; // dejar que el browser elija
+  }
+
   private simulateTyping(message: string) {
-    // Crear un mensaje vacío del bot
     const botMessage: Message = {
       sender: 'bot',
       content: '',
@@ -1089,49 +1121,27 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.messages.push(botMessage);
     this.shouldScrollToBottom = true;
 
-    // Variables para la simulación de escritura
     let currentIndex = 0;
     const characters = message.split('');
 
     const typeCharacter = () => {
       if (currentIndex < characters.length) {
-        // Actualizar el contenido del mensaje
         botMessage.content += characters[currentIndex];
-
-        // Scroll automático mientras escribe
         this.shouldScrollToBottom = true;
-
         currentIndex++;
 
-        // Velocidad más rápida
-        let delay = 25; // Velocidad base más rápida
-
-        // Pausas más cortas en puntos y comas
-        if (
-          characters[currentIndex - 1] === '.' ||
-          characters[currentIndex - 1] === '!'
-        ) {
-          delay = 100;
-        } else if (
-          characters[currentIndex - 1] === ',' ||
-          characters[currentIndex - 1] === ':'
-        ) {
-          delay = 50;
-        } else if (characters[currentIndex - 1] === ' ') {
-          delay = 15;
-        } else {
-          // Variación aleatoria más rápida
-          delay = Math.random() * 20 + 15;
-        }
+        let delay = 25;
+        if (['.', '!'].includes(characters[currentIndex - 1])) delay = 100;
+        else if ([',', ':'].includes(characters[currentIndex - 1])) delay = 50;
+        else if (characters[currentIndex - 1] === ' ') delay = 15;
+        else delay = Math.random() * 20 + 15;
 
         setTimeout(typeCharacter, delay);
       } else {
-        // Terminó de escribir
         this.isTyping = false;
       }
     };
 
-    // Comenzar a "escribir" más rápido
     setTimeout(typeCharacter, 100);
   }
 }
