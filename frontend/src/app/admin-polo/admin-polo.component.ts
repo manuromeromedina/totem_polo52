@@ -115,6 +115,23 @@ export class AdminPoloComponent implements OnInit {
   selectedEmpresa: Empresa | null = null;
   creatingForEmpresa = false;
 
+  // 🔽 Agregá esto a la clase
+  submitting: Record<
+    'polo' | 'empresa' | 'usuario' | 'servicioPolo' | 'lote',
+    boolean
+  > = {
+    polo: false,
+    empresa: false,
+    usuario: false,
+    servicioPolo: false,
+    lote: false,
+  };
+
+  isModalBusy(
+    formName: 'polo' | 'empresa' | 'usuario' | 'servicioPolo' | 'lote'
+  ): boolean {
+    return !!this.submitting[formName];
+  }
   // Usuarios
   usuarios: Usuario[] = [];
   roles: Rol[] = [];
@@ -485,6 +502,19 @@ export class AdminPoloComponent implements OnInit {
     // Verificar si hay cambios sin guardar
     const hasChanges = this.checkUnsavedChanges(formName, currentFormData);
     console.log('¿Hay cambios?', hasChanges);
+
+    if (this.isModalBusy(formName as any)) {
+      alert('Hay una operación en curso. Por favor esperá a que finalice.');
+      return;
+    }
+    // dentro de cancelForm(formName)
+    if (hasChanges) {
+      const shouldDiscard = confirm(/* ... */);
+      if (!shouldDiscard) return;
+
+      this.restoreOriginalFormData(formName);
+      this.showMessage('Cambios descartados.', 'success'); // 👈 NUEVO (usamos success como “info”)
+    }
 
     if (hasChanges) {
       const shouldDiscard = confirm(
@@ -1171,7 +1201,14 @@ export class AdminPoloComponent implements OnInit {
     this.editingUsuario = null;
     this.selectedEmpresa = null;
     this.creatingForEmpresa = false;
-    this.message = '';
+
+    this.submitting = {
+      polo: false,
+      empresa: false,
+      usuario: false,
+      servicioPolo: false,
+      lote: false,
+    };
 
     // Limpiar errores de todos los formularios
     this.formErrors = {};
@@ -1391,6 +1428,7 @@ export class AdminPoloComponent implements OnInit {
   // USUARIOS
   openUsuarioForm(usuario?: Usuario): void {
     this.clearFormErrors('usuario');
+    this.submitting.usuario = false; // ← importante
 
     if (usuario) {
       this.editingUsuario = usuario;
@@ -1427,12 +1465,12 @@ export class AdminPoloComponent implements OnInit {
     this.clearFormErrors('usuario');
 
     if (this.editingUsuario) {
-      // Actualizar usuario existente
+      // (update) — opcional: también podrías mostrar busy si lo querés en update
       const updateData: UsuarioUpdate = {
         password: this.usuarioForm.password || undefined,
         estado: this.usuarioForm.estado,
       };
-
+      this.submitting.usuario = true; // si también querés bloquear durante update
       this.adminPoloService
         .updateUser(this.editingUsuario.id_usuario, updateData)
         .subscribe({
@@ -1441,10 +1479,12 @@ export class AdminPoloComponent implements OnInit {
             this.loadUsuarios();
             this.resetForms();
             this.loading = false;
+            this.submitting.usuario = false;
           },
           error: (error) => {
             this.handleError(error, 'usuario', 'actualizar usuario');
             this.loading = false;
+            this.submitting.usuario = false;
           },
         });
     } else {
@@ -1457,19 +1497,22 @@ export class AdminPoloComponent implements OnInit {
         id_rol: this.usuarioForm.id_rol,
       };
 
+      this.submitting.usuario = true; // ← 🔒 bloquea el modal
       this.adminPoloService.createUser(userCreateData).subscribe({
         next: () => {
           this.showMessage(
-            'Usuario creado exitosamente. Se han enviado las credenciales por email.',
+            'Usuario creado. Enviamos las credenciales por email. Esto puede demorar unos minutos.',
             'success'
           );
           this.loadUsuarios();
           this.resetForms();
           this.loading = false;
+          this.submitting.usuario = false; // (por si el modal quedara abierto por algún flujo)
         },
         error: (error) => {
           this.handleError(error, 'usuario', 'crear usuario');
           this.loading = false;
+          this.submitting.usuario = false; // ← siempre liberar
         },
       });
     }
@@ -1796,8 +1839,9 @@ export class AdminPoloComponent implements OnInit {
 
   onPasswordChanged(success: boolean) {
     if (success) {
-      console.log('✅ Contraseña cambiada exitosamente');
+      this.showMessage('Contraseña actualizada exitosamente.', 'success'); // 👈 NUEVO
     }
+    this.showPasswordModal = false;
   }
 
   confirmAndSubmit(
@@ -1809,6 +1853,17 @@ export class AdminPoloComponent implements OnInit {
       Object.values(formRef.controls ?? {}).forEach((c: any) =>
         c?.markAsTouched?.()
       );
+      return;
+    }
+    // dentro de confirmAndSubmit(...)
+    if (!formRef || formRef.invalid) {
+      Object.values(formRef.controls ?? {}).forEach((c: any) =>
+        c?.markAsTouched?.()
+      );
+      this.showMessage(
+        'Revisá los campos obligatorios e intentá de nuevo.',
+        'error'
+      ); // 👈 NUEVO
       return;
     }
 

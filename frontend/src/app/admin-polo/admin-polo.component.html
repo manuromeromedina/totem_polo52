@@ -687,6 +687,13 @@
       #fPolo="ngForm"
       novalidate
     >
+      <div
+        class="alert alert--success"
+        *ngIf="message && messageType === 'success'"
+      >
+        {{ message }}
+      </div>
+
       <div class="alert alert--error" *ngIf="formErrors['polo']?.length">
         <div *ngFor="let err of formErrors['polo']">
           {{ err.message }}
@@ -772,6 +779,13 @@
       #fEmp="ngForm"
       novalidate
     >
+      <div
+        class="alert alert--success"
+        *ngIf="message && messageType === 'success'"
+      >
+        {{ message }}
+      </div>
+
       <div class="alert alert--error" *ngIf="formErrors['empresa']?.length">
         <div *ngFor="let err of formErrors['empresa']">
           {{ err.message }}
@@ -933,13 +947,14 @@
 
 <!-- Usuario: crear/editar -->
 <div class="overlay" *ngIf="showUsuarioForm">
-  <div class="modal modal--md">
+  <div class="modal modal--md" [attr.aria-busy]="isModalBusy('usuario')">
     <div class="modal-header">
       <h3>{{ editingUsuario ? "Editar usuario" : "Nuevo usuario" }}</h3>
       <button
         type="button"
         class="icon-btn"
         (click)="cancelForm('usuario')"
+        [disabled]="isModalBusy('usuario')"
         aria-label="Cerrar"
       >
         ✕
@@ -952,20 +967,43 @@
       #fUsr="ngForm"
       novalidate
     >
+      <!-- Aviso de progreso -->
+      <div
+        class="alert"
+        *ngIf="isModalBusy('usuario')"
+        style="margin-bottom: 0.75rem"
+      >
+        <span class="material-symbols-outlined" style="vertical-align: middle"
+          >hourglass_top</span
+        >
+        <span style="margin-left: 0.5rem; font-family: 'Inter', sans-serif">
+          Procesando… Puede demorar unos minutos. No cierres este formulario ni
+          navegues fuera.
+        </span>
+      </div>
+
+      <div
+        class="alert alert--success"
+        *ngIf="message && messageType === 'success'"
+      >
+        {{ message }}
+      </div>
+
       <div class="alert alert--error" *ngIf="formErrors['usuario']?.length">
         <div *ngFor="let err of formErrors['usuario']">
           {{ err.message }}
         </div>
       </div>
 
-      <div class="modal-body grid-3">
+      <!-- Podés envolver el body en un contenedor y atenuarlo si querés -->
+      <div class="modal-body grid-3" [class.readonly]="isModalBusy('usuario')">
         <div class="field">
           <label>Email <span class="req">*</span></label>
           <input
             type="email"
             [(ngModel)]="usuarioForm.email"
             name="u_email"
-            [disabled]="!!editingUsuario"
+            [disabled]="!!editingUsuario || isModalBusy('usuario')"
             required
             #uEmail="ngModel"
           />
@@ -984,34 +1022,17 @@
         </div>
 
         <div class="field">
-          <label>
-            Nombre
-            <span class="req" *ngIf="!editingUsuario">*</span>
-          </label>
+          <label
+            >Nombre <span class="req" *ngIf="!editingUsuario">*</span></label
+          >
           <input
             type="text"
             [(ngModel)]="usuarioForm.nombre"
             name="u_nombre"
-            [disabled]="!!editingUsuario"
+            [disabled]="!!editingUsuario || isModalBusy('usuario')"
             [required]="!editingUsuario"
             #uNom="ngModel"
           />
-          <div
-            class="error"
-            *ngIf="
-              !editingUsuario &&
-              uNom.invalid &&
-              (uNom.touched || fUsr.submitted)
-            "
-          >
-            Ingresá un nombre.
-          </div>
-          <div
-            class="error"
-            *ngFor="let err of getFieldErrors('usuario', 'nombre')"
-          >
-            {{ err.message }}
-          </div>
         </div>
 
         <div class="field" *ngIf="!editingUsuario">
@@ -1107,6 +1128,13 @@
       #fSP="ngForm"
       novalidate
     >
+      <div
+        class="alert alert--success"
+        *ngIf="message && messageType === 'success'"
+      >
+        {{ message }}
+      </div>
+
       <div
         class="alert alert--error"
         *ngIf="formErrors['servicioPolo']?.length"
@@ -1413,6 +1441,13 @@
       #fLote="ngForm"
       novalidate
     >
+      <div
+        class="alert alert--success"
+        *ngIf="message && messageType === 'success'"
+      >
+        {{ message }}
+      </div>
+
       <div class="alert alert--error" *ngIf="formErrors['lote']?.length">
         <div *ngFor="let err of formErrors['lote']">
           {{ err.message }}

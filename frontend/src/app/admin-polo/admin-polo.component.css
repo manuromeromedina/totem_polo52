@@ -1156,3 +1156,5 @@ html, body {
     grid-template-columns: 1.4fr 1.1fr 1.1fr 100px 100px 100px;
   }
 }
+
+.modal .readonly { opacity: .6; pointer-events: none; }
