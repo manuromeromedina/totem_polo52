@@ -58,7 +58,6 @@
       >
         Servicios del Polo
       </button>
-
     </div>
 
     <div class="topbar-right">
@@ -78,8 +77,6 @@
       >
         <span class="material-symbols-outlined">settings</span>
       </button>
-
-      <app-logout-button></app-logout-button>
     </div>
   </nav>
 
@@ -93,10 +90,7 @@
     >
       {{ message }}
     </div>
-    <div
-      class="alert alert--error"
-      *ngIf="formErrors['general']?.length"
-    >
+    <div class="alert alert--error" *ngIf="formErrors['general']?.length">
       <div *ngFor="let err of formErrors['general']">
         {{ err.message }}
       </div>
@@ -192,7 +186,9 @@
         <div class="company-info-head">
           <div>
             <h2>{{ empresaData?.nombre || "Perfil de empresa" }}</h2>
-            <p class="muted">Revisa o edita los datos principales de tu empresa.</p>
+            <p class="muted">
+              Revisa o edita los datos principales de tu empresa.
+            </p>
           </div>
           <button
             class="btn outline-primary"
@@ -209,11 +205,21 @@
           <div class="grid-2 nice-form profile-readout-grid">
             <div class="field">
               <label>CUIL</label>
-              <input class="readout" type="text" [value]="empresaData.cuil || '-'" readonly />
+              <input
+                class="readout"
+                type="text"
+                [value]="empresaData.cuil || '-'"
+                readonly
+              />
             </div>
             <div class="field">
               <label>Rubro</label>
-              <input class="readout" type="text" [value]="empresaData.rubro || '-'" readonly />
+              <input
+                class="readout"
+                type="text"
+                [value]="empresaData.rubro || '-'"
+                readonly
+              />
             </div>
             <div class="field">
               <label>Fecha de ingreso</label>
@@ -229,7 +235,12 @@
               <input
                 class="readout"
                 type="text"
-                [value]="empresaData.cant_empleados !== null && empresaData.cant_empleados !== undefined ? empresaData.cant_empleados : '-'"
+                [value]="
+                  empresaData.cant_empleados !== null &&
+                  empresaData.cant_empleados !== undefined
+                    ? empresaData.cant_empleados
+                    : '-'
+                "
                 readonly
               />
             </div>
@@ -256,13 +267,17 @@
               <textarea
                 class="readout multiline"
                 readonly
-                [value]="empresaData.observaciones || 'Sin observaciones registradas.'"
+                [value]="
+                  empresaData.observaciones || 'Sin observaciones registradas.'
+                "
               ></textarea>
             </div>
           </div>
         </ng-container>
         <ng-template #perfilSinDatos>
-          <div class="muted">Aun no hay informacion disponible de la empresa.</div>
+          <div class="muted">
+            Aun no hay informacion disponible de la empresa.
+          </div>
         </ng-template>
       </div>
     </section>
@@ -286,7 +301,11 @@
             [(ngModel)]="vehiculoSearchTerm"
             (input)="filterVehiculos()"
           />
-          <button class="btn ghost" type="button" (click)="clearVehiculoSearch()">
+          <button
+            class="btn ghost"
+            type="button"
+            (click)="clearVehiculoSearch()"
+          >
             Limpiar
           </button>
         </div>
@@ -311,16 +330,41 @@
             <div>{{ v.horarios || "-" }}</div>
             <div>{{ v.frecuencia || "-" }}</div>
             <div class="details-cell">
-              <ng-container *ngIf="v.datos && hasKeys(v.datos); else vehiculoSinDatos">
-                <ng-container *ngIf="isVehiculoExpanded(v.id_vehiculo); else vehiculoResumen">
-                  <div class="det-row" *ngIf="v.datos.cantidad !== undefined && v.datos.cantidad !== null && v.datos.cantidad !== ''">
+              <ng-container
+                *ngIf="v.datos && hasKeys(v.datos); else vehiculoSinDatos"
+              >
+                <ng-container
+                  *ngIf="
+                    isVehiculoExpanded(v.id_vehiculo);
+                    else vehiculoResumen
+                  "
+                >
+                  <div
+                    class="det-row"
+                    *ngIf="
+                      v.datos.cantidad !== undefined &&
+                      v.datos.cantidad !== null &&
+                      v.datos.cantidad !== ''
+                    "
+                  >
                     Cantidad: {{ v.datos.cantidad }}
                   </div>
-                  <div class="det-row" *ngIf="v.datos.patente">Patente: {{ v.datos.patente }}</div>
-                  <div class="det-row" *ngIf="v.datos.carga !== undefined && v.datos.carga !== null && v.datos.carga !== ''">
+                  <div class="det-row" *ngIf="v.datos.patente">
+                    Patente: {{ v.datos.patente }}
+                  </div>
+                  <div
+                    class="det-row"
+                    *ngIf="
+                      v.datos.carga !== undefined &&
+                      v.datos.carga !== null &&
+                      v.datos.carga !== ''
+                    "
+                  >
                     Carga: {{ v.datos.carga }}
                   </div>
-                  <div class="det-row" *ngIf="v.datos.descripcion">{{ v.datos.descripcion }}</div>
+                  <div class="det-row" *ngIf="v.datos.descripcion">
+                    {{ v.datos.descripcion }}
+                  </div>
                   <button
                     class="link-btn small vermenos"
                     type="button"
@@ -330,7 +374,9 @@
                   </button>
                 </ng-container>
                 <ng-template #vehiculoResumen>
-                  <span class="clamped">{{ getVehiculoDatosResumen(v.datos) }}</span>
+                  <span class="clamped">{{
+                    getVehiculoDatosResumen(v.datos)
+                  }}</span>
                   <button
                     class="link-btn"
                     type="button"
@@ -381,7 +427,11 @@
             [(ngModel)]="contactoSearchTerm"
             (input)="filterContactos()"
           />
-          <button class="btn ghost" type="button" (click)="clearContactoSearch()">
+          <button
+            class="btn ghost"
+            type="button"
+            (click)="clearContactoSearch()"
+          >
             Limpiar
           </button>
         </div>
@@ -502,7 +552,11 @@
             [(ngModel)]="servicioSearchTerm"
             (input)="filterServicios()"
           />
-          <button class="btn ghost" type="button" (click)="clearServicioSearch()">
+          <button
+            class="btn ghost"
+            type="button"
+            (click)="clearServicioSearch()"
+          >
             Limpiar
           </button>
         </div>
@@ -523,19 +577,41 @@
             </div>
 
             <div class="details-cell">
-              <ng-container *ngIf="s.datos && hasKeys(s.datos); else servicioSinDatos">
-                <ng-container *ngIf="isServicioExpanded(s.id_servicio); else servicioResumen">
+              <ng-container
+                *ngIf="s.datos && hasKeys(s.datos); else servicioSinDatos"
+              >
+                <ng-container
+                  *ngIf="
+                    isServicioExpanded(s.id_servicio);
+                    else servicioResumen
+                  "
+                >
                   <ng-container [ngSwitch]="s.id_tipo_servicio">
                     <ng-container *ngSwitchCase="1">
-                      <div class="det-row" *ngIf="s.datos.biofiltro !== undefined && s.datos.biofiltro !== null">
+                      <div
+                        class="det-row"
+                        *ngIf="
+                          s.datos.biofiltro !== undefined &&
+                          s.datos.biofiltro !== null
+                        "
+                      >
                         Biofiltro: {{ formatBoolean(s.datos.biofiltro) }}
                       </div>
-                      <div class="det-row" *ngIf="s.datos.tratamiento_aguas_grises">
+                      <div
+                        class="det-row"
+                        *ngIf="s.datos.tratamiento_aguas_grises"
+                      >
                         Tratamiento: {{ s.datos.tratamiento_aguas_grises }}
                       </div>
                     </ng-container>
                     <ng-container *ngSwitchCase="2">
-                      <div class="det-row" *ngIf="s.datos.abierto !== undefined && s.datos.abierto !== null">
+                      <div
+                        class="det-row"
+                        *ngIf="
+                          s.datos.abierto !== undefined &&
+                          s.datos.abierto !== null
+                        "
+                      >
                         Abierto: {{ formatBoolean(s.datos.abierto) }}
                       </div>
                       <div class="det-row" *ngIf="s.datos.m2">
@@ -543,17 +619,25 @@
                       </div>
                     </ng-container>
                     <ng-container *ngSwitchCase="3">
-                      <div class="det-row" *ngIf="s.datos.tipo">Tipo: {{ s.datos.tipo }}</div>
-                      <div class="det-row" *ngIf="s.datos.proveedor">Proveedor: {{ s.datos.proveedor }}</div>
+                      <div class="det-row" *ngIf="s.datos.tipo">
+                        Tipo: {{ s.datos.tipo }}
+                      </div>
+                      <div class="det-row" *ngIf="s.datos.proveedor">
+                        Proveedor: {{ s.datos.proveedor }}
+                      </div>
                     </ng-container>
                     <ng-container *ngSwitchCase="4">
-                      <div class="det-row" *ngIf="s.datos.tipo">Tipo: {{ s.datos.tipo }}</div>
+                      <div class="det-row" *ngIf="s.datos.tipo">
+                        Tipo: {{ s.datos.tipo }}
+                      </div>
                       <div class="det-row" *ngIf="s.datos.cantidad">
                         Cantidad: {{ s.datos.cantidad }}
                       </div>
                     </ng-container>
                     <ng-container *ngSwitchDefault>
-                      <div class="det-row" *ngIf="s.datos.descripcion">{{ s.datos.descripcion }}</div>
+                      <div class="det-row" *ngIf="s.datos.descripcion">
+                        {{ s.datos.descripcion }}
+                      </div>
                     </ng-container>
                   </ng-container>
                   <button
@@ -609,7 +693,11 @@
             [(ngModel)]="servicioPoloSearchTerm"
             (input)="filterServiciosPolo()"
           />
-          <button class="btn ghost" type="button" (click)="clearServicioPoloSearch()">
+          <button
+            class="btn ghost"
+            type="button"
+            (click)="clearServicioPoloSearch()"
+          >
             Limpiar
           </button>
         </div>
@@ -733,7 +821,8 @@
       <div class="alert alert--error" *ngIf="formErrors['empresa']?.length">
         <div *ngFor="let err of formErrors['empresa']">
           <span *ngIf="err.field && err.field !== 'general'">
-            <strong>{{ err.field }}</strong>:
+            <strong>{{ err.field }}</strong
+            >:
           </span>
           {{ err.message }}
         </div>
@@ -801,7 +890,8 @@
       <div class="alert alert--error" *ngIf="formErrors['vehiculo']?.length">
         <div *ngFor="let err of formErrors['vehiculo']">
           <span *ngIf="err.field && err.field !== 'general'">
-            <strong>{{ err.field }}</strong>:
+            <strong>{{ err.field }}</strong
+            >:
           </span>
           {{ err.message }}
         </div>
@@ -1052,7 +1142,8 @@
       <div class="alert alert--error" *ngIf="formErrors['contacto']?.length">
         <div *ngFor="let err of formErrors['contacto']">
           <span *ngIf="err.field && err.field !== 'general'">
-            <strong>{{ err.field }}</strong>:
+            <strong>{{ err.field }}</strong
+            >:
           </span>
           {{ err.message }}
         </div>
@@ -1204,7 +1295,8 @@
       <div class="alert alert--error" *ngIf="formErrors['servicio']?.length">
         <div *ngFor="let err of formErrors['servicio']">
           <span *ngIf="err.field && err.field !== 'general'">
-            <strong>{{ err.field }}</strong>:
+            <strong>{{ err.field }}</strong
+            >:
           </span>
           {{ err.message }}
         </div>
@@ -1411,7 +1503,3 @@
     </form>
   </div>
 </div>
-
-
-
-

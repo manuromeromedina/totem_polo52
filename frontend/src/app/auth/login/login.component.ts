@@ -123,7 +123,7 @@ export class LoginComponent implements OnInit {
         next: (ok) => {
           if (ok) {
             // ✅ Guardar la preferencia para próximos inicios
-            localStorage.setItem('rememberMe', this.keepLoggedIn ? '1' : '0');
+            localStorage.setItem('remember', this.keepLoggedIn ? '1' : '0');
 
             this.successMessage = '¡Inicio de sesión exitoso! Redirigiendo...';
             this.loginAttempts = 0;
@@ -232,7 +232,44 @@ export class LoginComponent implements OnInit {
     return true;
   }
   requestPasswordReset(): void {
-    /* igual que tu versión actual */
+    if (this.resetLoading) return;
+
+    // Validación rápida del email
+    if (!this.validateResetEmail()) return;
+
+    this.resetLoading = true;
+    this.resetMessage = '';
+    this.resetError = '';
+
+    this.authService
+      .requestPasswordReset(this.resetEmail.trim())
+      .pipe(finalize(() => (this.resetLoading = false)))
+      .subscribe({
+        next: (res) => {
+          // Backend (FastAPI) devuelve message y expires_in_minutes
+          this.resetMessage =
+            res?.message ||
+            'Te enviamos un email con el enlace de recuperación.';
+          // Si querés, podés cerrar el modal después de unos segundos
+          // setTimeout(() => this.closeResetModal(), 3000);
+        },
+        error: (err) => {
+          console.error('❌ Error forgot-password:', err);
+          // Mensajes claros según status
+          if (err.status === 404) {
+            this.resetError = 'Ese email no está registrado.';
+          } else if (err.status === 403) {
+            this.resetError =
+              'La cuenta está deshabilitada. Contactá al administrador.';
+          } else if (err.status === 500) {
+            // El back puede devolver "Error enviando email: ..."
+            this.resetError = err.error?.detail || 'Error enviando el email.';
+          } else {
+            this.resetError =
+              'No pudimos procesar tu solicitud. Intentá nuevamente.';
+          }
+        },
+      });
   }
 
   clearErrors(): void {
@@ -254,7 +291,7 @@ export class LoginComponent implements OnInit {
 
   loginWithGoogle(): void {
     // Si querés, podés forzar recordar para Google:
-    localStorage.setItem('rememberMe', '1');
+    localStorage.setItem('remember', '1');
     window.location.href = 'http://localhost:8000/auth/google/login';
   }
 }

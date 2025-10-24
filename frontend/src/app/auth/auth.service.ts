@@ -195,14 +195,24 @@ export class AuthenticationService {
       const isExpired = Date.now() >= payload.exp * 1000;
       if (isExpired) {
         console.log('⏰ isLoggedIn: Token expirado');
-        this.logoutLocal();
+        // 🔸 Antes: this.logoutLocal();  // <- esto te limpia todo y navega
+        // 🔹 Ahora: limpiamos solo el token tradicional, sin tocar Google ni navegar
+        localStorage.removeItem(this.sessionKey);
+        sessionStorage.removeItem(this.sessionKey);
+        localStorage.removeItem('rol');
+        sessionStorage.removeItem('rol');
         return false;
       }
       console.log('✅ isLoggedIn: Usuario autenticado');
       return true;
     } catch (error) {
       console.error('❌ isLoggedIn: Error al verificar token:', error);
-      this.logoutLocal();
+      // 🔸 Antes: this.logoutLocal();
+      // 🔹 Ahora: limpieza mínima sin navegar
+      localStorage.removeItem(this.sessionKey);
+      sessionStorage.removeItem(this.sessionKey);
+      localStorage.removeItem('rol');
+      sessionStorage.removeItem('rol');
       return false;
     }
   }
