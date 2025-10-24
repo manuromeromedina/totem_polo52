@@ -12,6 +12,8 @@ from app.schemas import (
     ContactoOutPublic, LoteOutPublic
 )
 from app.routes.auth import require_admin_polo, get_current_user
+import re
+NAME_RE = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+$")
 
 router = APIRouter(
     prefix="",
@@ -749,7 +751,38 @@ def delete_servicio_polo(id_servicio_polo: int, db: Session = Depends(get_db)):
 
 @router.post("/lotes", response_model=schemas.LoteOut, summary="Crear un lote asociado a un servicio de polo")
 def create_lote(dto: schemas.LoteCreate, db: Session = Depends(get_db)):
-    """Crear nuevo lote y asociarlo a un servicio de polo"""
+    """
+    Crear nuevo lote y asociarlo a un servicio de polo.
+    No permite duplicar lotes con misma manzana y número de lote.
+    """
+    # 🔍 Verificar duplicado de manzana + lote
+    existing_lote = (
+        db.query(models.Lote)
+        .filter(models.Lote.manzana == dto.manzana)
+        .filter(models.Lote.lote == dto.lote)
+        .first()
+    )
+    if existing_lote:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Ya existe un lote con número '{dto.lote}' en la manzana '{dto.manzana}'. "
+                "No se pueden crear lotes duplicados."
+            )
+        )
+    
+    # defensa extra por si llega fuera del esquema
+    if not NAME_RE.fullmatch(dto.dueno.strip()):
+        raise HTTPException(
+            status_code=400,
+            detail="El campo 'dueno' solo admite letras y espacios (sin números ni símbolos)"
+        )
+
+    # normalización opcional
+    dueno_norm = re.sub(r"\s+", " ", dto.dueno.strip()).title()
+
+
+    # Crear nuevo lote
     lote = models.Lote(
         dueno=dto.dueno,
         lote=dto.lote,

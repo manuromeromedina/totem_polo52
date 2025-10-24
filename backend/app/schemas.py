@@ -462,11 +462,42 @@ class ServicioPoloOutPublic(BaseModel):
 # SCHEMAS DE LOTES
 # ═══════════════════════════════════════════════════════════════════
 
+from pydantic import BaseModel, field_validator
+from typing import Optional
+import re
+
 class LoteCreate(BaseModel):
     dueno: str
     lote: int
     manzana: int
     id_servicio_polo: Optional[int] = None
+
+    @field_validator("dueno")
+    @classmethod
+    def validar_dueno(cls, value: str) -> str:
+        """
+        Valida que 'dueno':
+        - Contenga solo letras (con acentos, ñ y espacios)
+        - Tenga entre 3 y 25 letras reales (sin contar espacios)
+        """
+        value = value.strip()
+
+        # Solo letras con acentos y espacios
+        patron = r"^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+$"
+        if not re.fullmatch(patron, value):
+            raise ValueError("El campo 'Dueño' solo puede contener letras y espacios (sin números ni símbolos).")
+
+        # Normalizar espacios múltiples
+        value = re.sub(r"\s+", " ", value)
+
+        # Contar solo letras (sin espacios)
+        solo_letras = re.sub(r"[^A-Za-zÁÉÍÓÚáéíóúÑñÜü]", "", value)
+        if len(solo_letras) < 3 or len(solo_letras) > 25:
+            raise ValueError("El nombre del dueño debe tener entre 3 y 25 letras.")
+
+        # Formatear (primera letra de cada palabra en mayúscula)
+        value = value.title()
+        return value
 
     class Config:
         from_attributes = True
