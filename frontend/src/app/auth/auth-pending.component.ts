@@ -1,4 +1,3 @@
-// app/auth/auth-pending.component.ts
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -8,522 +7,216 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="auth-pending-container">
-      <div class="pending-box">
-        <!-- Header con estilo del reset password -->
-        <div class="header">
-          <h2>
-            <i class="fas fa-user-clock" style="margin-right: 12px; font-size: 1.5rem"></i>
-            Cuenta No Registrada
-          </h2>
-          <p class="subtitle">Necesitas que te creen una cuenta</p>
+    <div class="admin-layout auth-pending">
+      <div class="card auth-card">
+        <div class="auth-icon">
+          <span class="material-symbols-outlined info">person_add</span>
         </div>
 
-        <!-- Contenido principal -->
-        <div class="content">
-          <!-- Saludo personalizado -->
-          <div class="user-greeting">
-            <div class="avatar-container">
-              <i class="fas fa-user"></i>
-            </div>
-            <h3>¡Hola <strong>{{ userName }}</strong>!</h3>
-            <p class="user-email">
-              <i class="fas fa-envelope"></i>
-              {{ userEmail }}
-            </p>
-          </div>
+        <h2>Cuenta No Registrada</h2>
+        <p>Necesitas que te creen una cuenta para acceder al sistema.</p>
 
-          <!-- Mensaje principal -->
-          <div class="status-message">
-            <div class="status-icon">
-              <i class="fas fa-user-plus"></i>
-            </div>
-            <div class="status-text">
-              <h4>Tu email no está registrado</h4>
-              <p>Necesitas contactar al administrador del Polo 52 para que te cree una cuenta en el sistema.</p>
-            </div>
-          </div>
-
-          <!-- Información de contacto -->
-          <div class="contact-section">
-            <h4>
-              <i class="fas fa-phone-alt"></i>
-              Enviar Email al Admin
-            </h4>
-            <div class="contact-items">
-              <div class="contact-item">
-                <i class="fas fa-envelope"></i>
-                <div class="contact-details">
-                  <span class="contact-label">Email</span>
-                  <span class="contact-value">admin&#64;polo52.com</span>
-                </div>
-              </div>
-              <div class="contact-item">
-                <i class="fas fa-phone"></i>
-                <div class="contact-details">
-                  <span class="contact-label">Teléfono</span>
-                  <span class="contact-value">+54 351 XXX-XXXX</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Botones de acción -->
-          <div class="button-group">
-            <button type="button" class="primary-button" (click)="contactAdmin()">
-              <i class="fas fa-paper-plane"></i>
-              Enviar Email al Admin
-            </button>
-            <button type="button" class="secondary-button" (click)="goToLogin()">
-              <i class="fas fa-arrow-left"></i>
-              Volver al Login
-            </button>
-          </div>
+        <div class="alert alert--warning">
+          <strong>Tu email no está registrado:</strong> {{ userEmail }}
         </div>
+
+        <div class="suggestions">
+          <h4>¿Qué podés hacer?</h4>
+          <ul>
+            <li>Contactar al administrador del Polo 52</li>
+            <li>Enviar un correo a <strong>admin&#64;polo52.com</strong></li>
+            <li>Esperar la confirmación de creación de tu cuenta</li>
+          </ul>
+        </div>
+
+        <button class="btn primary" (click)="contactAdmin()">
+          <span class="material-symbols-outlined">send</span>
+          Enviar Email al Admin
+        </button>
+
+        <button class="btn ghost" (click)="goToLogin()">
+          <span class="material-symbols-outlined">arrow_back</span>
+          Volver al Login
+        </button>
       </div>
     </div>
   `,
-  styles: [`
-    /* Contenedor principal con imagen de fondo */
-    .auth-pending-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      /* Fallback si no tienes la imagen: 
-      background: url('/assets/images/iniciosesion.jpg') center/cover no-repeat; */
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      margin: 0;
-      padding: 20px;
-      box-sizing: border-box;
-    }
+  styles: [
+    `
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
 
-    /* Overlay oscuro sobre la imagen */
-    .auth-pending-container::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(122, 122, 122, 0.6);
-      z-index: 1;
-    }
-
-    /* Modal de pending centrado */
-    .pending-box {
-      position: relative;
-      z-index: 2;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 25px 50px rgba(29, 29, 29, 0.3);
-      overflow: hidden;
-      width: 100%;
-      max-width: 450px;
-      max-height: 90vh;
-      animation: fadeIn 0.5s ease-out;
-    }
-
-    /* Header del formulario */
-    .header {
-      text-align: center;
-      padding: 30px 30px 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      position: relative;
-    }
-
-    .header h2 {
-      font-size: 1.8rem;
-      font-weight: 600;
-      margin: 0 0 8px 0;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    }
-
-    .header .subtitle {
-      font-size: 0.95rem;
-      opacity: 0.9;
-      margin: 0;
-      font-weight: 300;
-    }
-
-    /* Contenido principal */
-    .content {
-      padding: 25px;
-    }
-
-    /* Saludo del usuario */
-    .user-greeting {
-      text-align: center;
-      margin-bottom: 18px;
-    }
-
-    .avatar-container {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 12px;
-      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
-    }
-
-    .avatar-container i {
-      font-size: 1.6rem;
-      color: white;
-    }
-
-    .user-greeting h3 {
-      font-size: 1.2rem;
-      color: #2d3748;
-      margin: 0 0 6px 0;
-      font-weight: 600;
-    }
-
-    .user-email {
-      color: #718096;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .user-email i {
-      color: #a0aec0;
-    }
-
-    /* Mensaje de estado */
-    .status-message {
-      display: flex;
-      align-items: flex-start;
-      gap: 15px;
-      padding: 20px;
-      background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-      border-radius: 12px;
-      border-left: 4px solid #f39c12;
-      margin-bottom: 20px;
-    }
-
-    .status-icon {
-      flex-shrink: 0;
-    }
-
-    .status-icon i {
-      font-size: 1.6rem;
-      color: #e67e22;
-    }
-
-    .status-text h4 {
-      color: #856404;
-      margin: 0 0 8px 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-
-    .status-text p {
-      color: #856404;
-      margin: 0;
-      line-height: 1.5;
-      font-size: 0.9rem;
-    }
-
-    /* Caja de instrucciones */
-    .instructions-box {
-      background: #e6f3ff;
-      border-radius: 12px;
-      margin-bottom: 25px;
-      border-left: 4px solid #3182ce;
-      overflow: hidden;
-    }
-
-    .instructions-header {
-      background: rgba(49, 130, 206, 0.1);
-      padding: 15px 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 600;
-      color: #2c5282;
-      border-bottom: 1px solid rgba(49, 130, 206, 0.2);
-    }
-
-    .instructions-header i {
-      color: #3182ce;
-      font-size: 1.1rem;
-    }
-
-    .instructions-content {
-      padding: 15px 20px;
-    }
-
-    .instructions-content p {
-      margin: 0;
-      color: #2c5282;
-      line-height: 1.5;
-      font-size: 0.9rem;
-    }
-
-    /* Sección de contacto */
-    .contact-section {
-      background: #f7fafc;
-      border-radius: 12px;
-      padding: 18px;
-      margin-bottom: 20px;
-      border: 1px solid #e2e8f0;
-    }
-
-    .contact-section h4 {
-      color: #2d3748;
-      margin: 0 0 15px 0;
-      font-size: 1rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .contact-section h4 i {
-      color: #4a5568;
-    }
-
-    .contact-items {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .contact-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px;
-      background: white;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-    }
-
-    .contact-item i {
-      width: 20px;
-      text-align: center;
-      color: #667eea;
-      font-size: 1rem;
-    }
-
-    .contact-details {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-    }
-
-    .contact-label {
-      font-size: 0.8rem;
-      color: #718096;
-      font-weight: 500;
-    }
-
-    .contact-value {
-      font-size: 0.9rem;
-      color: #2d3748;
-      font-weight: 600;
-    }
-
-    /* Grupo de botones */
-    .button-group {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 25px;
-    }
-
-    .primary-button,
-    .secondary-button {
-      width: 100%;
-      padding: 12px 15px;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      font-family: inherit;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .primary-button {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .primary-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-    }
-
-    .secondary-button {
-      background: #f7fafc;
-      color: #4a5568;
-      border: 2px solid #e2e8f0;
-    }
-
-    .secondary-button:hover {
-      background: #e2e8f0;
-      border-color: #cbd5e0;
-      transform: translateY(-1px);
-    }
-
-    /* Animaciones */
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.7; }
-      100% { opacity: 1; }
-    }
-
-    /* Estados de foco para accesibilidad */
-    .primary-button:focus,
-    .secondary-button:focus {
-      outline: 2px solid #667eea;
-      outline-offset: 2px;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .auth-pending-container {
-        padding: 15px;
+      :host,
+      .admin-layout,
+      .auth-card,
+      .alert,
+      .btn {
+        font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto,
+          sans-serif;
       }
 
-      .pending-box {
-        max-width: 95%;
+      .admin-layout.auth-pending {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 1.5rem;
+        background: radial-gradient(
+            1000px 500px at 10% 5%,
+            #eef2ff 0%,
+            transparent 60%
+          ),
+          radial-gradient(1000px 500px at 90% 95%, #eef2ff 0%, transparent 60%),
+          #f7f9ff;
       }
 
-      .header {
-        padding: 25px 25px 18px;
-      }
-
-      .header h2 {
-        font-size: 1.6rem;
-      }
-
-      .content {
-        padding: 25px;
-      }
-
-      .contact-items {
-        gap: 10px;
-      }
-
-      .contact-item {
-        padding: 8px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .auth-pending-container {
-        padding: 10px;
-      }
-
-      .header {
-        padding: 20px 20px 15px;
-      }
-
-      .header h2 {
-        font-size: 1.4rem;
-      }
-
-      .content {
-        padding: 20px;
-      }
-
-      .status-message {
-        flex-direction: column;
+      /* Card igual a auth-error */
+      .card.auth-card {
+        width: min(420px, 92vw);
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.75rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         text-align: center;
-        gap: 10px;
+        transition: box-shadow 0.2s ease;
+      }
+      .card.auth-card:hover {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       }
 
-      .contact-item {
-        flex-direction: column;
-        text-align: center;
-        gap: 8px;
+      /* Icono */
+      .auth-icon {
+        margin-bottom: 0.5rem;
+      }
+      .auth-icon .material-symbols-outlined {
+        font-variation-settings: 'FILL' 1, 'wght' 600;
+        font-size: 40px;
+        color: #4f46e5;
       }
 
-      .avatar-container {
-        width: 60px;
-        height: 60px;
+      /* Títulos y textos */
+      .auth-card h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1a284b;
+        margin: 0 0 0.35rem 0;
+      }
+      .auth-card p {
+        margin: 0 0 1rem 0;
+        font-size: 0.88rem;
+        color: #53618d;
+        line-height: 1.35;
       }
 
-      .avatar-container i {
-        font-size: 1.6rem;
+      /* Alert aviso email */
+      .alert {
+        margin-bottom: 0.9rem;
+        padding: 0.6rem 0.9rem;
+        border-radius: 8px;
+        font-weight: 500;
+        text-align: left;
+        font-size: 0.85rem;
       }
-    }
+      .alert--warning {
+        background: #fff6ed;
+        color: #7c4a03;
+        border: 1px solid #fcd9a3;
+      }
 
-    /* Mejoras visuales adicionales */
-    .header::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    }
-  `]
+      /* Sugerencias */
+      .suggestions {
+        text-align: left;
+        background: #f3f5fb;
+        border: 1px solid rgba(83, 97, 141, 0.12);
+        border-radius: 10px;
+        padding: 0.8rem 0.9rem;
+        margin: 0 auto 1.1rem auto;
+        font-size: 0.85rem;
+      }
+      .suggestions h4 {
+        margin: 0 0 0.4rem 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1a284b;
+      }
+      .suggestions ul {
+        margin: 0;
+        padding-left: 1rem;
+        color: #53618d;
+      }
+      .suggestions li {
+        margin: 0.2rem 0;
+      }
+
+      /* Botones */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        font-size: 0.85rem;
+        transition: 0.2s ease;
+      }
+      .btn .material-symbols-outlined {
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .btn.primary {
+        background: #a20000;
+        color: #fff;
+        margin-top: 0.5rem;
+      }
+      .btn.primary:hover {
+        background: #870000;
+      }
+
+      .btn.ghost {
+        background: #f3f6fb;
+        color: #1a284b;
+        border: 1px solid #e6e9f3;
+        margin-top: 0.5rem;
+      }
+      .btn.ghost:hover {
+        background: #e9ecf7;
+      }
+
+      @media (max-width: 480px) {
+        .card.auth-card {
+          padding: 1.25rem;
+        }
+        .btn {
+          width: 100%;
+        }
+      }
+    `,
+  ],
 })
 export class AuthPendingComponent implements OnInit {
   userName = '';
   userEmail = '';
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router
-  ) {}
+  constructor(private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.userName = params['name'] || 'Usuario';
       this.userEmail = params['email'] || '';
     });
   }
 
   contactAdmin(): void {
-    // Abrir cliente de email con información pre-llenada
-    const subject = encodeURIComponent('Solicitud de creación de cuenta - Polo 52');
-    const body = encodeURIComponent(`
-Hola,
-
-Soy ${this.userName} y me he autenticado con Google usando el email ${this.userEmail}.
-
-Mi email no está registrado en el sistema del Parque Industrial Polo 52.
-
-Por favor, podrían crear mi cuenta en el sistema para poder acceder.
-
-Gracias,
-${this.userName}
-    `);
-    
-    window.location.href = `mailto:admin&#64;polo52.com?subject=${subject}&body=${body}`;
+    const subject = encodeURIComponent(
+      'Solicitud de creación de cuenta - Polo 52'
+    );
+    const body = encodeURIComponent(
+      `Hola,\n\nSoy ${this.userName} (${this.userEmail}) y necesito que creen mi cuenta en el sistema del Parque Industrial Polo 52.\n\nGracias,\n${this.userName}`
+    );
+    window.location.href = `mailto:admin@polo52.com?subject=${subject}&body=${body}`;
   }
 
   goToLogin(): void {

@@ -1703,7 +1703,7 @@ export class AdminPoloComponent implements OnInit {
 
     switch (rol.tipo_rol) {
       case 'admin_polo':
-        return 'Polo';
+        return 'Polo 52';
       case 'admin_empresa':
         return 'Empresa';
       case 'publico':
