@@ -12,4 +12,6 @@ google-generativeai
 fastapi-session==0.2.7
 google-cloud-speech
 google-cloud-texttospeech
-
+httpx
+authlib
+itsdangerous
