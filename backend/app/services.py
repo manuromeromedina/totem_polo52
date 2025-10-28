@@ -48,17 +48,61 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 api_key = os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=api_key)
 
-# Configuración del modelo Gemini
-model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash',
-    generation_config=GenerationConfig(
-        temperature=0.3,
-        top_p=0.9,
-        max_output_tokens=1024,
-        stop_sequences=None,
-        candidate_count=1
-    )
-)
+def _init_gemini_model() -> genai.GenerativeModel:
+    """
+    Intenta inicializar el modelo de Gemini probando varios identificadores.
+
+    Permite configurar uno explícito mediante la variable GEMINI_MODEL.
+    Si ese falla (por permisos o disponibilidad), prueba alternativas
+    compatibles para no interrumpir el servicio.
+    """
+    configured = os.getenv("GEMINI_MODEL", "models/gemini-2.0-flash")
+    candidates = [
+        configured,
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-preview-05-20",
+        "models/gemini-2.5-flash",
+        "models/gemini-2.5-flash-preview-05-20",
+        "gemini-2.5-pro",
+        "models/gemini-2.5-pro",
+        "gemini-1.5-flash",
+        "models/gemini-1.5-flash-latest",
+        "models/gemini-1.5-flash",
+        "gemini-pro",
+        "models/gemini-pro",
+    ]
+
+    tried = set()
+    last_error = None
+
+    for candidate in candidates:
+        if candidate in tried:
+            continue
+        tried.add(candidate)
+        try:
+            print(f" Inicializando modelo Gemini: {candidate}")
+            return genai.GenerativeModel(
+                model_name=candidate,
+                generation_config=GenerationConfig(
+                    temperature=0.3,
+                    top_p=0.9,
+                    max_output_tokens=1024,
+                    stop_sequences=None,
+                    candidate_count=1,
+                ),
+            )
+        except Exception as exc:
+            print(f" ⚠️ No se pudo inicializar {candidate}: {exc}")
+            last_error = exc
+
+    raise RuntimeError(
+        "No se pudo inicializar ningún modelo de Gemini. "
+        "Verifica la variable GEMINI_MODEL o los permisos de tu API key."
+    ) from last_error
+
+
+# Configuración del modelo Gemini (con fallback)
+model = _init_gemini_model()
 
 # ═══════════════════════════════════════════════════════════════════
 # CONFIGURACIÓN DE SERVICIOS DE VOZ (SOLO GOOGLE CLOUD)
@@ -941,16 +985,13 @@ Información disponible:
 Historial:
 {chat_history}
 
-INSTRUCCIONES IMPORTANTES:
-- Solo responde consultas relacionadas a mi base de datos , en caso contrario brindar un mensaje que especifique que solo respondes cosas relacionadas al parque industrial
-- Responde de forma natural, directa y conversacional.
-- No hagas respuestas muy extensas, se más directo
-- Si hay más de 6 resultados, di cuántos encontraste y pide más especificidad
-- Si es una lista extensa (más de 6 items) deci cantidad de resultados pero no expliques cada uno, pedi más información así filtras resultados
-- Si los resultados están vacíos [] o hay error, responde de forma amigable explicando que no encontraste información
-- Si hay 1-6 resultados, muéstralos todos claramente
-- Nunca muestres CUIL ni ID de empresas
-- Nunca uses asteriscos (*) 
+- INSTRUCCIONES IMPORTANTES:
+- Solo responde consultas sobre el Parque Industrial Polo 52. Si la consulta es ajena, responde textualmente: "Solo puedo ayudarte con información del Parque Industrial Polo 52."
+- Responde de forma natural, directa y segura, usando un tono informativo. No cierres la respuesta con preguntas ni pidas más detalles.
+- Cuando haya resultados, menciónalos en texto corrido o en una lista corta usando viñetas simples (por ejemplo "- Empresa: dato relevante"). Si hay más de seis coincidencias, indica cuántas hay y describe las seis más representativas.
+- Si no encuentras información, indícalo claramente y ofrece una alternativa relacionada con el parque (por ejemplo, sugerir otro rubro o empresa) sin agregar preguntas.
+- Nunca muestres CUIL, IDs internos ni datos sensibles.
+- Asegúrate de que la respuesta sea apropiada para todo público.
 
 Responde naturalmente:"""
 

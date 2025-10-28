@@ -1,11 +1,12 @@
 # app/routers/voice.py
 
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Body
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Body, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict
 import io
 import base64
+import json
 
 from app.config import get_db
 from app.routes.auth import require_public_role
@@ -162,9 +163,12 @@ async def synthesize_text_endpoint(
 
 @router.post("/chat")
 async def voice_chat_endpoint(
+    request: Request,
     audio: Optional[UploadFile] = File(None, description="Archivo de audio del usuario"),
-    text: Optional[str] = Body(None, embed=True, description="Mensaje de texto (alternativa al audio)"),
-    history: Optional[List[Dict]] = Body(None, embed=True, description="Historial de conversación"),
+    text: Optional[str] = Form(None, description="Mensaje de texto (alternativa al audio)"),
+    history_form: Optional[str] = Form(
+        None, description="Historial de conversación en JSON (solo para multipart/form-data)"
+    ),
     db: Session = Depends(get_db)
 ):
     """
@@ -174,15 +178,41 @@ async def voice_chat_endpoint(
     - Devuelve texto + audio (base64) + resultados de DB.
     """
     try:
-        if not audio and not text:
+        history: Optional[List[Dict]] = None
+
+        # Detectar peticiones JSON puras
+        if audio is None and text is None and history_form is None:
+            content_type = request.headers.get("content-type", "")
+            if content_type.startswith("application/json"):
+                payload = await request.json()
+                text = payload.get("text")
+                history = payload.get("history")
+                audio_payload = payload.get("audio_base64")
+                if audio_payload:
+                    audio_bytes = base64.b64decode(audio_payload)
+                else:
+                    audio_bytes = None
+            else:
+                audio_bytes = None
+        else:
+            # Manejar multipart/form-data
+            audio_bytes = None
+            if history_form:
+                try:
+                    history = json.loads(history_form)
+                except json.JSONDecodeError:
+                    raise HTTPException(status_code=400, detail="Historial inválido (JSON esperado)")
+
+        if audio is None and audio_bytes is None and not text:
             raise HTTPException(status_code=400, detail="Debes enviar audio o texto")
 
-        audio_bytes = None
-        if audio:
-            audio_bytes = await audio.read()
-            if len(audio_bytes) == 0:
+        # Si se recibió archivo de audio vía multipart
+        if audio and audio_bytes is None:
+            file_bytes = await audio.read()
+            if len(file_bytes) == 0:
                 raise HTTPException(status_code=400, detail="El archivo de audio está vacío")
-            print(f"📥 Audio recibido: {len(audio_bytes)} bytes")
+            print(f"📥 Audio recibido: {len(file_bytes)} bytes")
+            audio_bytes = file_bytes
 
         result = services.get_chat_response_with_audio(
             db=db,

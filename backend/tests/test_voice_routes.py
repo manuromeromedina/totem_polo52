@@ -42,7 +42,7 @@ def test_synthesize_returns_audio_stream(client: TestClient):
 
 
 def test_voice_chat_requires_audio_or_text(client: TestClient):
-    response = client.post("/api/voice/chat", data={}, files={})
+    response = client.post("/api/voice/chat", json={})
     assert response.status_code == 400
     assert response.json()["detail"] == "Debes enviar audio o texto"
 
@@ -57,7 +57,7 @@ def test_voice_chat_with_text_payload(client: TestClient):
         "error": False,
     }
     with patch("app.routes.voice.services.get_chat_response_with_audio", return_value=fake_result):
-        response = client.post("/api/voice/chat", data={"text": "Hola"}, files={})
+        response = client.post("/api/voice/chat", json={"text": "Hola"})
     assert response.status_code == 200
     payload = response.json()
     assert payload["data"]["text"] == "Respuesta"
