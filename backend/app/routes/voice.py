@@ -241,7 +241,21 @@ async def voice_chat_endpoint(
         raise
     except Exception as e:
         print(f" Error en chat con voz: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error procesando mensaje: {str(e)}")
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": False,
+                "data": {
+                    "text": "No se pudo procesar la consulta en este momento. Intentá nuevamente más tarde.",
+                    "audio_base64": "",
+                    "transcript": None,
+                    "db_results": [],
+                    "corrected_entity": None,
+                },
+                "error": True,
+                "message": "El servidor no pudo responder la consulta"
+            }
+        )
 
 # ═══════════════════════════════════════════════════════════════════
 # ENDPOINT 5: Test del pipeline completo

@@ -92,7 +92,7 @@ def _init_gemini_model() -> genai.GenerativeModel:
                 ),
             )
         except Exception as exc:
-            print(f" ⚠️ No se pudo inicializar {candidate}: {exc}")
+            print(f"  No se pudo inicializar {candidate}: {exc}")
             last_error = exc
 
     raise RuntimeError(
@@ -985,13 +985,15 @@ Información disponible:
 Historial:
 {chat_history}
 
-- INSTRUCCIONES IMPORTANTES:
-- Solo responde consultas sobre el Parque Industrial Polo 52. Si la consulta es ajena, responde textualmente: "Solo puedo ayudarte con información del Parque Industrial Polo 52."
-- Responde de forma natural, directa y segura, usando un tono informativo. No cierres la respuesta con preguntas ni pidas más detalles.
-- Cuando haya resultados, menciónalos en texto corrido o en una lista corta usando viñetas simples (por ejemplo "- Empresa: dato relevante"). Si hay más de seis coincidencias, indica cuántas hay y describe las seis más representativas.
-- Si no encuentras información, indícalo claramente y ofrece una alternativa relacionada con el parque (por ejemplo, sugerir otro rubro o empresa) sin agregar preguntas.
-- Nunca muestres CUIL, IDs internos ni datos sensibles.
-- Asegúrate de que la respuesta sea apropiada para todo público.
+INSTRUCCIONES IMPORTANTES:
+- Solo responde consultas sobre el Parque Industrial Polo 52. Si la consulta es ajena, responde textualmente: "Solo puedo ayudarte con información del Parque Industrial Polo 52.
+- No hagas respuestas muy extensas, se más directo
+- Si hay más de 6 resultados, di cuántos encontraste y pide más especificidad
+- Si es una lista extensa (más de 6 items) deci cantidad de resultados pero no expliques cada uno, pedi más información así filtras resultados
+- Si los resultados están vacíos [] o hay error, responde de forma amigable explicando que no encontraste información
+- Si hay 1-6 resultados, muéstralos todos claramente
+- Nunca muestres CUIL ni ID de empresas
+- Nunca uses asteriscos (*) 
 
 Responde naturalmente:"""
 
