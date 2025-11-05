@@ -1,7 +1,7 @@
 #app/routes/chat.py
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from app.services import get_chat_response
+from app.services import get_chat_response, GENERIC_ERROR_MESSAGE
 from app.config import get_db
 from sqlalchemy.orm import Session
 from typing import List, Dict, Optional
@@ -34,4 +34,4 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
 
     except Exception as e:
         print(f"Error en el backend: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error al procesar el mensaje: {str(e)}")
+        raise HTTPException(status_code=500, detail=GENERIC_ERROR_MESSAGE)

@@ -13,7 +13,7 @@ import io
 import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import List, Dict, Optional, Set
+from typing import List, Dict, Optional, Set, Tuple
 from pathlib import Path
 from datetime import datetime, timedelta, date
 from dotenv import load_dotenv
@@ -696,7 +696,7 @@ def transcribe_audio_google(audio_content: bytes, language_code: str = "es-ES") 
         print(f" Error en transcripción Google: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error al transcribir audio: {str(e)}"
+            detail=GENERIC_ERROR_MESSAGE
         )
 
 def transcribe_audio(audio_content: bytes, language_code: str = "es-ES") -> str:
@@ -708,7 +708,7 @@ def transcribe_audio(audio_content: bytes, language_code: str = "es-ES") -> str:
 
     raise HTTPException(
         status_code=503,
-        detail="No hay servicio de transcripción configurado. Configura GOOGLE_APPLICATION_CREDENTIALS."
+        detail=GENERIC_ERROR_MESSAGE
     )
 
 # -------------------------------------------------------------------
@@ -868,17 +868,60 @@ def text_to_speech(text: str, voice_provider: str = None) -> bytes:
 # UTILIDADES DEL CHATBOT CON GEMINI
 # ═══════════════════════════════════════════════════════════════════
 
+GENERIC_ERROR_MESSAGE = "Ha ocurrido un error interno. Por favor, inténtalo nuevamente más tarde."
+
+FORBIDDEN_SQL_TABLES = {
+    "usuario",
+    "rol",
+    "rol_usuario",
+    "vehiculos",
+    "tipo_vehiculo",
+    "empresa_vehiculos",
+    "servicio",
+    "tipo_servicio",
+    "empresa_servicio",
+    "password_history",
+}
+
+FORBIDDEN_RESPONSE_TEXT = "No tengo permitido compartir esta información."
+
+def is_sql_query_allowed(sql_query: str) -> bool:
+    """Validar que la consulta no acceda a tablas restringidas."""
+    if not sql_query:
+        return False
+
+    normalized = re.sub(r"\s+", " ", sql_query.lower()).replace('"', "").replace("'", "")
+    for table in FORBIDDEN_SQL_TABLES:
+        if re.search(rf"\b{table}\b", normalized):
+            return False
+    return True
+
 def normalize_text(text: str) -> str:
     """Normalizar texto eliminando acentos y convirtiendo a minúsculas"""
-    normalized = ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
+    normalized = ''.join(
+        c for c in unicodedata.normalize('NFD', text)
+        if unicodedata.category(c) != 'Mn'
+    )
     return normalized.lower().strip()
+
+
+def sanitize_response_text(text: Optional[str]) -> Optional[str]:
+    """Limpiar la respuesta antes de devolverla al usuario."""
+    if text is None:
+        return None
+
+    sanitized = text.replace("•", "-")
+    sanitized = re.sub(r"\*+", "", sanitized)
+    sanitized = re.sub(r"\s+\n", "\n", sanitized)
+    return sanitized.strip()
+
 
 def execute_sql_query(db: Session, query: str) -> List[Dict]:
     """Ejecutar consulta SQL de forma segura (solo SELECT)"""
     try:
         if not query.strip().lower().startswith("select"):
             print(f"Consulta no permitida: {query}")
-            return [{"error": "Solo se permiten consultas SELECT."}]
+            return [{"error": GENERIC_ERROR_MESSAGE}]
         result = db.execute(text(query), execution_options={"no_cache": True})
         columns = result.keys()
         raw_results = [dict(zip(columns, row)) for row in result.fetchall()]
@@ -886,26 +929,35 @@ def execute_sql_query(db: Session, query: str) -> List[Dict]:
         return raw_results
     except Exception as e:
         print(f"Error al ejecutar la consulta SQL: {str(e)}")
-        return [{"error": f"Error al ejecutar la consulta: {str(e)}"}]
+        return [{"error": GENERIC_ERROR_MESSAGE}]
 
 def get_database_schema(db: Session) -> str:
     """Obtener esquema de la base de datos para el chatbot"""
     inspector = inspect(db.bind)
     schema = "La base de datos tiene las siguientes tablas, columnas y relaciones:\n"
     for table_name in inspector.get_table_names():
-        if not table_name.startswith(('pg_', 'sql_')):
-            schema += f"- Tabla '{table_name}':\n"
-            columns = inspector.get_columns(table_name)
-            for column in columns:
-                schema += f"  - {column['name']} ({column['type'].__class__.__name__}"
-                if column.get('primary_key'):
-                    schema += ", clave primaria"
-                if column.get('nullable'):
-                    schema += ", nullable"
-                schema += ")\n"
-            foreign_keys = inspector.get_foreign_keys(table_name)
-            for fk in foreign_keys:
-                schema += f"  Relación: '{table_name}.{fk['constrained_columns'][0]}' -> '{fk['referred_table']}.{fk['referred_columns'][0]}'\n"
+        if table_name.startswith(('pg_', 'sql_')):
+            continue
+
+        if table_name.lower() in FORBIDDEN_SQL_TABLES:
+            continue
+
+        if table_name.lower().startswith("vw_"):
+            # Excluir vistas administrativas si existieran
+            continue
+
+        schema += f"- Tabla '{table_name}':\n"
+        columns = inspector.get_columns(table_name)
+        for column in columns:
+            schema += f"  - {column['name']} ({column['type'].__class__.__name__}"
+            if column.get('primary_key'):
+                schema += ", clave primaria"
+            if column.get('nullable'):
+                schema += ", nullable"
+            schema += ")\n"
+        foreign_keys = inspector.get_foreign_keys(table_name)
+        for fk in foreign_keys:
+            schema += f"  Relación: '{table_name}.{fk['constrained_columns'][0]}' -> '{fk['referred_table']}.{fk['referred_columns'][0]}'\n"
     return schema
 
 def custom_json_serializer(obj):
@@ -913,6 +965,151 @@ def custom_json_serializer(obj):
     if isinstance(obj, date):
         return obj.isoformat()
     raise TypeError(f"Type {type(obj)} not serializable")
+
+def extract_text_from_gemini(response) -> Optional[str]:
+    """
+    Obtener texto de forma segura desde una respuesta de Gemini.
+
+    El acceso directo a `response.text` puede fallar cuando el modelo
+    corta la generación por motivos de seguridad. Esta función intenta
+    recuperar texto válido recorriendo los candidatos devueltos.
+    """
+    if response is None:
+        return None
+
+    try:
+        direct_text = getattr(response, "text", None)
+        if direct_text:
+            return str(direct_text)
+    except ValueError:
+        pass
+
+    candidates = getattr(response, "candidates", []) or []
+    for candidate in candidates:
+        finish_reason = getattr(candidate, "finish_reason", None)
+        finish_str = str(finish_reason).lower() if finish_reason else ""
+        if "safety" in finish_str or "blocked" in finish_str:
+            continue
+
+        content = getattr(candidate, "content", None)
+        if not content:
+            continue
+
+        parts = getattr(content, "parts", None) or []
+        fragments: List[str] = []
+        for part in parts:
+            part_text = getattr(part, "text", None)
+            if not part_text and isinstance(part, dict):
+                part_text = part.get("text")
+            data = getattr(part, "data", None)
+            if not part_text and isinstance(data, dict):
+                part_text = data.get("text")
+            if part_text:
+                fragments.append(str(part_text))
+
+        if fragments:
+            combined = "\n".join(fragments).strip()
+            if combined:
+                return combined
+    return None
+
+def compose_fallback_response(db_results: List[Dict]) -> Optional[str]:
+    """
+    Generar una respuesta simple basada directamente en los datos obtenidos.
+    Útil cuando el modelo no devuelve texto pero ya contamos con resultados.
+    """
+    if not db_results:
+        return None
+
+    if isinstance(db_results[0], dict) and db_results[0].get("error"):
+        return None
+
+    visible_rows = db_results[:6]
+    total = len(db_results)
+
+    formatted_rows: List[str] = []
+    for row in visible_rows:
+        if not isinstance(row, dict):
+            continue
+
+        name_parts: List[str] = []
+        detail_parts: List[str] = []
+
+        for key, value in row.items():
+            key_lower = key.lower()
+            if key_lower in {"id", "cuil", "id_usuario", "id_empresa"}:
+                continue
+            if key_lower.startswith("id_") or key_lower.endswith("_id"):
+                continue
+
+            if value in (None, "", []):
+                continue
+
+            if isinstance(value, date):
+                value = value.strftime("%Y-%m-%d")
+            elif isinstance(value, (list, tuple, set)):
+                value = ", ".join(str(item) for item in value if item not in (None, ""))
+                if not value:
+                    continue
+            elif isinstance(value, dict):
+                sub_parts = []
+                for sub_key, sub_value in value.items():
+                    if sub_value in (None, "", []):
+                        continue
+                    sub_label = sub_key.replace("_", " ").capitalize()
+                    sub_parts.append(f"{sub_label}: {sub_value}")
+                if not sub_parts:
+                    continue
+                value = ", ".join(sub_parts)
+
+            if key_lower.startswith("nombre"):
+                name_parts.append(str(value))
+            else:
+                label = key.replace("_", " ").capitalize()
+                detail_parts.append(f"{label}: {value}")
+
+        if not name_parts and not detail_parts:
+            continue
+
+        main_text = " ".join(name_parts) if name_parts else detail_parts.pop(0)
+        if detail_parts:
+            main_text = f"{main_text}. {'; '.join(detail_parts)}"
+
+        formatted_rows.append(f"- {main_text}")
+
+    if not formatted_rows:
+        return None
+
+    header = (
+        f"Encontré {total} registros. Te comparto {min(total, len(visible_rows))} destacados:"
+        if total > len(visible_rows)
+        else f"Encontré {total} registros:"
+    )
+    formatted_rows.insert(0, header)
+    return "\n".join(formatted_rows)
+
+
+def parse_intent_json(response) -> Tuple[Optional[dict], Optional[str]]:
+    """Extraer el JSON devuelto por Gemini en la etapa de intención."""
+    raw_text = extract_text_from_gemini(response)
+    if not raw_text:
+        return None, None
+
+    cleaned = raw_text.strip()
+    if '```' in cleaned:
+        cleaned = re.sub(r"```json|```", "", cleaned, flags=re.IGNORECASE).strip()
+
+    try:
+        return json.loads(cleaned), raw_text
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
+        if not match:
+            return None, raw_text
+        try:
+            return json.loads(match.group(0)), raw_text
+        except json.JSONDecodeError:
+            return None, raw_text
+
 
 def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] = None):
     """Generar respuesta del chatbot usando Gemini AI"""
@@ -938,39 +1135,67 @@ Base de datos disponible:
 Historial:
 {chat_history}
 
-Consulta del usuario: "{user_input}"
+Consulta del usuario (texto libre normalizado): "{user_input}"
 
 Para comparaciones de texto, usa siempre ILIKE en lugar de = para hacer búsquedas
 Tu inteligencia artificial debe SIEMPRE intentar responder con datos reales. Debes hacer la consulta SQL. Solo usa needs_more_info=true si es absolutamente imposible interpretar la consulta.
 
+Política de datos:
+- Solo puedes usar tablas relacionadas con empresas, servicios del parque, lotes y contactos.
+- Tienes prohibido consultar tablas: usuario, rol, rol_usuario, vehiculos, tipo_vehiculo, empresa_vehiculos, servicio, tipo_servicio, empresa_servicio, password_history.
+- Si la consulta requiere información prohibida, devuelve un JSON con sql_query como cadena vacía (""), needs_more_info en false, y describe la corrección si aplica.
+- La información disponible abarca detalles de empresas, los servicios y espacios del parque, lotes y contactos. Usa tu criterio para combinar la información relevante de estas fuentes y ofrecer respuestas útiles.
+
 Responde con un JSON:
 - needs_more_info: false (casi siempre, usa tu IA para interpretar)
-- sql_query: consulta SQL para obtener datos (NUNCA incluyas campos como cuil, id en el SELECT)
+- sql_query: consulta SQL para obtener datos (NUNCA incluyas campos como cuil, id en el SELECT). Si la consulta es solo un saludo, agradecimiento u otra interacción social que no requiera base de datos, deja este campo como cadena vacía.
+- direct_answer: texto natural para responder saludos, agradecimientos o mensajes sociales similares cuando no se requiera consultar la base.
 - corrected_entity: corrección si detectas errores 
 - question: pregunta solo si needs_more_info es true
 
-Tu IA debe entender consultas informales, vagas o con errores de escritura. Interpreta con inteligencia lo que realmente necesita el usuario.
+Tu IA debe entender saludos, expresiones de cortesía, consultas informales o con errores de escritura y contestar de manera natural sin asumir información restringida.
+Si se trata solamente de un saludo, agradecimiento, despedida u otra interacción social sin necesidad de datos, usa el campo direct_answer con la respuesta final y deja sql_query vacío.
 
 JSON:"""
 
         intent_response = model.generate_content(intent_prompt)
-        
-        try:
-            clean_response = intent_response.text.strip()
-            if "```json" in clean_response:
-                clean_response = clean_response.split("```json")[1].split("```")[0]
-            elif "```" in clean_response:
-                clean_response = clean_response.replace("```", "")
-            
-            intent_data = json.loads(clean_response.strip())
-        except (json.JSONDecodeError, IndexError):
-            return "Disculpa, tuve un problema procesando tu consulta. ¿Podrías reformularla?", [], None
+        intent_data, raw_intent_text = parse_intent_json(intent_response)
+
+        if not intent_data:
+            first_raw = sanitize_response_text(raw_intent_text)
+
+            retry_prompt = intent_prompt + "\n\nIMPORTANTE: Devuelve únicamente un JSON válido con las claves needs_more_info, sql_query, direct_answer, corrected_entity y question. No agregues texto adicional."
+            intent_response = model.generate_content(retry_prompt)
+            intent_data, raw_intent_text = parse_intent_json(intent_response)
+
+            if not intent_data:
+                sanitized_retry = sanitize_response_text(raw_intent_text)
+                if sanitized_retry:
+                    print("Intent parse falló dos veces, usando respuesta textual del modelo.")
+                    return sanitized_retry, [], None
+
+                if first_raw:
+                    print("Intent parse falló dos veces, usando respuesta textual inicial.")
+                    return first_raw, [], None
+
+                print(f"Intent parse falló nuevamente. Respuesta cruda: {raw_intent_text}")
+                return "Disculpa, tuve un problema procesando tu consulta. ¿Podrías reformularla?", [], None
 
         if intent_data.get("needs_more_info", False):
             return intent_data["question"], [], intent_data.get("corrected_entity")
 
-        sql_query = intent_data["sql_query"]
+        direct_answer = sanitize_response_text(intent_data.get("direct_answer"))
+
+        sql_query = intent_data.get("sql_query", "")
+        if direct_answer:
+            return direct_answer, [], intent_data.get("corrected_entity")
+
+        if not sql_query or not is_sql_query_allowed(sql_query):
+            return FORBIDDEN_RESPONSE_TEXT, [], intent_data.get("corrected_entity")
+
         db_results = execute_sql_query(db, sql_query)
+        if db_results and isinstance(db_results[0], dict) and db_results[0].get("error"):
+            return GENERIC_ERROR_MESSAGE, [], intent_data.get("corrected_entity")
         
         results_text = json.dumps(db_results, ensure_ascii=False, default=custom_json_serializer)
         input_text = f"Resultados de la consulta:\n{results_text}\nPregunta:\n{message}"
@@ -987,20 +1212,34 @@ Historial:
 
 - INSTRUCCIONES IMPORTANTES: - Solo responde consultas sobre el Parque Industrial Polo 52. Si la consulta es ajena, responde textualmente: "Solo puedo ayudarte con información del Parque Industrial Polo 52." 
 - Responde de forma natural, directa y segura, usando un tono informativo. No cierres la respuesta con preguntas ni pidas más detalles. 
-- Cuando haya resultados, menciónalos en texto corrido o en una lista corta usando viñetas simples (por ejemplo "- Empresa: dato relevante"). Si hay más de seis coincidencias, indica cuántas hay y describe las seis más representativas. 
+- Cuando haya resultados, menciónalos en texto corrido o en una lista corta usando guiones. En las listas, prioriza que cada guion comience directamente con el nombre (ejemplo: "- Logistica Express S.A.: dato relevante"). Evita prefijos.
+- Si hay más de seis coincidencias, indica cuántas hay y describe las seis más representativas. 
 - Si no encuentras información, indícalo claramente y ofrece una alternativa relacionada con el parque (por ejemplo, sugerir otro rubro o empresa) sin agregar preguntas. 
 - Nunca muestres CUIL, IDs internos ni datos sensibles. 
-- Evita cualquier caracter de viñeta distinto a los guiones, especialmente asteriscos (*). 
+- Podés compartir datos de contacto comerciales disponibles (teléfono, dirección, email) siempre que pertenezcan al parque.
+- Evita cualquier caracter de viñeta distinto a los guiones y no utilices asteriscos ni texto en negrita. 
 - Asegúrate de que la respuesta sea apropiada para todo público. 
-
+- Mantén un tono natural y demuestra comprensión del lenguaje cotidiano sin perder de vista el contexto del Parque Industrial Polo 52.
+- Si la consulta está relacionada con usuarios, vehículos o servicios internos, responde exactamente: "No tengo permitido compartir esta información".
 Responde naturalmente:"""
 
         final_response = model.generate_content(final_prompt)
+        final_text = extract_text_from_gemini(final_response)
+        final_text = sanitize_response_text(final_text)
+        if not final_text:
+            print("Advertencia: Gemini no devolvió texto utilizable en la respuesta final.")
+            fallback_text = compose_fallback_response(db_results)
+            if fallback_text:
+                fallback_text = sanitize_response_text(fallback_text)
+                if fallback_text:
+                    return fallback_text, db_results, intent_data.get("corrected_entity")
+            return GENERIC_ERROR_MESSAGE, db_results, intent_data.get("corrected_entity")
 
-        return final_response.text, db_results, intent_data.get("corrected_entity")
+        return final_text, db_results, intent_data.get("corrected_entity")
 
     except Exception as e:
-        return f"Error al procesar el mensaje: {str(e)}", [], None
+        print(f"Error general en get_chat_response: {str(e)}")
+        return GENERIC_ERROR_MESSAGE, [], None
     
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1039,7 +1278,7 @@ def get_chat_response_with_audio(
             transcript = transcribe_audio(audio_content)
             
             if not transcript or len(transcript.strip()) == 0:
-                error_message = "No pude entender el audio. ¿Podrías repetir más claro?"
+                error_message = GENERIC_ERROR_MESSAGE
                 error_audio = text_to_speech(error_message)
                 error_audio_base64 = base64.b64encode(error_audio).decode('utf-8')
                 
@@ -1097,7 +1336,7 @@ def get_chat_response_with_audio(
         
         # Intentar generar respuesta de error con audio
         try:
-            error_response = "Disculpa, tuve un problema técnico. ¿Podrías intentar de nuevo?"
+            error_response = GENERIC_ERROR_MESSAGE
             error_audio = text_to_speech(error_response)
             error_audio_base64 = base64.b64encode(error_audio).decode('utf-8')
             
@@ -1107,14 +1346,13 @@ def get_chat_response_with_audio(
                 "db_results": [],
                 "transcript": transcript,
                 "corrected_entity": None,
-                "error": True,
-                "error_detail": str(e)
+                "error": True
             }
         except:
             # Si falla todo, devolver solo texto
             raise HTTPException(
                 status_code=500,
-                detail=error_msg
+                detail=GENERIC_ERROR_MESSAGE
             )
 
 # ═══════════════════════════════════════════════════════════════════

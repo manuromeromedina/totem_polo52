@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Body, Request
 from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict
 import io
@@ -221,20 +222,22 @@ async def voice_chat_endpoint(
             history=history
         )
 
+        payload = {
+            "success": True,
+            "data": {
+                "text": result["text"],
+                "audio_base64": result["audio_base64"],
+                "transcript": result.get("transcript"),
+                "db_results": result.get("db_results", []),
+                "corrected_entity": result.get("corrected_entity")
+            },
+            "error": result.get("error", False),
+            "message": "Respuesta generada exitosamente"
+        }
+
         return JSONResponse(
             status_code=200,
-            content={
-                "success": True,
-                "data": {
-                    "text": result["text"],
-                    "audio_base64": result["audio_base64"],
-                    "transcript": result.get("transcript"),
-                    "db_results": result.get("db_results", []),
-                    "corrected_entity": result.get("corrected_entity")
-                },
-                "error": result.get("error", False),
-                "message": "Respuesta generada exitosamente"
-            }
+            content=jsonable_encoder(payload)
         )
 
     except HTTPException:
