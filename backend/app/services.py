@@ -1242,6 +1242,23 @@ Responde naturalmente:"""
                     return fallback_text, db_results, intent_data.get("corrected_entity")
             return GENERIC_ERROR_MESSAGE, db_results, intent_data.get("corrected_entity")
 
+        contradiction_markers = [
+            "no encontr",
+            "no tengo información",
+            "no tengo informacion",
+            "no dispongo de información",
+            "no dispongo de informacion",
+            "no hay datos",
+        ]
+        lowered_final = final_text.lower()
+        if db_results and any(marker in lowered_final for marker in contradiction_markers):
+            print("Advertencia: el modelo indicó falta de información pese a tener resultados. Usando fallback.")
+            fallback_text = compose_fallback_response(db_results)
+            if fallback_text:
+                fallback_text = sanitize_response_text(fallback_text)
+                if fallback_text:
+                    return fallback_text, db_results, intent_data.get("corrected_entity")
+
         return final_text, db_results, intent_data.get("corrected_entity")
 
     except Exception as e:

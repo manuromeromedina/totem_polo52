@@ -1,4 +1,4 @@
-// chat.component.ts
+﻿// chat.component.ts
 import {
   Component,
   OnInit,
@@ -10,7 +10,6 @@ import { ChatService, VoiceChatResponse } from './chat.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { LogoutButtonComponent } from '../shared/logout-button/logout-button.component';
-import { HttpClient } from '@angular/common/http';
 
 interface Message {
   sender: 'user' | 'bot';
@@ -89,119 +88,199 @@ interface Message {
       </div>
 
       <div class="chat-container">
-        <div class="chat-messages" #messagesContainer>
-          <div
-            *ngFor="let message of messages; trackBy: trackByMessageId"
-            class="message-wrapper"
-            [class.user-wrapper]="message.sender === 'user'"
-            [class.bot-wrapper]="message.sender === 'bot'"
-          >
-            <div
-              class="message-content"
-              [class]="
-                message.sender === 'user' ? 'user-message' : 'bot-message'
-              "
-            >
+        <div class="chat-panel">
+          <div class="panel-card messages-card">
+            <div class="panel-title">
+              <div class="panel-title-icon">
+                <span class="material-symbols-outlined">robot_2</span>
+              </div>
+              <div>
+                <h3>Chat con POLO Bot</h3>
+                <small>Tu asistente del Parque Industrial POLO 52</small>
+              </div>
+            </div>
+
+            <div class="chat-messages" #messagesContainer>
               <div
-                class="message-text"
-                [innerHTML]="formatMessage(message.content)"
-              ></div>
-              <div class="message-time">
-                {{ formatTime(message.timestamp) }}
+                *ngFor="let message of messages; trackBy: trackByMessageId"
+                class="message-wrapper"
+                [class.user-wrapper]="message.sender === 'user'"
+                [class.bot-wrapper]="message.sender === 'bot'"
+              >
+                <div
+                  class="message-content"
+                  [class]="
+                    message.sender === 'user' ? 'user-message' : 'bot-message'
+                  "
+                >
+                  <div
+                    class="message-text"
+                    [innerHTML]="formatMessage(message.content)"
+                  ></div>
+                  <div class="message-time">
+                    {{ formatTime(message.timestamp) }}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                *ngIf="isTyping"
+                class="message-wrapper bot-wrapper typing-indicator"
+              >
+                <div class="bot-message typing-message">
+                  <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Indicador de escritura -->
-          <div
-            *ngIf="isTyping"
-            class="message-wrapper bot-wrapper typing-indicator"
-          >
-            <div class="bot-message typing-message">
-              <div class="typing-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
+          <div class="panel-card input-card">
+            <div class="chat-input">
+              <input
+                #messageInput
+                [(ngModel)]="userMessage"
+                placeholder="Escribe tu consulta..."
+                (keyup.enter)="sendMessage()"
+                [disabled]="isTyping"
+                class="message-input"
+              />
+              <button
+                type="button"
+                (click)="sendMessage()"
+                [disabled]="!userMessage.trim() || isTyping"
+                class="send-button"
+              >
+                <span *ngIf="!isTyping" class="material-symbols-outlined">
+                  send
+                </span>
+                <span *ngIf="isTyping" class="loading-text">...</span>
+              </button>
+            </div>
+            <div class="input-footer">
+              Presion&aacute; Enter o el bot&oacute;n para enviar tu consulta
             </div>
           </div>
         </div>
 
-        <div class="chat-input-container">
-          <div class="chat-input">
+        <aside class="sidebar">
+          <div class="sidebar-card quick-queries-card">
+            <div class="card-header">
+              <span class="material-symbols-outlined">bolt</span>
+              <div>
+                <h3>Consultas R&aacute;pidas</h3>
+                <p>Las preguntas que m&aacute;s recibimos</p>
+              </div>
+            </div>
             <button
-              class="mic-button"
-              (click)="toggleSpeechRecognition()"
+              type="button"
+              class="quick-question"
+              *ngFor="let question of quickQuestions"
+              (click)="handleQuickQuestion(question)"
               [disabled]="isTyping"
-              [class.listening]="isListening"
-              [attr.aria-label]="
-                isListening ? 'Detener grabación' : 'Iniciar grabación de voz'
-              "
             >
-              <span *ngIf="!isListening">MIC</span>
-              <span *ngIf="isListening" class="mic-recording">REC</span>
-            </button>
-            <input
-              #messageInput
-              [(ngModel)]="userMessage"
-              placeholder="Escriba su consulta sobre las empresas del parque..."
-              (keyup.enter)="sendMessage()"
-              [disabled]="isTyping"
-              class="message-input"
-            />
-            <button
-              (click)="sendMessage()"
-              [disabled]="!userMessage.trim() || isTyping"
-              class="send-button"
-            >
-              <span *ngIf="!isTyping">Enviar</span>
-              <span *ngIf="isTyping" class="loading-text">...</span>
+              <span>{{ question }}</span>
+              <span class="material-symbols-outlined">arrow_forward</span>
             </button>
           </div>
-          <div class="input-footer">
-            <small>
-              <span *ngIf="!isListening"
-                >Presione Enter para enviar su consulta o use el micrófono para
-                hablar</span
-              >
-              <span *ngIf="isListening" class="listening-text"
-                >Grabando... Hable ahora</span
-              >
-            </small>
+
+          <div class="sidebar-card contact-card">
+            <div class="card-header">
+              <span class="material-symbols-outlined">support_agent</span>
+              <div>
+                <h3>Conexi&oacute;n Directa</h3>
+                <p>Equipo POLO 52</p>
+              </div>
+            </div>
+            <ul class="contact-list">
+              <li>
+                <span class="material-symbols-outlined">call</span>
+                <div>
+                  <strong>+54 351 123-4567</strong>
+                  <small>Atenci&oacute;n comercial</small>
+                </div>
+              </li>
+              <li>
+                <span class="material-symbols-outlined">mail</span>
+                <div>
+                  <strong>info&#64;polo52.com</strong>
+                  <small>Contacto general</small>
+                </div>
+              </li>
+
+              <li>
+                <span class="material-symbols-outlined">schedule</span>
+                <div>
+                  <strong>24/7 Disponible</strong>
+                  <small>Siempre listos para ayudarte</small>
+                </div>
+              </li>
+            </ul>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   `,
+
   styles: [
     `
       @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+
+      :host {
+        display: block;
+      }
+
+      :host {
+        display: block;
+        height: 100vh;
+      }
+
+      body,
+      html {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        scrollbar-width: none;
+      }
+
+      body::-webkit-scrollbar {
+        display: none;
+      }
 
       .chat-wrapper {
         height: 100vh;
         display: flex;
         flex-direction: column;
-        background: #f8f9fa;
+        padding: 4px 10px 12px;
+        background: linear-gradient(
+          120deg,
+          #e6f0ff 0%,
+          #f7f9fc 60%,
+          #eef2f6 100%
+        );
         font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
         color: #495057;
-        transition: background-color 0.3s ease, color 0.3s ease;
+        font-size: clamp(0.88rem, 0.9vw, 0.98rem);
+        overflow: hidden;
+        box-sizing: border-box;
       }
 
-      /* === MODO OSCURO === */
       .chat-wrapper.dark-mode {
-        background: #1a1a1a;
+        background: linear-gradient(135deg, #0f0f0f 0%, #1c1c1c 60%, #222 100%);
         color: #e0e0e0;
       }
 
       .chat-header {
         background: #ffffff;
-        padding: 18px;
+        padding: 10px 14px;
         border-bottom: 1px solid #dee2e6;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
       }
 
       .dark-mode .chat-header {
@@ -222,54 +301,42 @@ interface Message {
         gap: 12px;
       }
 
-      /* Estilo del botón toggle de modo (igual que admin empresas) */
       .mode-toggle-btn {
-        background-color: transparent;
-        border: none;
-        cursor: pointer;
+        background: transparent;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
         padding: 6px;
-        border-radius: 50%;
-        transition: background-color 0.3s;
-        color: #555;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: #495057;
       }
 
       .mode-toggle-btn:hover {
-        background-color: rgba(0, 0, 0, 0.1);
+        border-color: #adb5bd;
+        background: rgba(73, 80, 87, 0.05);
       }
 
       .dark-mode .mode-toggle-btn {
-        color: #eee;
-      }
-
-      .dark-mode .mode-toggle-btn:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        border-color: #555;
+        color: #f1f1f1;
       }
 
       .bot-avatar {
         position: relative;
-        width: 48px;
-        height: 48px;
-        background: #6c757d;
-        border-radius: 8px;
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #9a9a9a, #cfcfcf);
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-weight: 600;
-        font-size: 10px;
-        transition: background-color 0.3s ease;
-      }
-
-      .dark-mode .bot-avatar {
-        background: #505050;
+        font-weight: 700;
+        font-size: 12px;
       }
 
       .avatar-icon {
-        font-size: 12px;
-        font-weight: 600;
+        letter-spacing: 0.5px;
       }
 
       .status-indicator {
@@ -299,7 +366,6 @@ interface Message {
         font-size: 16px;
         font-weight: 600;
         line-height: 1.2;
-        transition: color 0.3s ease;
       }
 
       .dark-mode .header-info h2 {
@@ -312,7 +378,6 @@ interface Message {
         font-size: 14px;
         font-weight: 400;
         margin-top: 2px;
-        transition: color 0.3s ease;
       }
 
       .dark-mode .status-text {
@@ -321,39 +386,110 @@ interface Message {
 
       .chat-container {
         flex: 1;
+        min-height: 0;
         display: flex;
-        flex-direction: column;
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 20px;
+        gap: 14px;
+        padding: 10px 8px 12px;
         width: 100%;
+        max-width: 1180px;
+        margin: 0 auto;
         box-sizing: border-box;
-        background: #ffffff;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        overflow: hidden;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
       }
 
-      .dark-mode .chat-container {
-        background: #2d2d2d;
-        border: 1px solid #404040;
+      .chat-panel {
+        flex: 2.4;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        min-height: 0;
+      }
+
+      .sidebar {
+        flex: 0.6;
+        max-width: 260px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 0;
+      }
+
+      .panel-card,
+      .sidebar-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 14px;
+        padding: 12px;
+        border: 1px solid #edf0f2;
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.05);
+        backdrop-filter: blur(4px);
+      }
+
+      .dark-mode .panel-card,
+      .dark-mode .sidebar-card {
+        background: #272727;
+        border: 1px solid #3a3a3a;
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+      }
+
+      .messages-card {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0; /* allow inner scroll */
+      }
+
+      .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+
+      .panel-title-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: #eef2ff;
+        color: #4254ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+
+      .panel-title h3 {
+        margin: 0;
+        color: #1d1f2c;
+        font-size: 17px;
+      }
+
+      .panel-title small {
+        display: block;
+        color: #6c757d;
+        margin-top: 2px;
+        font-size: 12px;
+      }
+
+      .dark-mode .panel-title-icon {
+        background: #333;
+        color: #8ab4ff;
+      }
+
+      .dark-mode .panel-title h3 {
+        color: #f1f1f1;
+      }
+
+      .dark-mode .panel-title small {
+        color: #b0b0b0;
       }
 
       .chat-messages {
         flex: 1;
         overflow-y: auto;
-        padding: 24px;
+        padding-right: 6px;
         display: flex;
         flex-direction: column;
         gap: 16px;
-        background: #ffffff;
-        scroll-behavior: smooth;
-        transition: background-color 0.3s ease;
-      }
-
-      .dark-mode .chat-messages {
-        background: #2d2d2d;
+        min-height: 0;
       }
 
       .message-wrapper {
@@ -370,110 +506,67 @@ interface Message {
       }
 
       .message-content {
-        max-width: 70%;
+        max-width: 65%;
         position: relative;
       }
 
       .user-message {
-        background: #495057; /* Gris oscuro en modo claro */
+        background: #495057;
         color: white;
-        padding: 12px 16px;
-        border-radius: 16px 16px 4px 16px;
+        padding: 10px 14px;
+        border-radius: 14px 14px 4px 14px;
         border: 1px solid #495057;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
       }
 
       .dark-mode .user-message {
-        background: #e9ecef; /* Gris claro en modo oscuro */
-        color: #212529; /* Texto oscuro en modo oscuro */
+        background: #e9ecef;
+        color: #212529;
         border: 1px solid #e9ecef;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
       }
 
       .bot-message {
         background: #f8f9fa;
         color: #212529;
-        padding: 12px 16px;
-        border-radius: 16px 16px 16px 4px;
+        padding: 10px 14px;
+        border-radius: 14px 14px 14px 4px;
         border: 1px solid #dee2e6;
-        transition: background-color 0.3s ease, border-color 0.3s ease,
-          color 0.3s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       }
 
       .dark-mode .bot-message {
-        background: #404040;
-        color: #e0e0e0;
-        border: 1px solid #555;
+        background: #383838;
+        color: #f5f5f5;
+        border: 1px solid #505050;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
       }
 
       .message-text {
-        word-wrap: break-word;
+        white-space: pre-line;
         line-height: 1.5;
-        margin-bottom: 4px;
-        font-size: 15px;
       }
 
       .message-time {
-        font-size: 12px;
-        opacity: 0.7;
-        text-align: right;
+        font-size: 11px;
+        opacity: 0.6;
         margin-top: 4px;
-      }
-
-      .user-message .message-time {
-        color: rgba(255, 255, 255, 0.8);
-      }
-
-      .dark-mode .user-message .message-time {
-        color: rgba(
-          33,
-          37,
-          41,
-          0.8
-        ); /* Texto oscuro para el fondo gris claro */
-      }
-
-      .bot-message .message-time {
-        color: #6c757d;
-        transition: color 0.3s ease;
-      }
-
-      .dark-mode .bot-message .message-time {
-        color: #a0a0a0;
-      }
-
-      .typing-indicator {
-        animation: fadeIn 0.3s ease-in;
+        text-align: right;
       }
 
       .typing-message {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        padding: 12px 16px;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
-      }
-
-      .dark-mode .typing-message {
-        background: #404040;
-        border: 1px solid #555;
-      }
-
-      .typing-dots {
-        display: flex;
-        gap: 4px;
+        display: inline-flex;
         align-items: center;
+        gap: 8px;
       }
 
       .typing-dots span {
         width: 6px;
         height: 6px;
-        background: #6c757d;
+        background: #495057;
+        display: inline-block;
         border-radius: 50%;
-        animation: typing 1.4s infinite ease-in-out;
-        transition: background-color 0.3s ease;
-      }
-
-      .dark-mode .typing-dots span {
-        background: #a0a0a0;
+        animation: bounce 1.4s infinite;
       }
 
       .typing-dots span:nth-child(2) {
@@ -484,311 +577,220 @@ interface Message {
         animation-delay: 0.4s;
       }
 
-      .chat-input-container {
-        background: #f8f9fa;
-        border-top: 1px solid #dee2e6;
-        padding: 20px;
-        margin-top: auto;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
+      .dark-mode .typing-dots span {
+        background: #f1f1f1;
       }
 
-      .dark-mode .chat-input-container {
-        background: #383838;
-        border-top: 1px solid #555;
+      .input-card {
+        padding: 16px;
       }
 
       .chat-input {
         display: flex;
-        gap: 8px;
-        align-items: stretch;
-      }
-
-      .mic-button {
-        padding: 12px 16px;
-        background: #6c757d;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.15s ease-in-out;
-        font-size: 12px;
-        font-weight: 600;
-        font-family: inherit;
-        min-width: 56px;
-        min-height: 44px;
-        display: flex;
         align-items: center;
-        justify-content: center;
-        letter-spacing: 0.5px;
+        gap: 8px;
+        border: 1px solid #e1e5ec;
+        border-radius: 14px;
+        padding: 8px 12px;
+        background: #f8fafc;
       }
 
-      .mic-button:hover:not(:disabled) {
-        background: #5a6268;
-        transform: translateY(-1px);
-      }
-
-      .mic-button:disabled {
-        background: #adb5bd;
-        cursor: not-allowed;
-        transform: none;
-      }
-
-      .mic-button.listening {
-        background: #dc3545;
-        animation: pulse-red 1.5s infinite;
-      }
-
-      .mic-button.listening:hover {
-        background: #c82333;
-      }
-
-      .dark-mode .mic-button {
-        background: #505050;
-      }
-
-      .dark-mode .mic-button:hover:not(:disabled) {
-        background: #606060;
-      }
-
-      .dark-mode .mic-button.listening {
-        background: #dc3545;
-      }
-
-      .mic-recording {
-        animation: blink 1s infinite;
+      .dark-mode .chat-input {
+        background: #1f1f1f;
+        border: 1px solid #3a3a3a;
       }
 
       .message-input {
         flex: 1;
-        padding: 12px 16px;
+        border: none;
+        background: transparent;
         font-size: 15px;
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        outline: none;
-        transition: all 0.15s ease-in-out;
-        background: #ffffff;
-        font-family: inherit;
-        color: #495057;
+        color: inherit;
       }
 
       .message-input:focus {
-        border-color: #495057; /* Cambiado de azul a gris oscuro */
-        box-shadow: 0 0 0 2px rgba(73, 80, 87, 0.1);
-      }
-
-      .dark-mode .message-input {
-        background: #505050;
-        border: 1px solid #666;
-        color: #e0e0e0;
-      }
-
-      .dark-mode .message-input:focus {
-        border-color: #007bff;
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-      }
-
-      .dark-mode .message-input::placeholder {
-        color: #a0a0a0;
-      }
-
-      .message-input:disabled {
-        background: #f8f9fa;
-        cursor: not-allowed;
-        color: #6c757d;
-      }
-
-      .dark-mode .message-input:disabled {
-        background: #404040;
-        color: #808080;
+        outline: none;
       }
 
       .send-button {
-        padding: 12px 24px;
-        background: #495057; /* Gris oscuro en modo claro */
-        color: white;
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
         border: none;
-        border-radius: 6px;
+        background: #495057;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
-        transition: background-color 0.15s ease-in-out;
-        font-size: 15px;
-        font-weight: 500;
-        font-family: inherit;
-        min-width: 80px;
+        transition: transform 0.2s ease, opacity 0.2s ease;
       }
 
-      .send-button:hover:not(:disabled) {
-        background: #343a40; /* Versión más oscura del gris */
-      }
-
-      .dark-mode .send-button {
-        background: #e9ecef; /* Gris claro en modo oscuro */
-        color: #212529; /* Texto oscuro en modo oscuro */
-      }
-
-      .dark-mode .send-button:hover:not(:disabled) {
-        background: #dee2e6; /* Versión más oscura del gris claro */
+      .send-button:not(:disabled):hover {
+        transform: translateY(-2px);
       }
 
       .send-button:disabled {
-        background: #6c757d;
+        opacity: 0.4;
         cursor: not-allowed;
       }
 
-      .loading-text {
-        display: inline-block;
-        animation: pulse-loading 1s infinite;
+      .dark-mode .send-button {
+        background: #f1f3f5;
+        color: #212529;
       }
 
-      @keyframes pulse-loading {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.5;
-        }
+      .loading-text {
+        font-size: 18px;
+        letter-spacing: 2px;
       }
 
       .input-footer {
+        margin-top: 12px;
         text-align: center;
+        font-size: 14px;
+        color: #6c757d;
+      }
+
+      .dark-mode .input-footer {
+        color: #b4b4b4;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .card-header h3 {
+        margin: 0;
+        font-size: 15px;
+        color: #1d1f2c;
+      }
+
+      .card-header p {
+        margin: 0;
+        font-size: 11px;
+        color: #6c757d;
+      }
+
+      .card-header .material-symbols-outlined {
+        font-size: 26px;
+        color: #ff8a00;
+      }
+
+      .dark-mode .card-header h3 {
+        color: #f1f1f1;
+      }
+
+      .dark-mode .card-header p {
+        color: #b0b0b0;
+      }
+
+      .dark-mode .card-header .material-symbols-outlined {
+        color: #f0b35a;
+      }
+
+      .quick-question {
+        width: 100%;
+        border: 1px solid #e4e7ec;
+        background: #fff;
+        border-radius: 12px;
+        padding: 6px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #1f1f1f;
+        cursor: pointer;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .quick-question + .quick-question {
         margin-top: 12px;
       }
 
-      .input-footer small {
-        color: #6c757d;
+      .quick-question:hover:not(:disabled) {
+        border-color: #b4c2ff;
+        box-shadow: 0 12px 20px rgba(56, 72, 255, 0.12);
+        transform: translateY(-1px);
+      }
+
+      .quick-question:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .quick-question .material-symbols-outlined {
+        font-size: 18px;
+        color: #98a2ff;
+      }
+
+      .dark-mode .quick-question {
+        background: #1f1f1f;
+        color: #f5f5f5;
+        border: 1px solid #3a3a3a;
+      }
+
+      .dark-mode .quick-question .material-symbols-outlined {
+        color: #8ab4ff;
+      }
+
+      .contact-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .contact-list li {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #edf0f2;
+      }
+
+      .contact-list li:last-child {
+        border-bottom: none;
+      }
+
+      .contact-list strong {
+        display: block;
+        color: #1d1f2c;
         font-size: 13px;
-        transition: color 0.3s ease;
       }
 
-      .dark-mode .input-footer small {
-        color: #a0a0a0;
+      .contact-list small {
+        color: #6c757d;
+        font-size: 11px;
       }
 
-      .listening-text {
-        color: #dc3545 !important;
-        font-weight: 500;
-        animation: pulse-text 1s infinite;
+      .contact-list .material-symbols-outlined {
+        font-size: 22px;
+        color: #4254ff;
       }
 
-      @keyframes pulse-text {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.7;
-        }
+      .dark-mode .contact-list li {
+        border-color: #373737;
       }
 
-      /* Animaciones sutiles */
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
+      .dark-mode .contact-list strong {
+        color: #f5f5f5;
       }
 
-      @keyframes typing {
-        0%,
-        60%,
-        100% {
-          transform: translateY(0);
-          opacity: 0.4;
-        }
-        30% {
-          transform: translateY(-6px);
-          opacity: 1;
-        }
+      .dark-mode .contact-list small {
+        color: #b0b0b0;
       }
 
-      @keyframes pulse-red {
-        0%,
-        100% {
-          box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
-        }
-        50% {
-          box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
-        }
+      .dark-mode .contact-list .material-symbols-outlined {
+        color: #8ab4ff;
       }
 
-      @keyframes blink {
-        0%,
-        50% {
-          opacity: 1;
-        }
-        51%,
-        100% {
-          opacity: 0.3;
-        }
-      }
-
-      /* Responsive para tótem */
-      @media (max-width: 1024px) {
-        .chat-container {
-          padding: 20px;
-        }
-
-        .message-content {
-          max-width: 80%;
-        }
-
-        .header-info h2 {
-          font-size: 14px;
-        }
-
-        .chat-header {
-          padding: 16px;
-        }
-
-        .message-input {
-          font-size: 16px;
-        }
-      }
-
-      @media (max-width: 768px) {
-        .chat-container {
-          padding: 16px;
-        }
-
-        .message-content {
-          max-width: 85%;
-        }
-
-        .header-content {
-          gap: 12px;
-        }
-
-        .bot-avatar {
-          width: 40px;
-          height: 40px;
-          font-size: 10px;
-        }
-
-        .header-info h2 {
-          font-size: 14px;
-        }
-
-        .status-text {
-          font-size: 12px;
-        }
-
-        .mode-toggle-btn {
-          padding: 4px;
-        }
-
-        .mic-button {
-          min-width: 48px;
-          min-height: 40px;
-          font-size: 10px;
-          padding: 8px 12px;
-        }
-      }
-
-      /* Scrollbar personalizado */
       .chat-messages::-webkit-scrollbar {
         width: 8px;
       }
@@ -820,34 +822,121 @@ interface Message {
         background: #777;
       }
 
-      /* Mejoras para accesibilidad táctil */
-      .send-button {
-        min-height: 44px;
+      @media (max-width: 1200px), (max-height: 760px) {
+        .chat-container {
+          padding: 14px 10px;
+          gap: 14px;
+          height: calc(100vh - 140px);
+        }
+
+        .panel-card,
+        .sidebar-card {
+          padding: 16px;
+        }
+
+        .message-content {
+          max-width: 75%;
+        }
       }
 
-      .message-input {
-        min-height: 44px;
+      @media (max-width: 992px) {
+        .chat-container {
+          flex-direction: column;
+          padding: 14px 10px 20px;
+        }
+
+        .chat-panel,
+        .sidebar {
+          gap: 14px;
+        }
+
+        .sidebar {
+          flex-direction: row;
+          flex-wrap: wrap;
+        }
+
+        .sidebar-card {
+          flex: 1 1 220px;
+        }
       }
 
-      .mic-button {
-        min-height: 44px;
+      @media (max-width: 768px) {
+        .chat-container {
+          padding: 12px 8px 18px;
+        }
+
+        .panel-card,
+        .sidebar-card {
+          padding: 14px;
+        }
+
+        .message-content {
+          max-width: 85%;
+        }
       }
 
-      /* Contraste mejorado */
-      .user-message {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      @media (max-width: 576px) {
+        .chat-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 16px;
+        }
+
+        .header-actions {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .chat-panel {
+          gap: 16px;
+        }
+
+        .chat-input {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .send-button {
+          width: 100%;
+        }
       }
 
-      .bot-message {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      @media (orientation: portrait) and (min-width: 577px) {
+        .chat-container {
+          flex-direction: column;
+          max-width: 640px;
+          height: auto;
+        }
+
+        .sidebar {
+          flex-direction: column;
+        }
+
+        .message-content {
+          max-width: 80%;
+        }
       }
 
-      .dark-mode .user-message {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
-      .dark-mode .bot-message {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      @keyframes bounce {
+        0%,
+        80%,
+        100% {
+          transform: scale(0);
+        }
+        40% {
+          transform: scale(1);
+        }
       }
     `,
   ],
@@ -860,21 +949,27 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   userMessage = '';
   isTyping = false;
   isDarkMode = false;
-  isListening = false;
+  quickQuestions: string[] = [];
+  private readonly defaultQuickQuestions = [
+    'Disponibilidad de lotes',
+    'Empresas instaladas en el parque',
+    'Servicios disponibles',
+    'Información de contacto',
+  ];
+  private readonly popularQuestionsKey = 'chatPopularQueries';
+  private questionStats: Record<string, { count: number; display: string }> =
+    {};
 
   private shouldScrollToBottom = false;
-  private audioContext: AudioContext | null = null;
-  private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
-  private recorderMimeType: string | undefined;
 
-  constructor(private chatService: ChatService, private http: HttpClient) {}
+  constructor(private chatService: ChatService) {}
 
   ngOnInit() {
     const savedTheme = localStorage.getItem('chatTheme');
     this.isDarkMode = savedTheme === 'dark';
+    this.loadPopularQuestions();
     this.addBotMessage(
-      'Bienvenido al Parque Industrial Polo 52.\n\nMi nombre es POLO y estoy aquí para ayudarle con consultas sobre las empresas y servicios disponibles en el parque. ¿En qué puedo asistirle?'
+      'Bienvenido al Parque Industrial POLO 52.\n\nMi nombre es POLO y estoy aqu\u00ed para ayudarte con consultas sobre las empresas y servicios disponibles en el parque. \u00bfEn qu\u00e9 puedo asistirte?'
     );
   }
 
@@ -890,104 +985,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     localStorage.setItem('chatTheme', this.isDarkMode ? 'dark' : 'light');
   }
 
-  async toggleSpeechRecognition() {
-    if (this.isListening) {
-      if (this.mediaRecorder) this.mediaRecorder.stop();
-      if (this.audioContext) this.audioContext.close();
-      this.isListening = false;
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      this.audioContext = new AudioContext();
-      this.audioChunks = [];
-
-      const chosenMime = this.pickSupportedMimeType();
-      this.recorderMimeType = chosenMime;
-
-      this.mediaRecorder = chosenMime
-        ? new MediaRecorder(stream, { mimeType: chosenMime })
-        : new MediaRecorder(stream);
-
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0)
-          this.audioChunks.push(event.data);
-      };
-
-      this.mediaRecorder.onstop = async () => {
-        try {
-          const finalType =
-            this.recorderMimeType ||
-            (this.audioChunks[0] ? this.audioChunks[0].type : 'audio/webm');
-
-          const audioBlob = new Blob(this.audioChunks, { type: finalType });
-          const ext = finalType.includes('ogg')
-            ? 'ogg'
-            : finalType.includes('webm')
-            ? 'webm'
-            : 'bin';
-
-          const formData = new FormData();
-          formData.append('audio', audioBlob, `recording.${ext}`);
-          formData.append('mime_type', finalType);
-
-          this.chatService.sendAudio(formData).subscribe({
-            next: (resp: VoiceChatResponse) => {
-              // Mostrar transcript como mensaje del usuario
-              const transcript = resp?.data?.transcript?.trim();
-              if (transcript) this.addUserMessage(transcript);
-
-              // Mostrar respuesta del bot
-              const botText = resp?.data?.text || 'No se obtuvo respuesta.';
-              this.simulateTyping(botText);
-
-              // Reproducir TTS si vino
-              const b64 = resp?.data?.audio_base64;
-              if (b64) {
-                const audio = new Audio(`data:audio/mpeg;base64,${b64}`);
-                audio.play().catch(console.error);
-              }
-            },
-            error: (error) => {
-              console.error('Error al enviar audio:', error);
-              this.showVoiceError(
-                'Error al procesar el audio. Intente nuevamente.'
-              );
-            },
-          });
-        } finally {
-          stream.getTracks().forEach((t) => t.stop());
-          this.isListening = false;
-        }
-      };
-
-      this.mediaRecorder.start(250); // pequeño timeslice ayuda en algunos navegadores
-      this.isListening = true;
-
-      // Auto-stop a los 5s (alineado con tu back)
-      setTimeout(() => {
-        if (this.mediaRecorder && this.isListening) this.mediaRecorder.stop();
-      }, 5000);
-    } catch (err: any) {
-      console.error('Error al iniciar grabación:', err);
-      const msg =
-        err?.name === 'NotAllowedError'
-          ? 'Permiso de micrófono denegado. Habilítelo en el navegador.'
-          : err?.name === 'NotFoundError'
-          ? 'No se encontró un dispositivo de audio.'
-          : 'No se pudo acceder al micrófono.';
-      this.showVoiceError(msg);
-    }
-  }
-
-  private showVoiceError(message: string) {
-    const originalPlaceholder = this.messageInput.nativeElement.placeholder;
-    this.messageInput.nativeElement.placeholder = message;
-    setTimeout(() => {
-      this.messageInput.nativeElement.placeholder = originalPlaceholder;
-    }, 3000);
+  handleQuickQuestion(question: string) {
+    if (this.isTyping) return;
+    this.userMessage = question;
+    this.sendMessage();
   }
 
   trackByMessageId(index: number, message: Message): string {
@@ -1006,6 +1007,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       id: this.generateMessageId(),
     });
     this.shouldScrollToBottom = true;
+    this.registerQuestion(content);
   }
 
   private addBotMessage(content: string) {
@@ -1054,6 +1056,60 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     return history;
   }
 
+  private loadPopularQuestions() {
+    try {
+      const stored = localStorage.getItem(this.popularQuestionsKey);
+      if (stored) this.questionStats = JSON.parse(stored);
+    } catch (error) {
+      console.warn('No se pudieron cargar las consultas populares:', error);
+      this.questionStats = {};
+    }
+    this.updateQuickQuestions();
+  }
+
+  private savePopularQuestions() {
+    try {
+      localStorage.setItem(
+        this.popularQuestionsKey,
+        JSON.stringify(this.questionStats)
+      );
+    } catch (error) {
+      console.warn('No se pudieron guardar las consultas populares:', error);
+    }
+  }
+
+  private updateQuickQuestions() {
+    const stats = Object.values(this.questionStats)
+      .filter((item) => item.count >= 2)
+      .sort((a, b) => b.count - a.count);
+
+    const top = stats.slice(0, 4).map((item) => item.display);
+
+    if (top.length < 4) {
+      const remainingDefaults = this.defaultQuickQuestions.filter(
+        (question) => !top.includes(question)
+      );
+      this.quickQuestions = [...top, ...remainingDefaults].slice(0, 4);
+    } else {
+      this.quickQuestions = top;
+    }
+  }
+
+  private registerQuestion(content: string) {
+    const normalized = content.trim().toLowerCase();
+    if (!normalized) return;
+
+    if (this.questionStats[normalized]) {
+      this.questionStats[normalized].count++;
+      this.questionStats[normalized].display = content.trim();
+    } else {
+      this.questionStats[normalized] = { count: 1, display: content.trim() };
+    }
+
+    this.savePopularQuestions();
+    this.updateQuickQuestions();
+  }
+
   async sendMessage() {
     if (!this.userMessage.trim() || this.isTyping) return;
 
@@ -1069,7 +1125,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
       this.chatService.sendMessage(messageToSend, history).subscribe({
         next: (resp: VoiceChatResponse) => {
-          const text = resp?.data?.text || 'Respuesta inválida.';
+          const text = resp?.data?.text || 'Respuesta invÃ¡lida.';
           this.simulateTyping(text);
 
           const b64 = resp?.data?.audio_base64;
@@ -1082,10 +1138,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
           console.error('Error en la solicitud:', error);
           const msg =
             error.status === 0
-              ? 'No se pudo conectar con el servidor. Verifique la conexión.'
+              ? 'No se pudo conectar con el servidor. Verifique la conexiÃ³n.'
               : error.status >= 500
-              ? 'El servidor está experimentando problemas. Intente más tarde.'
-              : 'Lo siento, hubo un problema técnico. Por favor, intente nuevamente.';
+              ? 'El servidor estÃ¡ experimentando problemas. Intente mÃ¡s tarde.'
+              : 'Lo siento, hubo un problema tÃ©cnico. Por favor, intente nuevamente.';
           this.simulateTyping(msg);
         },
       });
@@ -1094,20 +1150,6 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     setTimeout(() => {
       if (this.messageInput) this.messageInput.nativeElement.focus();
     }, 100);
-  }
-
-  private pickSupportedMimeType(): string | undefined {
-    const candidates = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/ogg',
-    ];
-    for (const c of candidates) {
-      if ((window as any).MediaRecorder && MediaRecorder.isTypeSupported(c))
-        return c;
-    }
-    return undefined; // dejar que el browser elija
   }
 
   private simulateTyping(message: string) {
