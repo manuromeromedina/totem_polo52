@@ -1196,6 +1196,12 @@ JSON:"""
         db_results = execute_sql_query(db, sql_query)
         if db_results and isinstance(db_results[0], dict) and db_results[0].get("error"):
             return GENERIC_ERROR_MESSAGE, [], intent_data.get("corrected_entity")
+        if not db_results:
+            return (
+                "No encontré información disponible en la base de datos del Parque Industrial Polo 52 para esa consulta.",
+                [],
+                intent_data.get("corrected_entity")
+            )
         
         results_text = json.dumps(db_results, ensure_ascii=False, default=custom_json_serializer)
         input_text = f"Resultados de la consulta:\n{results_text}\nPregunta:\n{message}"
@@ -1210,7 +1216,8 @@ Información disponible:
 Historial:
 {chat_history}
 
-- INSTRUCCIONES IMPORTANTES: - Solo responde consultas sobre el Parque Industrial Polo 52. Si la consulta es ajena, responde textualmente: "Solo puedo ayudarte con información del Parque Industrial Polo 52." 
+- INSTRUCCIONES IMPORTANTES: 
+- Solo responde consultas sobre el Parque Industrial Polo 52 cargada en mi base de datos. Si la consulta es ajena, responde textualmente: "Solo puedo ayudarte con información del Parque Industrial Polo 52." 
 - Responde de forma natural, directa y segura, usando un tono informativo. No cierres la respuesta con preguntas ni pidas más detalles. 
 - Cuando haya resultados, menciónalos en texto corrido o en una lista corta usando guiones. En las listas, prioriza que cada guion comience directamente con el nombre (ejemplo: "- Logistica Express S.A.: dato relevante"). Evita prefijos.
 - Si hay más de seis coincidencias, indica cuántas hay y describe las seis más representativas. 
