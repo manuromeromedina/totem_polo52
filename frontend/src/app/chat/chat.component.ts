@@ -5,6 +5,7 @@ import {
   ElementRef,
   ViewChild,
   AfterViewChecked,
+  OnDestroy,
 } from '@angular/core';
 import { ChatService, VoiceChatResponse } from './chat.service';
 import { FormsModule } from '@angular/forms';
@@ -87,7 +88,30 @@ interface Message {
         </div>
       </div>
 
-      <div class="chat-container">
+      <div class="chat-mode-switch">
+        <button
+          type="button"
+          class="mode-pill"
+          [class.active]="chatMode === 'voice'"
+          (click)="setChatMode('voice')"
+          [attr.aria-pressed]="chatMode === 'voice'"
+        >
+          <span class="material-symbols-outlined">volume_up</span>
+          Voz IA
+        </button>
+        <button
+          type="button"
+          class="mode-pill"
+          [class.active]="chatMode === 'text'"
+          (click)="setChatMode('text')"
+          [attr.aria-pressed]="chatMode === 'text'"
+        >
+          <span class="material-symbols-outlined">chat</span>
+          Texto
+        </button>
+      </div>
+
+      <div class="chat-container" *ngIf="chatMode === 'text'; else voiceMode">
         <div class="chat-panel">
           <div class="panel-card messages-card">
             <div class="panel-title">
@@ -222,6 +246,125 @@ interface Message {
           </div>
         </aside>
       </div>
+
+      <ng-template #voiceMode>
+        <section class="voice-experience">
+          <div class="voice-hero">
+            <div class="voice-hero-header">
+              <div>
+                <p class="tag-label">POLO BOT</p>
+                <h3>Habla con nuestro asistente por voz</h3>
+              </div>
+            </div>
+
+            <div class="voice-stage">
+              <div
+                class="speech-bubble user-bubble"
+                [class.filled]="voiceUserText"
+                [class.typing]="voiceUserTyping"
+              >
+                <span class="bubble-label">Tu consulta</span>
+                <p aria-live="polite">
+                  {{
+                    voiceUserText ||
+                      'Toca el micrófono y háblame de lo que necesitás'
+                  }}
+                </p>
+              </div>
+
+              <div class="robot-figure">
+                <div class="robot-antenna-set">
+                  <span class="antenna antenna-left"></span>
+                  <span class="antenna antenna-center"></span>
+                  <span class="antenna antenna-right"></span>
+                </div>
+                <div class="robot-head">
+                  <span class="head-screw screw-top-left"></span>
+                  <span class="head-screw screw-top-right"></span>
+                  <span class="head-screw screw-bottom-left"></span>
+                  <span class="head-screw screw-bottom-right"></span>
+                  <div class="head-ear ear-left"></div>
+                  <div class="head-ear ear-right"></div>
+                  <div class="robot-eyes">
+                    <div class="eye eye-left">
+                      <span class="pupil"></span>
+                      <span class="shine"></span>
+                    </div>
+                    <div class="eye eye-right">
+                      <span class="pupil"></span>
+                      <span class="shine"></span>
+                    </div>
+                  </div>
+                  <div class="robot-smile"></div>
+                </div>
+                <div class="robot-neck"></div>
+                <div class="robot-body">
+                  <div class="body-plate">
+                    <div class="logo-box" aria-label="Logo Polo 52"></div>
+                  </div>
+                  <div class="robot-arm arm-left">
+                    <span class="arm-joint"></span>
+                    <span class="hand"></span>
+                  </div>
+                  <div class="robot-arm arm-right">
+                    <span class="arm-joint"></span>
+                    <span class="hand"></span>
+                  </div>
+                </div>
+                <div class="robot-legs">
+                  <div class="leg leg-left">
+                    <span class="leg-knee"></span>
+                    <span class="foot"></span>
+                  </div>
+                  <div class="leg leg-right">
+                    <span class="leg-knee"></span>
+                    <span class="foot"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="speech-bubble bot-bubble"
+                [class.filled]="voiceBotText"
+                [class.typing]="voiceBotTyping"
+              >
+                <span class="bubble-label">Respuesta del bot</span>
+                <p aria-live="polite">
+                  {{
+                    voiceBotText ||
+                      'Acá aparecerá mi respuesta automática para que la leas mientras la escuchás.'
+                  }}
+                </p>
+              </div>
+            </div>
+
+            <div class="voice-controls">
+              <button
+                type="button"
+                class="mic-button"
+                [class.is-recording]="isRecording"
+                (click)="toggleRecording()"
+                [disabled]="
+                  !supportsVoice || (isProcessingVoice && !isRecording)
+                "
+                [attr.aria-pressed]="isRecording"
+              >
+                <span class="material-symbols-outlined">
+                  {{ isRecording ? 'stop_circle' : 'mic' }}
+                </span>
+              </button>
+              <p class="mic-helper">{{ voiceHelperText }}</p>
+              <div class="voice-status">
+                <span *ngIf="isRecording">Escuchando…</span>
+                <span *ngIf="!isRecording && isProcessingVoice"
+                  >Generando respuesta…</span
+                >
+              </div>
+              <p class="voice-error" *ngIf="voiceError">{{ voiceError }}</p>
+            </div>
+          </div>
+        </section>
+      </ng-template>
     </div>
   `,
 
@@ -235,23 +378,11 @@ interface Message {
 
       :host {
         display: block;
-        height: 100vh;
-      }
-
-      body,
-      html {
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        scrollbar-width: none;
-      }
-
-      body::-webkit-scrollbar {
-        display: none;
+        min-height: 100vh;
       }
 
       .chat-wrapper {
-        height: 100vh;
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
         padding: 4px 10px 12px;
@@ -264,7 +395,8 @@ interface Message {
         font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
         color: #495057;
         font-size: clamp(0.88rem, 0.9vw, 0.98rem);
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
         box-sizing: border-box;
       }
 
@@ -299,6 +431,43 @@ interface Message {
         display: flex;
         align-items: center;
         gap: 12px;
+      }
+
+      .chat-mode-switch {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 16px 14px;
+      }
+
+      .mode-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        border: 1px solid #ced4da;
+        background: white;
+        color: #343a40;
+        padding: 6px 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s ease;
+      }
+
+      .mode-pill .material-symbols-outlined {
+        font-size: 18px;
+      }
+
+      .mode-pill.active {
+        background: #212529;
+        color: white;
+        border-color: #212529;
+        box-shadow: 0 8px 18px rgba(33, 37, 41, 0.25);
+      }
+
+      .mode-pill:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
 
       .mode-toggle-btn {
@@ -394,6 +563,467 @@ interface Message {
         max-width: 1180px;
         margin: 0 auto;
         box-sizing: border-box;
+      }
+
+      .voice-experience {
+        width: 100%;
+        flex: 1;
+        padding: clamp(8px, 1.6vw, 22px);
+        box-sizing: border-box;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .voice-hero {
+        width: 100%;
+        max-width: min(760px, 92vw);
+        background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.92),
+            rgba(255, 255, 255, 0.75)
+          ),
+          url('/assets/images/polo-inicio.jpg') center/cover no-repeat;
+        border-radius: clamp(20px, 2.8vw, 32px);
+        padding: clamp(14px, 1.8vw, 22px);
+        color: #101a2d;
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        backdrop-filter: blur(14px);
+        display: flex;
+        flex-direction: column;
+        gap: clamp(12px, 1.6vw, 24px);
+      }
+
+      .voice-hero-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: clamp(10px, 2vw, 24px);
+      }
+
+      .voice-hero-header h3 {
+        margin: 6px 0 4px;
+        font-size: clamp(1.3rem, 2.3vw, 2rem);
+      }
+
+      .voice-hero-header .subtitle {
+        margin: 0;
+        max-width: 420px;
+        color: rgba(16, 26, 45, 0.85);
+      }
+
+      .tag-label {
+        display: inline-flex;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: rgba(16, 26, 45, 0.08);
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        color: #0f172a;
+      }
+
+      .voice-hero-header {
+        position: relative;
+        z-index: 2;
+      }
+
+      .voice-stage {
+        display: grid;
+        grid-template-columns: minmax(150px, 0.9fr) auto minmax(150px, 0.9fr);
+        grid-template-areas: 'user robot bot';
+        gap: clamp(10px, 1.6vw, 20px);
+        align-items: center;
+        justify-content: center;
+        justify-items: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .speech-bubble {
+        background: rgba(255, 255, 255, 0.96);
+        color: #1d1f2c;
+        border-radius: 18px;
+        padding: clamp(10px, 1vw, 16px);
+        min-height: 110px;
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.14);
+        position: relative;
+        backdrop-filter: blur(8px);
+        transition: transform 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        max-width: clamp(150px, 26vw, 210px);
+        width: 100%;
+      }
+
+      .speech-bubble.filled {
+        transform: translateY(-6px);
+      }
+
+      .speech-bubble p {
+        margin: 8px 0 0;
+        color: rgba(18, 18, 18, 0.9);
+        font-size: 0.98rem;
+        line-height: 1.45;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        letter-spacing: 0.2px;
+      }
+
+      .bubble-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #7c7c7c;
+      }
+
+      .speech-bubble.typing p::after {
+        content: '▌';
+        margin-left: 4px;
+        animation: blink 1s steps(1) infinite;
+      }
+
+      .user-bubble::after,
+      .bot-bubble::after {
+        content: '';
+        position: absolute;
+        bottom: -18px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+      }
+
+      .user-bubble::after {
+        left: 28px;
+      }
+
+      .bot-bubble::after {
+        right: 28px;
+      }
+
+      .user-bubble {
+        grid-area: user;
+        justify-self: end;
+        margin-right: clamp(12px, 2vw, 40px);
+      }
+
+      .bot-bubble {
+        grid-area: bot;
+        justify-self: start;
+        margin-left: clamp(12px, 2vw, 40px);
+      }
+
+      .robot-figure {
+        grid-area: robot;
+        margin-top: clamp(8px, 1.5vw, 24px);
+      }
+
+      .robot-figure {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .robot-antenna-set {
+        display: flex;
+        justify-content: center;
+        gap: clamp(10px, 3vw, 28px);
+        margin-bottom: -4px;
+      }
+
+      .antenna {
+        width: 5px;
+        height: clamp(30px, 5vw, 46px);
+        background: #0f172a;
+        border-radius: 999px;
+        position: relative;
+      }
+
+      .antenna::after {
+        content: '';
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #0f172a;
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .robot-head {
+        width: clamp(120px, 16vw, 170px);
+        height: clamp(105px, 14vw, 145px);
+        background: #f5f8fb;
+        border-radius: 32px;
+        border: 5px solid #0f172a;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(14px, 2vw, 22px);
+        box-shadow: inset 0 -8px 0 rgba(15, 23, 42, 0.07);
+      }
+
+      .head-screw {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        border: 2px solid #0f172a;
+        position: absolute;
+        background: #dfe5f1;
+      }
+
+      .screw-top-left {
+        top: 12px;
+        left: 16px;
+      }
+      .screw-top-right {
+        top: 12px;
+        right: 16px;
+      }
+      .screw-bottom-left {
+        bottom: 12px;
+        left: 16px;
+      }
+      .screw-bottom-right {
+        bottom: 12px;
+        right: 16px;
+      }
+
+      .head-ear {
+        position: absolute;
+        width: clamp(22px, 3vw, 32px);
+        height: clamp(32px, 6vw, 56px);
+        background: #0f172a;
+        border-radius: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      .ear-left {
+        left: calc(clamp(26px, 4vw, 38px) / -2);
+      }
+
+      .ear-right {
+        right: calc(clamp(26px, 4vw, 38px) / -2);
+      }
+
+      .robot-eyes {
+        display: flex;
+        gap: clamp(12px, 3vw, 26px);
+        margin-bottom: clamp(6px, 1vw, 10px);
+      }
+
+      .eye {
+        width: clamp(32px, 5vw, 50px);
+        height: clamp(32px, 5vw, 50px);
+        border-radius: 50%;
+        background: #0f172a;
+        border: 5px solid #0f172a;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 -4px 0 rgba(255, 255, 255, 0.1);
+      }
+
+      .eye .pupil {
+        width: 55%;
+        height: 55%;
+        background: #fff;
+        border-radius: 50%;
+        display: block;
+      }
+
+      .eye .shine {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
+        top: 12px;
+        left: 10px;
+      }
+
+      .robot-smile {
+        width: clamp(50px, 9vw, 88px);
+        height: 12px;
+        border-bottom: 4px solid #0f172a;
+        border-radius: 0 0 60px 60px;
+      }
+
+      .robot-neck {
+        width: clamp(38px, 7vw, 60px);
+        height: 14px;
+        background: #0f172a;
+        border-radius: 14px;
+        margin: -2px auto 8px;
+      }
+
+      .robot-body {
+        width: clamp(140px, 20vw, 200px);
+        height: clamp(140px, 22vw, 220px);
+        background: #f5f8fb;
+        border-radius: 28px;
+        border: 5px solid #0f172a;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(10px, 2vw, 20px);
+      }
+
+      .body-plate {
+        width: 100%;
+        height: 100%;
+        border-radius: 22px;
+        background: linear-gradient(145deg, #fefefe, #dfe6f3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 -10px 18px rgba(15, 23, 42, 0.08);
+      }
+
+      .logo-box {
+        width: clamp(90px, 14vw, 150px);
+        height: clamp(84px, 13vw, 140px);
+        border-radius: 28px;
+        background: url('/assets/images/PoloLogo-rojo.jpg') center/cover no-repeat;
+        box-shadow: 0 8px 20px rgba(217, 4, 41, 0.35);
+      }
+
+      .robot-arm {
+        position: absolute;
+        top: 30%;
+        width: clamp(40px, 7vw, 80px);
+        height: clamp(110px, 18vw, 160px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .arm-left {
+        left: calc(-1 * clamp(40px, 7vw, 80px));
+      }
+
+      .arm-right {
+        right: calc(-1 * clamp(40px, 7vw, 80px));
+      }
+
+      .arm-joint {
+        width: clamp(16px, 2.5vw, 24px);
+        flex: 1;
+        background: #f5f8fb;
+        border: 4px solid #0f172a;
+        border-radius: 36px;
+      }
+
+      .hand {
+        width: clamp(30px, 5vw, 50px);
+        height: clamp(34px, 5vw, 52px);
+        border-radius: 14px 14px 12px 12px;
+        border: 4px solid #0f172a;
+        background: #0f172a;
+        position: relative;
+      }
+
+      .hand::after {
+        content: '';
+        position: absolute;
+        inset: 8px;
+        border-radius: 8px;
+        border: 2px solid #fff;
+      }
+
+      .robot-legs {
+        display: flex;
+        gap: clamp(14px, 2.5vw, 32px);
+        margin-top: -2px;
+      }
+
+      .leg {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .leg-knee {
+        width: clamp(18px, 3.5vw, 28px);
+        height: clamp(40px, 8vw, 60px);
+        border: 4px solid #0f172a;
+        border-radius: 40px;
+        background: #f5f8fb;
+      }
+
+      .foot {
+        width: clamp(40px, 7vw, 70px);
+        height: clamp(20px, 3.2vw, 30px);
+        background: #0f172a;
+        border-radius: 40px;
+      }
+
+      .voice-controls {
+        margin-top: clamp(12px, 2vw, 24px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .mic-button {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        border: 3px solid rgba(16, 26, 45, 0.15);
+        background: rgba(255, 255, 255, 0.9);
+        color: #0f172a;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.15);
+      }
+
+      .mic-button.is-recording {
+        background: #d90429;
+        color: #fff;
+        border-color: #ffd6de;
+        box-shadow: 0 16px 34px rgba(217, 4, 41, 0.35);
+      }
+
+      .mic-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .mic-helper {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: rgba(16, 26, 45, 0.8);
+      }
+
+      .voice-status {
+        height: 20px;
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+        color: rgba(16, 26, 45, 0.8);
+      }
+
+      .voice-error {
+        margin: 4px 0 0;
+        color: #b42318;
+        font-weight: 600;
       }
 
       .chat-panel {
@@ -837,6 +1467,14 @@ interface Message {
         .message-content {
           max-width: 75%;
         }
+
+        .voice-hero {
+          padding: 22px;
+        }
+
+        .voice-stage {
+          gap: 16px;
+        }
       }
 
       @media (max-width: 992px) {
@@ -858,6 +1496,25 @@ interface Message {
         .sidebar-card {
           flex: 1 1 220px;
         }
+
+        .voice-stage {
+          grid-template-columns: minmax(120px, 0.9fr) auto minmax(120px, 0.9fr);
+          gap: 14px;
+        }
+
+        .speech-bubble {
+          max-width: clamp(140px, 32vw, 190px);
+          margin: 0 auto;
+        }
+
+        .user-bubble,
+        .bot-bubble {
+          margin: 0 8px;
+        }
+
+        .voice-hero {
+          padding: 14px;
+        }
       }
 
       @media (max-width: 768px) {
@@ -872,6 +1529,25 @@ interface Message {
 
         .message-content {
           max-width: 85%;
+        }
+
+        .voice-stage {
+          grid-template-columns: minmax(110px, 0.9fr) auto minmax(110px, 0.9fr);
+          gap: 10px;
+        }
+
+        .robot-head {
+          width: clamp(110px, 34vw, 140px);
+          height: clamp(95px, 28vw, 120px);
+        }
+
+        .robot-body {
+          width: clamp(105px, 32vw, 140px);
+          height: clamp(100px, 30vw, 140px);
+        }
+
+        .voice-controls {
+          margin-top: 14px;
         }
       }
 
@@ -899,6 +1575,19 @@ interface Message {
         .send-button {
           width: 100%;
         }
+
+        .voice-hero {
+          border-radius: 20px;
+        }
+
+        .speech-bubble {
+          padding: 10px;
+        }
+
+        .logo-box {
+          width: clamp(80px, 36vw, 110px);
+          height: clamp(70px, 30vw, 100px);
+        }
       }
 
       @media (orientation: portrait) and (min-width: 577px) {
@@ -914,6 +1603,81 @@ interface Message {
 
         .message-content {
           max-width: 80%;
+        }
+
+        .voice-experience {
+          padding: 16px;
+        }
+
+        .voice-hero {
+          min-height: auto;
+        }
+
+        .voice-stage {
+          grid-template-columns: minmax(110px, 0.9fr) auto minmax(110px, 0.9fr);
+          gap: 12px;
+        }
+      }
+
+      @media (max-aspect-ratio: 3/4) {
+        .chat-container {
+          flex-direction: column;
+          max-width: 720px;
+        }
+
+        .voice-hero {
+          min-height: auto;
+        }
+
+        .voice-stage {
+          grid-template-columns: minmax(110px, 0.9fr) auto minmax(110px, 0.9fr);
+          gap: 12px;
+        }
+
+        .robot-head {
+          transform: scale(0.88);
+        }
+      }
+
+      @media (max-height: 700px) {
+        .voice-hero {
+          padding: 14px;
+          gap: 14px;
+        }
+
+        .voice-stage {
+          gap: 9px;
+        }
+
+        .speech-bubble {
+          min-height: 90px;
+          max-width: clamp(120px, 28vw, 160px);
+        }
+
+        .mic-button {
+          width: 54px;
+          height: 54px;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .voice-stage {
+          grid-template-columns: 1fr;
+          grid-template-areas:
+            'user'
+            'robot'
+            'bot';
+          gap: 14px;
+        }
+
+        .user-bubble,
+        .bot-bubble {
+          justify-self: center;
+          margin: 0;
+        }
+
+        .speech-bubble {
+          max-width: min(260px, 90vw);
         }
       }
 
@@ -938,10 +1702,21 @@ interface Message {
           transform: scale(1);
         }
       }
+
+      @keyframes blink {
+        0%,
+        49% {
+          opacity: 1;
+        }
+        50%,
+        100% {
+          opacity: 0;
+        }
+      }
     `,
   ],
 })
-export class ChatbotComponent implements OnInit, AfterViewChecked {
+export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
   @ViewChild('messageInput') messageInput!: ElementRef;
 
@@ -950,6 +1725,19 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   isTyping = false;
   isDarkMode = false;
   quickQuestions: string[] = [];
+  chatMode: 'text' | 'voice' = 'text';
+  isRecording = false;
+  isProcessingVoice = false;
+  supportsVoice =
+    typeof window !== 'undefined' &&
+    typeof navigator !== 'undefined' &&
+    !!navigator.mediaDevices &&
+    typeof MediaRecorder !== 'undefined';
+  voiceError: string | null = null;
+  voiceUserText = '';
+  voiceBotText = '';
+  voiceUserTyping = false;
+  voiceBotTyping = false;
   private readonly defaultQuickQuestions = [
     'Disponibilidad de lotes',
     'Empresas instaladas en el parque',
@@ -961,8 +1749,20 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     {};
 
   private shouldScrollToBottom = false;
+  private mediaRecorder?: MediaRecorder;
+  private audioChunks: Blob[] = [];
+  private shouldDiscardRecording = false;
+  private activeStream?: MediaStream;
+  private userBubbleInterval?: number;
+  private botBubbleInterval?: number;
+  private userBubbleTypingTimeout?: number;
+  private botBubbleTypingTimeout?: number;
 
-  constructor(private chatService: ChatService) {}
+  constructor(private chatService: ChatService) {
+    if (!this.supportsVoice) {
+      this.voiceError = 'Tu navegador no soporta la experiencia de voz.';
+    }
+  }
 
   ngOnInit() {
     const savedTheme = localStorage.getItem('chatTheme');
@@ -980,9 +1780,70 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     }
   }
 
+  ngOnDestroy() {
+    this.stopBubbleTyping('user');
+    this.stopBubbleTyping('bot');
+    this.stopRecording(true);
+    this.cleanupMediaStream();
+  }
+
+  get voiceHelperText(): string {
+    if (!this.supportsVoice) {
+      return 'Tu navegador no soporta la experiencia de voz.';
+    }
+
+    if (this.isRecording) {
+      return 'Estamos escuchando tu consulta...';
+    }
+
+    if (this.isProcessingVoice) {
+      return 'Generando la respuesta con IA...';
+    }
+
+    return 'Toca el micrófono para hablar con POLO Bot.';
+  }
+
+  setChatMode(mode: 'text' | 'voice') {
+    if (this.chatMode === mode) return;
+    this.chatMode = mode;
+    if (mode === 'text' && this.isRecording) {
+      this.stopRecording(true);
+    }
+    if (mode === 'text') {
+      this.stopBubbleTyping('user');
+      this.stopBubbleTyping('bot');
+    } else {
+      this.voiceUserText = '';
+      this.voiceBotText = '';
+    }
+    if (mode === 'voice') {
+      this.voiceError = this.supportsVoice
+        ? null
+        : 'Tu navegador no soporta la experiencia de voz.';
+    }
+  }
+
   toggleTheme() {
     this.isDarkMode = !this.isDarkMode;
     localStorage.setItem('chatTheme', this.isDarkMode ? 'dark' : 'light');
+  }
+
+  toggleRecording() {
+    if (!this.supportsVoice) {
+      this.voiceError = 'Tu dispositivo no permite usar el micrófono.';
+      this.typeFinalBubbleText(
+        'user',
+        'Tu dispositivo no permite usar el micrófono.'
+      );
+      this.stopBubbleTyping('bot');
+      return;
+    }
+
+    if (this.isRecording) {
+      this.stopRecording();
+    } else if (!this.isProcessingVoice) {
+      this.startRecording();
+    }
   }
 
   handleQuickQuestion(question: string) {
@@ -1185,5 +2046,251 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     };
 
     setTimeout(typeCharacter, 100);
+  }
+
+  private startBubbleTyping(target: 'user' | 'bot', placeholder: string) {
+    const clean = placeholder?.trim();
+    if (!clean) return;
+
+    this.stopBubbleTyping(target);
+    this.setTypingFlag(target, true);
+    this.setBubbleText(target, '');
+
+    const loopText = `${clean}   `;
+    let index = 1;
+
+    const intervalId = setInterval(() => {
+      this.setBubbleText(target, loopText.slice(0, index));
+      index++;
+      if (index > loopText.length) {
+        index = 1;
+      }
+    }, 80) as unknown as number;
+
+    if (target === 'user') this.userBubbleInterval = intervalId;
+    else this.botBubbleInterval = intervalId;
+  }
+
+  private stopBubbleTyping(target: 'user' | 'bot', keepTypingFlag = false) {
+    if (target === 'user') {
+      if (this.userBubbleInterval) {
+        clearInterval(this.userBubbleInterval);
+        this.userBubbleInterval = undefined;
+      }
+      if (this.userBubbleTypingTimeout) {
+        clearTimeout(this.userBubbleTypingTimeout);
+        this.userBubbleTypingTimeout = undefined;
+      }
+      if (!keepTypingFlag) this.voiceUserTyping = false;
+    } else {
+      if (this.botBubbleInterval) {
+        clearInterval(this.botBubbleInterval);
+        this.botBubbleInterval = undefined;
+      }
+      if (this.botBubbleTypingTimeout) {
+        clearTimeout(this.botBubbleTypingTimeout);
+        this.botBubbleTypingTimeout = undefined;
+      }
+      if (!keepTypingFlag) this.voiceBotTyping = false;
+    }
+  }
+
+  private typeFinalBubbleText(target: 'user' | 'bot', text: string) {
+    const content = text ?? '';
+    this.stopBubbleTyping(target, true);
+    this.setTypingFlag(target, true);
+
+    const characters = Array.from(content);
+    if (!characters.length) {
+      this.setBubbleText(target, content);
+      this.setTypingFlag(target, false);
+      return;
+    }
+
+    this.setBubbleText(target, '');
+    let index = 0;
+
+    const typeNext = () => {
+      this.setBubbleText(target, characters.slice(0, index + 1).join(''));
+      index++;
+
+      if (index < characters.length) {
+        const delay =
+          characters[index - 1] === ' ' ? 20 : 40 + Math.random() * 35;
+        const timeoutId = setTimeout(typeNext, delay) as unknown as number;
+        if (target === 'user') this.userBubbleTypingTimeout = timeoutId;
+        else this.botBubbleTypingTimeout = timeoutId;
+      } else {
+        this.setTypingFlag(target, false);
+      }
+    };
+
+    typeNext();
+  }
+
+  private setBubbleText(target: 'user' | 'bot', value: string) {
+    if (target === 'user') this.voiceUserText = value;
+    else this.voiceBotText = value;
+  }
+
+  private setTypingFlag(target: 'user' | 'bot', value: boolean) {
+    if (target === 'user') this.voiceUserTyping = value;
+    else this.voiceBotTyping = value;
+  }
+
+  private async startRecording() {
+    this.voiceError = null;
+    this.voiceUserText = '';
+    this.voiceBotText = '';
+    this.stopBubbleTyping('bot');
+    this.startBubbleTyping('user', 'Escuchando tu consulta...');
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.activeStream = stream;
+      const mimeType = this.getPreferredMimeType();
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      this.mediaRecorder = recorder;
+      this.audioChunks = [];
+      this.shouldDiscardRecording = false;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+
+      recorder.onerror = (event) => {
+        console.error('Error en MediaRecorder', event);
+        this.voiceError = 'Ocurrió un problema al grabar audio.';
+        this.stopRecording(true);
+      };
+
+      recorder.onstop = () => {
+        const chunks = [...this.audioChunks];
+        this.audioChunks = [];
+        const discard = this.shouldDiscardRecording;
+        this.shouldDiscardRecording = false;
+        this.cleanupMediaStream();
+        this.mediaRecorder = undefined;
+
+        if (discard || !chunks.length) {
+          this.isProcessingVoice = false;
+          return;
+        }
+
+        this.startBubbleTyping('user', 'Procesando tu consulta...');
+        this.isProcessingVoice = true;
+        const blob = new Blob(chunks, {
+          type: recorder.mimeType || 'audio/webm',
+        });
+        this.sendAudioBlob(blob);
+      };
+
+      recorder.start();
+      this.isRecording = true;
+    } catch (error) {
+      console.error('No se pudo iniciar la grabación', error);
+      this.voiceError =
+        'No se pudo acceder al micrófono. Revisá los permisos del navegador.';
+      this.stopBubbleTyping('user');
+      this.cleanupMediaStream();
+      this.isRecording = false;
+    }
+  }
+
+  private stopRecording(discard = false) {
+    if (!this.mediaRecorder) return;
+    this.shouldDiscardRecording = discard;
+
+    if (this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+
+    this.isRecording = false;
+
+    if (discard) {
+      this.stopBubbleTyping('user');
+      this.stopBubbleTyping('bot');
+    }
+  }
+
+  private cleanupMediaStream() {
+    if (this.activeStream) {
+      this.activeStream.getTracks().forEach((track) => track.stop());
+      this.activeStream = undefined;
+    }
+  }
+
+  private getPreferredMimeType(): string | undefined {
+    if (typeof MediaRecorder === 'undefined') return undefined;
+    const types = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4;codecs=mp4a.40.2',
+      'audio/mp4',
+    ];
+    return types.find((type) => MediaRecorder.isTypeSupported(type));
+  }
+
+  private sendAudioBlob(blob: Blob) {
+    const formData = new FormData();
+    const fileExt = blob.type.includes('mp4') ? 'm4a' : 'webm';
+    formData.append('audio', blob, `voz-${Date.now()}.${fileExt}`);
+
+    const history = this.getChatHistory();
+    if (history.length) {
+      formData.append('history_form', JSON.stringify(history));
+    }
+
+    this.voiceBotText = '';
+    this.startBubbleTyping('bot', 'Generando respuesta con IA...');
+
+    this.chatService.sendAudio(formData).subscribe({
+      next: (resp: VoiceChatResponse) => {
+        this.isProcessingVoice = false;
+        const transcript = resp?.data?.transcript?.trim();
+        const botText = resp?.data?.text?.trim();
+
+        if (transcript) {
+          this.typeFinalBubbleText('user', transcript);
+          this.addUserMessage(transcript);
+        } else {
+          this.typeFinalBubbleText('user', 'Consulta enviada con éxito.');
+        }
+
+        if (botText) {
+          this.typeFinalBubbleText('bot', botText);
+          this.addBotMessage(botText);
+        } else {
+          this.typeFinalBubbleText(
+            'bot',
+            'No pude generar una respuesta en este momento. Intentá nuevamente.'
+          );
+        }
+
+        const b64 = resp?.data?.audio_base64;
+        if (b64) {
+          const audio = new Audio(`data:audio/mpeg;base64,${b64}`);
+          audio.play().catch(console.error);
+        }
+      },
+      error: (error) => {
+        console.error('Error al enviar audio', error);
+        this.isProcessingVoice = false;
+        this.voiceError =
+          error.status === 0
+            ? 'No se pudo conectar con el servidor. Verificá tu conexión.'
+            : 'No se pudo procesar el audio. Probá nuevamente en unos segundos.';
+        this.typeFinalBubbleText(
+          'bot',
+          'No pude procesar el audio. Probá nuevamente en unos segundos.'
+        );
+        this.typeFinalBubbleText('user', 'No pudimos recibir tu consulta.');
+      },
+    });
   }
 }
