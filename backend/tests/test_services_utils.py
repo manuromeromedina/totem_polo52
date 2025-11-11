@@ -52,7 +52,7 @@ def test_execute_sql_query_allows_select_only():
         assert results == [{"nombre": "Polo 52"}]
 
         non_select = services.execute_sql_query(db, "DELETE FROM empresa")
-        assert "Solo se permiten consultas SELECT." in non_select[0]["error"]
+        assert services.GENERIC_ERROR_MESSAGE in non_select[0]["error"]
     finally:
         db.close()
 

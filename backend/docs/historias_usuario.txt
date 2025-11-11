@@ -1,0 +1,402 @@
+Historias de Usuario – Backend Polo52
+Contexto: API FastAPI con autenticación JWT y Google OAuth, gestión de empresas, usuarios y servicios del polo. Las historias se organizan por épica, con criterios de aceptación (CA) y criterios de validación (CV) listos para QA.
+
+Épica A — Autenticación y Sesiones
+HU-A1 — Login con usuario/email y contraseña
+Como usuario registrado  Quiero iniciar sesión con mi identificador (usuario o email) y contraseña  Para acceder a las áreas protegidas del sistema.
+CA
+	•	Si credenciales son correctas, devuelve access_token JWT (con sub, iat, exp) y token_type="bearer". 
+	•	Si credenciales son incorrectas, responde 401 sin revelar qué campo falló. 
+	•	Debe permitir identifier como username o email. 
+	•	El usuario debe estar activo (estado=true). Usuarios deshabilitados no pueden loguear. 
+CV
+	•	Contraseña almacenada con hash seguro (p.ej., bcrypt/argon2; en código se usa hash_password). 
+	•	exp del JWT respeta TTL configurado. Clave SECRET_KEY y algoritmo ALGORITHM válidos. 
+	•	Brute force mitigado (ver cooldown en cambio de contraseña; para login, verificar límites si se agregan). 
+
+HU-A2 — “Recordarme” (sesión persistente vía cookie)
+Como usuario que confía en su dispositivo  Quiero marcar “Recordarme” al iniciar sesión  Para que mi sesión se conserve por un período extendido sin reautenticar.
+CA
+	•	Al login con remember_me=true, la API emite cookie httpOnly remember_token con vencimiento extendido (p.ej. 30 días). 
+	•	Endpoint /auth/check-remember retorna logged_in=true y datos mínimos del usuario si la cookie es válida. 
+	•	/logout elimina la cookie remember_token y devuelve mensaje de confirmación. 
+CV
+	•	Cookie httpOnly, SameSite=Lax (y Secure=true en producción). 
+	•	Token ligado al usuario y revocable al cerrar sesión. 
+
+HU-A3 — Logout
+Como usuario autenticado  Quiero cerrar mi sesión  Para proteger mi cuenta en equipos compartidos.
+CA
+	•	Endpoint /logout borra remember_token si existe. 
+	•	Respuesta 200 con mensaje de éxito. 
+CV
+	•	No quedan sesiones persistentes tras el logout. 
+
+Épica B — Recuperación y Cambio de Contraseña (con link mágico)
+Nota de producto: El usuario no ingresa el token manualmente. Recibe un link habilitado en el email que incluye el token en la URL. Debe abrirlo antes de que expire (1 hora) y luego ingresar la nueva contraseña dos veces. El enlace solo se puede usar una vez y no permite reutilizar contraseñas anteriores.
+HU-B1 — Solicitar recuperación (envío de link mágico)
+Como usuario que olvidó su contraseña  Quiero solicitar un correo con un link de restablecimiento  Para poder cambiarla sin conocer la actual.
+Criterios de Aceptación (CA)
+	•	POST /password-reset/request acepta email y responde 200 con mensaje genérico (sin filtrar existencia). 
+	•	Se envía un email con: saludo, instrucciones, link mágico con token embebido y aclaraciones: 
+	•	El enlace expira en 1 hora. 
+	•	Solo puede usarse una vez. 
+	•	No se pueden usar contraseñas usadas anteriormente. 
+	•	Si el SMTP falla, la API responde 202/200 igualmente e intenta reintento o registra el error (no bloqueante). 
+Criterios de Validación (CV)
+	•	El token del link es un JWT firmado (SECRET_KEY, ALGORITHM), con type=password_reset, jti único y exp en 60 minutos. 
+	•	No se revela si el email existe (misma respuesta para existente/no existente). 
+
+HU-B2 — Apertura del link mágico (validación previa)
+Como usuario que recibió el correo  Quiero abrir el link para habilitar el formulario de nueva contraseña  Para continuar el proceso de forma segura.
+CA
+	•	Al abrir el link, el frontend llama a /password-reset/verify-link?token=... (o endpoint equivalente) y obtiene status ∈ {valid, expired, used, invalid}. 
+	•	Si valid, se renderiza el formulario de “Nueva contraseña / Confirmación” (sin pedir token). 
+	•	Si expired o used o invalid, se muestra explicación y opción de reenviar solicitud. 
+CV
+	•	La verificación no consume el token; solo valida firmas, exp, jti y estado. 
+	•	Si el usuario está deshabilitado, responde 403 con mensaje claro. 
+
+HU-B3 — Establecer nueva contraseña (consumo del link)
+Como usuario con link válido  Quiero definir mi nueva contraseña ingresándola dos veces  Para restablecer el acceso.
+CA
+	•	POST /password-reset/confirm-from-link recibe token (en query/header/cookie, no visible en el formulario) + new_password + confirm_password. 
+	•	Valida y aplica requisitos: 
+	•	Mínimo 8 caracteres. 
+	•	Al menos una mayúscula. 
+	•	Al menos una minúscula. 
+	•	Al menos un número. 
+	•	No puede ser una contraseña ya utilizada por ese usuario. 
+	•	new_password y confirm_password deben coincidir. 
+	•	Si es exitoso, consume el token (marca jti como usado) y devuelve 200 con confirmación. 
+	•	Se envía email de confirmación de cambio (mejor esfuerzo; no bloqueante). 
+CV
+	•	El token no puede reutilizarse (cache/tabla de tokens usados). 
+	•	Si el token está expirado, responde 400/401 con estado y no modifica credenciales. 
+	•	El hash se guarda con algoritmo seguro y se registra en historial. 
+
+HU-B4 — Cambio de contraseña autenticado (flujo seguro)
+Como usuario autenticado  Quiero cambiar mi contraseña indicando la actual  Para reforzar la seguridad.
+CA
+	•	POST /password-change/secure exige current_password, new_password, confirm_password. 
+	•	Aplica los mismos requisitos de complejidad y no reutilización que HU-B3. 
+	•	Si current_password es incorrecta, no cambia y aplica cooldown tras N fallos. 
+CV
+	•	Cooldown configurable (p.ej., _MAX_FAILS_CHANGE_PW, _COOLDOWN_SECONDS_CHANGE_PW). 
+	•	Registra en historial de contraseñas y limpia estado de intentos al éxito. 
+
+HU-B5 — Reenvío del link de recuperación
+Como usuario cuyo link expiró o ya no es válido  Quiero solicitar un nuevo link  Para completar el proceso sin soporte manual.
+CA
+	•	POST /password-reset/resend con email responde 200 con mensaje genérico. 
+	•	Invalida (opcional) tokens anteriores no usados del mismo usuario. 
+	•	Envía nuevo link mágico con expiración de 1 hora. 
+CV
+	•	Límite de frecuencia por IP/email para evitar abuso. 
+	•	Misma política de no-filtración de existencia de email. 
+
+HU-B6 — Administración y limpieza de tokens usados
+Como admin del polo  Quiero consultar y limpiar el caché/tabla de tokens usados  Para prevenir reutilización y mantener el sistema liviano.
+CA
+	•	GET /password-reset/cache-status devuelve conteos y métricas. 
+	•	POST /password-reset/cleanup-cache elimina entradas y devuelve cantidad purgada. 
+CV
+	•	Endpoints restringidos a admin_polo. 
+	•	Operaciones idempotentes y con logs de auditoría. 
+Épica C — Usuarios y Roles
+HU-C1 — Alta de usuario con contraseña generada
+Como admin del polo  Quiero crear usuarios (admin_empresa, usuario_empresa, admin_polo) con contraseña generada automáticamente  Para agilizar el onboarding.
+CA
+	•	POST /admin/users valida límites de creación (máx. MAX_ADMIN_EMPRESA_PER_COMPANY, MAX_ADMIN_POLO_TOTAL). 
+	•	Rechaza si email o nombre existen. 
+	•	Verifica que la empresa (cuil) y el rol (id_rol) existan. 
+	•	Genera contraseña aleatoria segura, la hashea y envía por email (mejor esfuerzo). 
+CV
+	•	validate_user_creation_limits aplicado antes de insertar. 
+	•	Contraseña aleatoria contiene dígitos, mayúsc/minúsc y longitud mínima. 
+
+HU-C2 — Asignar/consultar roles del usuario
+Como admin del polo  Quiero ver/gestionar los roles asociados a un usuario  Para controlar sus permisos.
+CA
+	•	Al consultar usuario, devuelve lista de roles vinculados (rol_usuario). 
+	•	Asignación sólo con roles existentes; evita duplicados. 
+CV
+	•	Integridad referencial en tabla puente rol_usuario. 
+
+HU-C3 — Deshabilitar/rehabilitar usuario
+Como admin del polo o admin de empresa (según alcance)  Quiero cambiar el estado de un usuario  Para bloquear o devolver acceso.
+CA
+	•	Cambiar estado a false impide logins y operaciones protegidas. 
+	•	Rehabilitar (true) permite retomar actividades. 
+CV
+	•	Acciones auditables (idealmente log; si no existe, dejar pendiente de mejora). 
+
+Épica D — Empresas (Admin Polo)
+HU-D1 — Crear empresa
+Como admin del polo  Quiero dar de alta una empresa con CUIL único  Para gestionarla dentro del polo.
+CA
+	•	cuil, nombre, rubro, cant_empleados, fecha_ingreso, horario_trabajo obligatorios. 
+	•	cuil único; estado por defecto activo. 
+CV
+	•	Validaciones de tipos y rangos (cant_empleados>0). 
+
+HU-D2 — Editar empresa
+Como admin del polo  Quiero actualizar datos de la empresa  Para mantener la información vigente.
+CA
+	•	Sólo campos permitidos; ignora campos no enviados. 
+	•	Persistencia correcta y 200 con el recurso actualizado. 
+CV
+	•	Validación de formatos (strings, fechas ISO) y longitudes máximas. 
+
+HU-D3 — Desactivar empresa (cascada)
+Como admin del polo  Quiero desactivar una empresa  Para suspender su operación y la de sus entidades asociadas.
+CA
+	•	Setea empresa.estado=false. 
+	•	Desactiva usuarios asociados (estado=false). 
+	•	Desactiva servicios del polo, relaciones empresa-servicio, contactos y vehículos asociados (si poseen estado). 
+CV
+	•	Operación atómica (transacción) o revertible ante error parcial.
+
+HU-D3b — Reactivar empresa (cascada inversa)
+Como admin del polo  Quiero reactivar una empresa previamente desactivada  Para restaurar sus operaciones y las de sus entidades asociadas.
+CA
+	•	POST /empresas/{cuil}/reactivar cambia estado=true. 
+	•	Reactiva también usuarios, servicios, contactos y vehículos asociados que fueron desactivados automáticamente (no manualmente). 
+	•	Devuelve empresa actualizada y resumen de entidades reactivadas. 
+CV
+	•	La operación se ejecuta en una transacción para consistencia. 
+	•	Log de auditoría con timestamp y admin responsable. 
+	•	Verifica existencia previa (404 si la empresa no existe).
+	•	 
+
+HU-D4 — Ver perfil público de empresa
+Como visitante o usuario interno  Quiero consultar datos públicos de una empresa  Para conocer su rubro, horarios y contactos.
+CA
+	•	GET /public/empresa/{cuil} devuelve: nombre, rubro, fecha_ingreso, horario_trabajo. 
+	•	Incluye contactos (sanitizados) y servicios del polo con lotes. 
+CV
+	•	No exponer CUIL ni IDs internos en subrecursos. 
+
+Épica E — Gestión de Datos de Empresa (Admin Empresa)
+HU-E0 — Ver perfil de mi empresa
+Como admin o usuario de empresa  Quiero consultar los datos de mi propia empresa  Para ver información general y confirmar que esté actualizada.
+CA
+	•	GET /mi-empresa devuelve: 
+	•	nombre, rubro, cant_empleados, fecha_ingreso, horario_trabajo, observaciones, estado. 
+	•	Solo accesible por usuarios con empresa asociada. 
+	•	Devuelve 403 si el usuario no pertenece a una empresa. 
+CV
+	•	Autenticación obligatoria (JWT). 
+	•	Datos obtenidos según cuil vinculado al usuario. 
+	•	No expone CUIL ni IDs internos en respuesta.
+
+HU-E1 — Actualizar datos propios de empresa
+Como admin de empresa  Quiero editar los datos de mi empresa (p.ej., rubro, horario, observaciones)  Para mantener la información al día.
+CA
+	•	Autenticación requerida; el cuil proviene del usuario logueado. 
+	•	Actualiza sólo campos enviados. 
+CV
+	•	Validación de tipos y longitudes; evitar overposting. 
+
+HU-E2 — Alta de vehículo
+Como admin de empresa  Quiero crear un vehículo asociado a mi empresa  Para gestionar su flota.
+CA
+	•	POST /vehiculos con patente, marca, modelo, id_tipo_vehiculo válido. 
+	•	Rechaza si id_tipo_vehiculo no existe. 
+	•	Retorna el vehículo creado. 
+CV
+	•	Validación de patente (formato), campos obligatorios y unicidad si aplica. 
+
+HU-E3 — Editar/eliminar vehículo
+Como admin de empresa  Quiero actualizar o eliminar mis vehículos  Para mantener la flota correcta.
+CA
+	•	PUT /vehiculos/{id} actualiza campos permitidos. 
+	•	DELETE /vehiculos/{id} elimina o desactiva según modelo. 
+CV
+	•	Autorización: sólo vehículos de mi empresa. 
+
+HU-E4 — Alta de contacto
+Como admin de empresa  Quiero crear contactos (comercial, soporte, etc.)  Para facilitar la comunicación.
+CA
+	•	POST /contactos con id_tipo_contacto válido, nombre, telefono y datos opcionales. 
+	•	Soporta id_servicio_polo opcional si el contacto pertenece a un servicio del polo. 
+CV
+	•	Validar telefono y longitudes; sanitizar datos JSON. 
+
+HU-E5 — Editar/eliminar contacto
+Como admin de empresa  Quiero actualizar o eliminar contactos  Para mantener datos correctos.
+CA
+	•	PUT /contactos/{id} actualiza campos permitidos. 
+	•	DELETE /contactos/{id} elimina o desactiva. 
+CV
+	•	Autorización: sólo contactos de mi empresa. 
+
+HU-E6 — Solicitar ampliación de límite de usuarios
+Como admin de empresa  Quiero solicitar aumentar el máximo de usuarios permitidos  Para acomodar el crecimiento del equipo.
+CA
+	•	POST /empresas/solicitar-limite con justificacion (≥20 chars) y usuarios_adicionales_solicitados (>0, ≤10). 
+	•	Responde con resumen de la solicitud y nota de revisión por parte del polo. 
+CV
+	•	Validación estricta de rangos; guardar (o al menos planificar) la solicitud para auditoría. 
+
+Épica F — Catálogos (Tipos)
+HU-F1 — Listar tipos de vehículo
+Como usuario autenticado  Quiero consultar el catálogo de tipos de vehículo  Para seleccionar opciones válidas al crear vehículos.
+CA
+	•	GET /tipos/vehiculo devuelve lista de TipoVehiculo. 
+CV
+	•	Sólo lectura; respuesta consistente con esquema schemas.TipoVehiculoOut. 
+
+HU-F2 — Listar tipos de servicio (empresa)
+Como usuario autenticado  Quiero ver los tipos de servicio estándar  Para clasificar servicios de empresa.
+CA
+	•	GET /tipos/servicio devuelve lista de TipoServicio. 
+CV
+	•	Sólo lectura. 
+
+HU-F3 — Listar tipos de contacto
+Como usuario autenticado  Quiero ver los tipos de contacto  Para asignar la categoría correcta a cada contacto.
+CA
+	•	GET /tipos/contacto devuelve lista de TipoContacto. 
+CV
+	•	Sólo lectura. 
+
+HU-F4 — Listar tipos de servicio del polo
+Como usuario autenticado  Quiero ver los tipos de servicio del polo  Para crear/gestionar servicios del polo con su tipificación.
+CA
+	•	GET /tipos/servicio-polo devuelve lista de TipoServicioPolo. 
+CV
+	•	Sólo lectura. 
+
+Épica G — Servicios del Polo y Lotes (Vista pública y gestión interna)
+HU-G1 — Consultar servicios del polo de una empresa
+Como usuario interno o visitante  Quiero ver los servicios del polo de una empresa y sus lotes  Para conocer su infraestructura.
+CA
+	•	La vista pública de empresa incluye servicios_polo con tipo_servicio_polo y lotes (lote, manzana). 
+CV
+	•	No exponer IDs sensibles. 
+
+HU-G2 — Buscar lotes por nombre de empresa
+Como usuario interno  Quiero buscar lotes filtrando por nombre de empresa  Para obtener una lista simple de lotes.
+CA
+	•	GET /search/lotes?name= filtra Empresa.nombre (ILIKE %name%). 
+	•	Devuelve arreglo de empresa_nombre, lote, manzana. 
+	•	404 si no hay resultados. 
+CV
+	•	Sanitización del parámetro, protección contra inyección (ORM ya aplica binding). 
+
+HU-G3 — Listar contactos públicos por empresa
+Como usuario interno  Quiero obtener los contactos de las empresas que coinciden por nombre  Para facilitar comunicaciones.
+CA
+	•	GET /search/contactos?name= devuelve contactos con tipo_contacto, telefono, direccion, sin revelar CUIL. 
+CV
+	•	Evitar datos sensibles; sanitizar salidas. 
+
+Épica H — Chat/Asistente (Consultas GUIADAS a BD)
+HU-H1 — Consultar por lenguaje natural
+Como usuario autenticado  Quiero escribir preguntas en lenguaje natural sobre empresas, servicios o lotes  Para recibir información estructurada de la base.
+CA
+	•	POST /chat con message obtiene respuesta generada y, de ser necesario, ejecuta sólo consultas SELECT seguras. 
+	•	Si la consulta no empieza con SELECT, la API la rechaza. 
+	•	Si hay >6 resultados, informa cantidad y solicita acotar. 
+	•	Si 1–6 resultados, los muestra completos. 
+	•	Nunca expone CUIL ni IDs sensibles. 
+CV
+	•	Normalización de texto (sin acentos, lower) para intención. 
+	•	execute_sql_query limitado a SELECT y con manejo de errores. 
+	•	Prompt seguro: prohíbe asteriscos y datos sensibles. 
+
+Épica I — Google OAuth
+
+HU-I1 — Login con Google
+Como usuario con cuenta Google  Quiero iniciar sesión usando Google OAuth  Para entrar sin credenciales locales.
+CA
+	•	GET /auth/google/login redirige a Google consent screen. 
+	•	GET /auth/google/callback crea/recupera sesión y redirige al frontend con token y tipo_rol en query string. 
+	•	Si el usuario no existe, puede quedar pendiente y ser registrado por un admin (HU-I2). 
+CV
+	•	Configuración de client_id/secret válida; manejo de errores con redirección a /auth/error. 
+
+HU-I2 — Registrar usuario pendiente de Google
+Como admin del polo  Quiero registrar un usuario que autenticó por Google pero no estaba en el sistema  Para asignarlo a su empresa y rol.
+CA
+	•	POST /auth/google/register-pending valida que email no exista, que empresa (cuil) exista y que id_rol sea válido. 
+	•	Crea el usuario, enlaza con rol y empresa. 
+CV
+	•	Autorización: sólo admin_polo. 
+
+HU-I3 — Logout Google (informativo)
+Como usuario autenticado por Google  Quiero conocer el enlace para cerrar sesión en Google  Para cambiar de cuenta de manera segura.
+CA
+	•	POST /auth/google/logout-google devuelve google_logout_url y mensaje. 
+CV
+	•	Endpoint informativo; no invalida tokens de Google del lado de Google.
+
+     HU-I4 — Vincular cuenta Google a cuenta existente
+Como usuario registrado con credenciales locales  Quiero vincular mi cuenta con Google OAuth  Para iniciar sesión con un clic en futuras sesiones.
+CA
+	•	POST /auth/google/link inicia flujo OAuth para el usuario autenticado. 
+	•	Tras el callback, guarda el google_id asociado en su cuenta. 
+	•	Si el email ya está vinculado a otra cuenta → rechaza con 400. 
+	•	Devuelve mensaje de éxito y confirma vinculación. 
+CV
+	•	Requiere sesión activa (JWT). 
+	•	Verifica coincidencia de email y evita duplicados. 
+	•	No crea usuarios nuevos; solo vincula existentes.
+ 
+
+Épica J — Seguridad y Límites
+HU-J1 — Límite de usuarios por rol/empresa
+Como admin del polo  Quiero aplicar límites de creación de usuarios por empresa y globales para admin_polo  Para evitar abuso y mantener gobernanza.
+CA
+	•	validate_user_creation_limits impide superar MAX_ADMIN_EMPRESA_PER_COMPANY y MAX_ADMIN_POLO_TOTAL. 
+	•	Respuestas con error 400 explicando el motivo. 
+CV
+	•	Cómputo correcto por empresa y global. 
+
+HU-J2 — Política de contraseñas y reutilización
+Como responsable de seguridad  Quiero imponer complejidad mínima y prohibir contraseñas ya usadas  Para reducir riesgo de compromiso.
+CA
+	•	Validaciones de complejidad (>=8, mayúscula, minúscula, dígito; ≤128). 
+	•	Rechaza reutilización comparando con password_history del usuario. 
+CV
+	•	Hash seguro y salteado. 
+
+HU-J3 — Cooldown en intentos fallidos de cambio de contraseña
+Como responsable de seguridad  Quiero bloquear temporalmente cambios de contraseña tras varios intentos fallidos  Para frenar ataques de fuerza bruta.
+CA
+	•	Tras _MAX_FAILS_CHANGE_PW fallidos, retorna 429/400 con mensaje y retry_after. 
+	•	Se levanta el bloqueo automáticamente luego de _COOLDOWN_SECONDS_CHANGE_PW. 
+CV
+	•	Estado en memoria por user_id; limpia al éxito. 
+
+Épica K — Notificaciones (Email de servicio)
+HU-K1 — Envío de email de recuperación y confirmación
+Como usuario  Quiero recibir emails en eventos de seguridad  Para estar informado de acciones sobre mi cuenta.
+CA
+	•	Al solicitar reset, se envía email con instrucciones. 
+	•	Al confirmar cambio de contraseña, se notifica por email. 
+CV
+	•	SMTP con TLS (smtp.gmail.com:587). Manejo de errores no bloqueante en envío. 
+
+Anexos — Reglas de Datos (resumen para CV)
+	•	Empresa: cuil (único), nombre, rubro, cant_empleados>0, fecha_ingreso (fecha), horario_trabajo (texto), estado (bool). 
+	•	Usuario: id_usuario (UUID), nombre (único), email (único, formato), contrasena (hash), estado (bool), relación N–N con Rol vía rol_usuario. 
+	•	Roles: admin_polo, admin_empresa, usuario_empresa (al menos). 
+	•	Vehículo: id_tipo_vehiculo válido, patente formato aceptado. 
+	•	Contacto: id_tipo_contacto válido, opcional id_servicio_polo. 
+	•	Servicio del polo: ligado a TipoServicioPolo; puede tener Lotes (con lote, manzana). 
+	•	Historial de contraseñas: registra hashes previos con fecha. 
+
+Sugerencias QA (checklist rápido)
+	•	JWT: validar sub/iat/exp y expiración real. 
+	•	Cookies: httpOnly, SameSite, Secure en prod. 
+	•	Roles: probar acceso a endpoints admin vs empresa. 
+	•	Tokens de reset: probar estados válido/expirado/usado/invalid. 
+	•	Cascadas: desactivar empresa desactiva dependencias. 
+	•	Búsquedas: 404 sin resultados; sanitización correcta. 
+	•	Chat: rechaza no-SELECT, oculta CUIL/IDs. 
+	•	Límites: bloquear creación cuando se supera el máximo. 
+	•	Passwords: complejidad y no-reutilización. 
+
+

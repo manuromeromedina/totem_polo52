@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface HistoryPair {
   user: string;
@@ -23,10 +24,12 @@ export interface VoiceChatResponse {
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
-  // Ajustá si usás environments
-  private apiUrl = 'http://localhost:8000/api/voice/';
+  private readonly apiUrl: string;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    const base = environment.apiUrl?.replace(/\/$/, '') || '';
+    this.apiUrl = `${base}/api/voice/`;
+  }
 
   // Texto -> Chat (sin audio)
   sendMessage(
