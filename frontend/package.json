@@ -4,9 +4,12 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "prestart": "node ./scripts/set-env.mjs",
     "build": "ng build",
+    "prebuild": "node ./scripts/set-env.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "pretest": "node ./scripts/set-env.mjs",
     "serve:ssr:frontend": "node dist/frontend/server/server.mjs"
   },
   "private": true,
