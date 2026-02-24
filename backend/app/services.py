@@ -1264,7 +1264,32 @@ Responde naturalmente:"""
     except Exception as e:
         print(f"Error general en get_chat_response: {str(e)}")
         return GENERIC_ERROR_MESSAGE, [], None
-    
+
+
+def get_chat_response_stream(
+    db: Session,
+    text_message: str,
+    history: List[Dict[str, str]] | None = None,
+):
+    """
+    Variante en streaming: procesa intent + DB igual que get_chat_response,
+    pero entrega la respuesta final de Gemini en chunks de texto.
+    """
+    final_text, db_results, corrected = get_chat_response(
+        db=db, message=text_message, history=history
+    )
+
+    # Si el texto ya es definitivo (sin chunks) generamos un solo yield
+    # Nota: aquí evitamos re-llamar a Gemini para no duplicar costo si ya hay texto.
+    # Si se quisiera chunkear directamente desde Gemini, se debería refactorizar
+    # get_chat_response para que devuelva también el prompt y lanzar stream allí.
+    # Conservar este comportamiento simple asegura disponibilidad inmediata.
+    if final_text:
+        yield final_text, db_results, corrected
+        return
+
+    # Fallback: si no hay texto, no emitimos nada
+    return
 
 # ═══════════════════════════════════════════════════════════════════
 # CHATBOT CON VOZ - FUNCIÓN INTEGRADA

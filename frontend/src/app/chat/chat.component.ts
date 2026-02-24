@@ -6,6 +6,7 @@ import {
   ViewChild,
   AfterViewChecked,
   OnDestroy,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { ChatService, VoiceChatResponse } from './chat.service';
 import { FormsModule } from '@angular/forms';
@@ -267,7 +268,7 @@ interface Message {
                 <p aria-live="polite">
                   {{
                     voiceUserText ||
-                      'Toca el micrófono y háblame de lo que necesitás'
+                      'Toca el microfono y hablame de lo que necesitas'
                   }}
                 </p>
               </div>
@@ -332,7 +333,7 @@ interface Message {
                 <p aria-live="polite">
                   {{
                     voiceBotText ||
-                      'Acá aparecerá mi respuesta automática para que la leas mientras la escuchás.'
+                      'Aca aparecera mi respuesta automatica para que la leas mientras la escuchas.'
                   }}
                 </p>
               </div>
@@ -355,9 +356,9 @@ interface Message {
               </button>
               <p class="mic-helper">{{ voiceHelperText }}</p>
               <div class="voice-status">
-                <span *ngIf="isRecording">Escuchando…</span>
+                <span *ngIf="isRecording">EscuchandoÃ¢â‚¬Â¦</span>
                 <span *ngIf="!isRecording && isProcessingVoice"
-                  >Generando respuesta…</span
+                  >Generando respuestaÃ¢â‚¬Â¦</span
                 >
               </div>
               <p class="voice-error" *ngIf="voiceError">{{ voiceError }}</p>
@@ -679,7 +680,7 @@ interface Message {
       }
 
       .speech-bubble.typing p::after {
-        content: '▌';
+        content: 'Ã‚Â¦';
         margin-left: 4px;
         animation: blink 1s steps(1) infinite;
       }
@@ -1742,7 +1743,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     'Disponibilidad de lotes',
     'Empresas instaladas en el parque',
     'Servicios disponibles',
-    'Información de contacto',
+    'Informacion de contacto',
   ];
   private readonly popularQuestionsKey = 'chatPopularQueries';
   private questionStats: Record<string, { count: number; display: string }> =
@@ -1757,8 +1758,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private botBubbleInterval?: number;
   private userBubbleTypingTimeout?: number;
   private botBubbleTypingTimeout?: number;
+  private speechRecognition: any = null;
+  private botStreamController?: AbortController;
 
-  constructor(private chatService: ChatService) {
+  constructor(private chatService: ChatService, private cdr: ChangeDetectorRef) {
     if (!this.supportsVoice) {
       this.voiceError = 'Tu navegador no soporta la experiencia de voz.';
     }
@@ -1800,7 +1803,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       return 'Generando la respuesta con IA...';
     }
 
-    return 'Toca el micrófono para hablar con POLO Bot.';
+    return 'Toca el microfono para hablar con POLO Bot.';
   }
 
   setChatMode(mode: 'text' | 'voice') {
@@ -1812,9 +1815,6 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (mode === 'text') {
       this.stopBubbleTyping('user');
       this.stopBubbleTyping('bot');
-    } else {
-      this.voiceUserText = '';
-      this.voiceBotText = '';
     }
     if (mode === 'voice') {
       this.voiceError = this.supportsVoice
@@ -1830,10 +1830,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   toggleRecording() {
     if (!this.supportsVoice) {
-      this.voiceError = 'Tu dispositivo no permite usar el micrófono.';
+      this.voiceError = 'Tu dispositivo no permite usar el microfono.';
       this.typeFinalBubbleText(
         'user',
-        'Tu dispositivo no permite usar el micrófono.'
+        'Tu dispositivo no permite usar el microfono.'
       );
       this.stopBubbleTyping('bot');
       return;
@@ -1867,6 +1867,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       timestamp: new Date(),
       id: this.generateMessageId(),
     });
+    this.syncVoiceBubble('user', content);
     this.shouldScrollToBottom = true;
     this.registerQuestion(content);
   }
@@ -1878,6 +1879,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       timestamp: new Date(),
       id: this.generateMessageId(),
     });
+    this.syncVoiceBubble('bot', content);
     this.shouldScrollToBottom = true;
   }
 
@@ -1986,7 +1988,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
       this.chatService.sendMessage(messageToSend, history).subscribe({
         next: (resp: VoiceChatResponse) => {
-          const text = resp?.data?.text || 'Respuesta invÃ¡lida.';
+          const text = resp?.data?.text || 'Respuesta invalida.';
           this.simulateTyping(text);
 
           const b64 = resp?.data?.audio_base64;
@@ -1999,10 +2001,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
           console.error('Error en la solicitud:', error);
           const msg =
             error.status === 0
-              ? 'No se pudo conectar con el servidor. Verifique la conexiÃ³n.'
+              ? 'No se pudo conectar con el servidor. Verifique la conexion.'
               : error.status >= 500
-              ? 'El servidor estÃ¡ experimentando problemas. Intente mÃ¡s tarde.'
-              : 'Lo siento, hubo un problema tÃ©cnico. Por favor, intente nuevamente.';
+              ? 'El servidor esta experimentando problemas. Intente mas tarde.'
+              : 'Lo siento, hubo un problema tecnico. Por favor, intente nuevamente.';
           this.simulateTyping(msg);
         },
       });
@@ -2138,10 +2140,75 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     else this.voiceBotTyping = value;
   }
 
+  private syncVoiceBubble(target: 'user' | 'bot', text: string) {
+    this.stopBubbleTyping(target);
+    this.setTypingFlag(target, false);
+    this.setBubbleText(target, text ?? '');
+  }
+
+  private cancelBotStream() {
+    if (this.botStreamController) {
+      this.botStreamController.abort();
+      this.botStreamController = undefined;
+    }
+  }
+
+  private startSpeechRecognition() {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (!this.speechRecognition) {
+      const rec = new SpeechRecognition();
+      rec.lang = 'es-ES';
+      rec.interimResults = true;
+      rec.continuous = true;
+
+      rec.onresult = (event: any) => {
+        let interim = '';
+        let finalText = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalText += t;
+          } else {
+            interim += t;
+          }
+        }
+        if (interim) this.syncVoiceBubble('user', interim);
+        if (finalText) this.syncVoiceBubble('user', finalText);
+      };
+
+      rec.onerror = () => {};
+      rec.onend = () => {
+        // no-op; recording lifecycle controla micrÃƒÂ³fono
+      };
+
+      this.speechRecognition = rec;
+    }
+
+    try {
+      this.speechRecognition.start();
+    } catch {
+      // ignore restart errors
+    }
+  }
+
+  private stopSpeechRecognition() {
+    if (this.speechRecognition) {
+      try {
+        this.speechRecognition.stop();
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   private async startRecording() {
     this.voiceError = null;
     this.voiceUserText = '';
     this.voiceBotText = '';
+    this.cancelBotStream();
     this.stopBubbleTyping('bot');
     this.startBubbleTyping('user', 'Escuchando tu consulta...');
 
@@ -2165,7 +2232,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
       recorder.onerror = (event) => {
         console.error('Error en MediaRecorder', event);
-        this.voiceError = 'Ocurrió un problema al grabar audio.';
+        this.voiceError = 'Ocurrio un problema al grabar audio.';
         this.stopRecording(true);
       };
 
@@ -2192,10 +2259,11 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
       recorder.start();
       this.isRecording = true;
+      this.startSpeechRecognition();
     } catch (error) {
-      console.error('No se pudo iniciar la grabación', error);
+      console.error('No se pudo iniciar la grabacion', error);
       this.voiceError =
-        'No se pudo acceder al micrófono. Revisá los permisos del navegador.';
+        'No se pudo acceder al microfono. Revisa los permisos del navegador.';
       this.stopBubbleTyping('user');
       this.cleanupMediaStream();
       this.isRecording = false;
@@ -2211,6 +2279,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     this.isRecording = false;
+    this.stopSpeechRecognition();
+    this.cancelBotStream();
 
     if (discard) {
       this.stopBubbleTyping('user');
@@ -2253,23 +2323,26 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       next: (resp: VoiceChatResponse) => {
         this.isProcessingVoice = false;
         const transcript = resp?.data?.transcript?.trim();
-        const botText = resp?.data?.text?.trim();
+        const botTextRaw = resp?.data?.text;
+        const botText =
+          typeof botTextRaw === 'string' ? botTextRaw.trim() : '';
 
         if (transcript) {
-          this.typeFinalBubbleText('user', transcript);
           this.addUserMessage(transcript);
         } else {
-          this.typeFinalBubbleText('user', 'Consulta enviada con éxito.');
+          this.syncVoiceBubble('user', 'Consulta enviada con exito.');
         }
 
+        // Fijar siempre texto en burbuja del bot (aunque el audio salga bien)
+        this.stopBubbleTyping('bot');
+        this.voiceBotTyping = false;
+        this.voiceBotText =
+          botText ||
+          'No pude mostrar el texto, pero ya se reprodujo la respuesta.';
+        this.setBubbleText('bot', this.voiceBotText);
+        this.cdr.detectChanges();
         if (botText) {
-          this.typeFinalBubbleText('bot', botText);
           this.addBotMessage(botText);
-        } else {
-          this.typeFinalBubbleText(
-            'bot',
-            'No pude generar una respuesta en este momento. Intentá nuevamente.'
-          );
         }
 
         const b64 = resp?.data?.audio_base64;
@@ -2283,14 +2356,37 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.isProcessingVoice = false;
         this.voiceError =
           error.status === 0
-            ? 'No se pudo conectar con el servidor. Verificá tu conexión.'
-            : 'No se pudo procesar el audio. Probá nuevamente en unos segundos.';
-        this.typeFinalBubbleText(
-          'bot',
-          'No pude procesar el audio. Probá nuevamente en unos segundos.'
-        );
-        this.typeFinalBubbleText('user', 'No pudimos recibir tu consulta.');
+            ? 'No se pudo conectar con el servidor. Verifica tu conexion.'
+            : 'No se pudo procesar el audio. Proba nuevamente en unos segundos.';
+        this.cdr.detectChanges();
+        this.stopBubbleTyping('bot');
+        this.voiceBotTyping = false;
+        this.voiceBotText = 'No pude procesar el audio. Proba nuevamente en unos segundos.';
+        this.cdr.detectChanges();
+        this.stopBubbleTyping('bot');
+        this.voiceBotTyping = false;
+        this.syncVoiceBubble('user', 'No pudimos recibir tu consulta.');
       },
     });
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

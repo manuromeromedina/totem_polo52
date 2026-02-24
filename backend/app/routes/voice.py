@@ -44,6 +44,35 @@ router = APIRouter(
     dependencies=[Depends(require_public_role)]
 )
 
+
+@router.post("/chat/stream")
+async def voice_chat_stream(
+    payload: Dict = Body(..., description="JSON con 'text' y opcional 'history'"),
+    db: Session = Depends(get_db),
+):
+    """
+    Streaming de la respuesta de texto del bot (sin audio).
+    Entrega los chunks de texto a medida que se generan.
+    """
+    text = payload.get("text")
+    history = payload.get("history")
+
+    if not text or not text.strip():
+        raise HTTPException(status_code=400, detail="Debes enviar el campo 'text'")
+
+    def stream_generator():
+        try:
+            for chunk, _, _ in services.get_chat_response_stream(
+                db=db, text_message=text, history=history
+            ):
+                if chunk:
+                    yield chunk
+        except Exception as exc:
+            print(f" Error en streaming de respuesta: {exc}")
+            return
+
+    return StreamingResponse(stream_generator(), media_type="text/plain")
+
 # ═══════════════════════════════════════════════════════════════════
 # ENDPOINT 1: Verificar estado de servicios de voz
 # ═══════════════════════════════════════════════════════════════════

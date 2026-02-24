@@ -48,6 +48,11 @@ export class ChatService {
     return this.http.post<VoiceChatResponse>(`${this.apiUrl}chat`, audioData);
   }
 
+  // Exponer base de API para usos de streaming manual (fetch/SSE)
+  getApiUrl(): string {
+    return this.apiUrl;
+  }
+
   // (Opcional) Solo STT
   transcribe(
     audioData: FormData
