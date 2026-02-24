@@ -279,7 +279,7 @@ interface Message {
                   <span class="antenna antenna-center"></span>
                   <span class="antenna antenna-right"></span>
                 </div>
-                <div class="robot-head">
+                <div class="robot-head" [class.talking]="isBotSpeaking">
                   <span class="head-screw screw-top-left"></span>
                   <span class="head-screw screw-top-right"></span>
                   <span class="head-screw screw-bottom-left"></span>
@@ -296,7 +296,10 @@ interface Message {
                       <span class="shine"></span>
                     </div>
                   </div>
-                  <div class="robot-smile"></div>
+                  <div
+                    class="robot-smile"
+                    [class.talking]="isBotSpeaking"
+                  ></div>
                 </div>
                 <div class="robot-neck"></div>
                 <div class="robot-body">
@@ -356,9 +359,9 @@ interface Message {
               </button>
               <p class="mic-helper">{{ voiceHelperText }}</p>
               <div class="voice-status">
-                <span *ngIf="isRecording">EscuchandoÃ¢â‚¬Â¦</span>
+                <span *ngIf="isRecording">Escuchando tu consulta...</span>
                 <span *ngIf="!isRecording && isProcessingVoice"
-                  >Generando respuestaÃ¢â‚¬Â¦</span
+                  >Generando respuesta...</span
                 >
               </div>
               <p class="voice-error" *ngIf="voiceError">{{ voiceError }}</p>
@@ -680,7 +683,7 @@ interface Message {
       }
 
       .speech-bubble.typing p::after {
-        content: 'Ã‚Â¦';
+        content: '...';
         margin-left: 4px;
         animation: blink 1s steps(1) infinite;
       }
@@ -859,6 +862,42 @@ interface Message {
         border-radius: 0 0 60px 60px;
       }
 
+      .robot-head.talking {
+        animation: nod 0.9s ease-in-out infinite;
+      }
+
+      .robot-smile.talking {
+        animation: mouth-talk 0.35s ease-in-out infinite;
+        transform-origin: center;
+      }
+
+      @keyframes mouth-talk {
+        0% {
+          transform: scaleY(1);
+        }
+        25% {
+          transform: scaleY(0.5);
+        }
+        50% {
+          transform: scaleY(1.2);
+        }
+        75% {
+          transform: scaleY(0.6);
+        }
+        100% {
+          transform: scaleY(1);
+        }
+      }
+
+      @keyframes nod {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-2px);
+        }
+      }
       .robot-neck {
         width: clamp(38px, 7vw, 60px);
         height: 14px;
@@ -895,7 +934,8 @@ interface Message {
         width: clamp(90px, 14vw, 150px);
         height: clamp(84px, 13vw, 140px);
         border-radius: 28px;
-        background: url('/assets/images/PoloLogo-rojo.jpg') center/cover no-repeat;
+        background: url('/assets/images/PoloLogo-rojo.jpg') center/cover
+          no-repeat;
         box-shadow: 0 8px 20px rgba(217, 4, 41, 0.35);
       }
 
@@ -1739,6 +1779,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   voiceBotText = '';
   voiceUserTyping = false;
   voiceBotTyping = false;
+  isBotSpeaking = false;
   private readonly defaultQuickQuestions = [
     'Disponibilidad de lotes',
     'Empresas instaladas en el parque',
@@ -1761,7 +1802,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private speechRecognition: any = null;
   private botStreamController?: AbortController;
 
-  constructor(private chatService: ChatService, private cdr: ChangeDetectorRef) {
+  constructor(
+    private chatService: ChatService,
+    private cdr: ChangeDetectorRef
+  ) {
     if (!this.supportsVoice) {
       this.voiceError = 'Tu navegador no soporta la experiencia de voz.';
     }
@@ -2155,7 +2199,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private startSpeechRecognition() {
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
     if (!this.speechRecognition) {
@@ -2181,7 +2226,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
       rec.onerror = () => {};
       rec.onend = () => {
-        // no-op; recording lifecycle controla micrÃƒÂ³fono
+        // no-op; recording lifecycle controla micrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³fono
       };
 
       this.speechRecognition = rec;
@@ -2324,8 +2369,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.isProcessingVoice = false;
         const transcript = resp?.data?.transcript?.trim();
         const botTextRaw = resp?.data?.text;
-        const botText =
-          typeof botTextRaw === 'string' ? botTextRaw.trim() : '';
+        const botText = typeof botTextRaw === 'string' ? botTextRaw.trim() : '';
 
         if (transcript) {
           this.addUserMessage(transcript);
@@ -2347,8 +2391,28 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
         const b64 = resp?.data?.audio_base64;
         if (b64) {
-          const audio = new Audio(`data:audio/mpeg;base64,${b64}`);
-          audio.play().catch(console.error);
+          try {
+            const audio = new Audio(`data:audio/mpeg;base64,${b64}`);
+            this.isBotSpeaking = true;
+            audio.onended = () => {
+              this.isBotSpeaking = false;
+              this.cdr.detectChanges();
+            };
+            audio.onerror = () => {
+              this.isBotSpeaking = false;
+              this.cdr.detectChanges();
+            };
+            this.isBotSpeaking = true;
+            this.cdr.detectChanges();
+            audio.play().catch(() => {
+              this.isBotSpeaking = false;
+              this.cdr.detectChanges();
+            });
+          } catch {
+            this.isBotSpeaking = false;
+          }
+        } else {
+          this.isBotSpeaking = false;
         }
       },
       error: (error) => {
@@ -2361,32 +2425,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.cdr.detectChanges();
         this.stopBubbleTyping('bot');
         this.voiceBotTyping = false;
-        this.voiceBotText = 'No pude procesar el audio. Proba nuevamente en unos segundos.';
+        this.voiceBotText =
+          'No pude procesar el audio. Proba nuevamente en unos segundos.';
         this.cdr.detectChanges();
         this.stopBubbleTyping('bot');
         this.voiceBotTyping = false;
         this.syncVoiceBubble('user', 'No pudimos recibir tu consulta.');
+        this.isBotSpeaking = false;
+        this.cdr.detectChanges();
       },
     });
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
