@@ -12,6 +12,11 @@ from app.routes.auth import get_db, require_admin_polo
 
 router = APIRouter(prefix="/auth/google", tags=["Google Auth"])
 
+# Configuración base para construir redirect URIs consistentes
+EXTERNAL_BASE_URL = os.getenv("EXTERNAL_BASE_URL", "http://localhost:8000").rstrip("/")
+ROOT_PATH = os.getenv("ROOT_PATH", "")
+ROOT_PATH = "" if ROOT_PATH == "/" else ROOT_PATH  # evitar doble slash
+
 # Configurar OAuth
 oauth = OAuth()
 oauth.register(
@@ -27,7 +32,9 @@ oauth.register(
 @router.get("/login")
 async def google_login(request: Request):
     """Iniciar login con Google - SIEMPRE pregunta qué email usar"""
-    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:8000/auth/google/callback')
+    redirect_uri_env = os.getenv('GOOGLE_REDIRECT_URI')
+    # Construir redirect con base + root_path si no se pasó explícito
+    redirect_uri = redirect_uri_env or f"{EXTERNAL_BASE_URL}{ROOT_PATH}/auth/google/callback"
     
     # ✅ FORZAR SELECCIÓN DE CUENTA
     return await oauth.google.authorize_redirect(
@@ -157,4 +164,3 @@ async def logout_google():
         "message": "Sesión cerrada. Para cambiar de cuenta, ve a accounts.google.com y cierra sesión.",
         "google_logout_url": "https://accounts.google.com/logout"
     }
-

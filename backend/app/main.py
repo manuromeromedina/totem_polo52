@@ -19,10 +19,23 @@ import os
 # Cargar variables de entorno
 load_dotenv()
 
+# Orígenes permitidos para CORS (puede extenderse vía env)
+default_origins = [
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+    "https://localhost:4200",
+]
+extra_origins = os.getenv("CORS_ALLOW_ORIGINS", "")
+if extra_origins:
+    default_origins.extend(
+        [origin.strip() for origin in extra_origins.split(",") if origin.strip()]
+    )
+
 app = FastAPI(
     title="Totem Polo52 API",
     version="0.2.0",  # Actualizado por funcionalidad de voz
-    description="API del Parque Industrial Polo 52 con Chatbot IA y funcionalidad de voz integrada"
+    description="API del Parque Industrial Polo 52 con Chatbot IA y funcionalidad de voz integrada",
+    root_path=os.getenv("ROOT_PATH", "")
 )
 
 # ═══════════════════════════════════════════════════════════════════
@@ -38,11 +51,7 @@ app.add_middleware(
 # CORS DESPUÉS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:4200",
-        "http://127.0.0.1:4200",
-        "https://localhost:4200",
-    ],
+    allow_origins=default_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],

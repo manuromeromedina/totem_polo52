@@ -332,10 +332,20 @@ def login(
         )
 
     return {
+        # Campos originales
         "access_token": access_token,
         "token_type": "bearer",
         "tipo_rol": rol,
-        "remember_me": remember_me
+        "remember_me": remember_me,
+        # Alias adicionales para compatibilidad con frontends que esperan otros nombres
+        "token": access_token,
+        "role": rol,
+        "user": {
+            "id": user.id_usuario,
+            "nombre": user.nombre,
+            "email": user.email,
+        },
+        "success": True,
     }
 
 
