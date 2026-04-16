@@ -620,7 +620,7 @@ Contraseña temporal: {password}
 Se le recomienda solicitar el cambio de contraseña cuando acceda por primera vez.
 
 Para comenzar a usar el sistema, ingrese en:
-http://localhost:4200/login
+{os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")}/login
 
 Si necesita ayuda, puede contactar con el administrador del sitio.
 

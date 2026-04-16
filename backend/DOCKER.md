@@ -4,7 +4,7 @@ Pasos rápidos para ejecutar la API de FastAPI con Docker y publicarla en GitHub
 
 ## Requisitos
 - Docker instalado.
-- Archivo `backend/.env` con al menos `DATABASE_URL`, `SECRET_KEY`, `SESSION_SECRET_KEY`, `GOOGLE_API_KEY` (y cualquier otra variable que ya uses).  
+- Archivo `backend/.env` con al menos `DATABASE_URL`, `SECRET_KEY`, `SESSION_SECRET_KEY`, `GOOGLE_API_KEY`, `FRONTEND_BASE_URL` (y cualquier otra variable que ya uses).  
 - Si usas Google Cloud Speech/TTS, coloca tu JSON en `backend/Keys/` y añade `GOOGLE_APPLICATION_CREDENTIALS=/app/Keys/<archivo>.json` al `.env`.
 
 ## Build local
@@ -23,7 +23,7 @@ La API queda en http://localhost:8000 y docs en http://localhost:8000/docs.
 
 > Nota: en el contenedor `localhost` apunta al propio contenedor. Si tu Postgres corre en tu host, usa `host.docker.internal` en `DATABASE_URL` (ya configurado en `.env`). Para otros hosts, ajusta el hostname.
 
-> Producción: con `ROOT_PATH=/api` y `CORS_ALLOW_ORIGINS=https://polo52.com,https://www.polo52.com`, expón el backend detrás de un proxy que enrute `https://polo52.com/api/*` al contenedor.
+> Producción: con `ROOT_PATH=/api`, `CORS_ALLOW_ORIGINS=https://polo52.com,https://www.polo52.com` y `FRONTEND_BASE_URL=https://polo52.com`, expón el backend detrás de un proxy que enrute `https://polo52.com/api/*` al contenedor.
 
 ## Publicar en GHCR
 1) Inicia sesión (usa un token con scope `write:packages`):

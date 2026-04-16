@@ -16,6 +16,7 @@ router = APIRouter(prefix="/auth/google", tags=["Google Auth"])
 EXTERNAL_BASE_URL = os.getenv("EXTERNAL_BASE_URL", "http://localhost:8000").rstrip("/")
 ROOT_PATH = os.getenv("ROOT_PATH", "")
 ROOT_PATH = "" if ROOT_PATH == "/" else ROOT_PATH  # evitar doble slash
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")
 
 # Configurar OAuth
 oauth = OAuth()
@@ -72,17 +73,17 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 
         # 3.a) Si no existe, no loguear: redirigir a “pendiente de registro”
         if not user:
-            frontend_url = f"http://localhost:4200/auth/pending?email={email}&name={name}"
+            frontend_url = f"{FRONTEND_BASE_URL}/auth/pending?email={email}&name={name}"
             return RedirectResponse(url=frontend_url)
 
         # 3.b) Bloquear si el usuario está inhabilitado
         if not user.estado:
-            frontend_url = "http://localhost:4200/auth/error?message=usuario_inhabilitado"
+            frontend_url = f"{FRONTEND_BASE_URL}/auth/error?message=usuario_inhabilitado"
             return RedirectResponse(url=frontend_url)
 
         # 3.c) Bloquear si la empresa está desactivada
         if not user.empresa or not user.empresa.estado:
-            frontend_url = "http://localhost:4200/auth/error?message=empresa_desactivada"
+            frontend_url = f"{FRONTEND_BASE_URL}/auth/error?message=empresa_desactivada"
             return RedirectResponse(url=frontend_url)
 
         # 4) OK: generar tu JWT y redirigir a éxito
@@ -96,12 +97,12 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 
         access_token = services.create_access_token(data={"sub": user.nombre})
 
-        frontend_url = f"http://localhost:4200/auth/success?token={access_token}&tipo_rol={rol}"
+        frontend_url = f"{FRONTEND_BASE_URL}/auth/success?token={access_token}&tipo_rol={rol}"
         return RedirectResponse(url=frontend_url)
 
     except Exception as e:
         print(f"Error en Google callback: {str(e)}")
-        frontend_url = "http://localhost:4200/auth/error?message=Error_de_autenticacion"
+        frontend_url = f"{FRONTEND_BASE_URL}/auth/error?message=Error_de_autenticacion"
         return RedirectResponse(url=frontend_url)
 
 

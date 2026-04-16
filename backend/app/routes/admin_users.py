@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import date
 from uuid import UUID
 from typing import List
+import os
 from app.config import SessionLocal
 from app import models, schemas, services
 from app.models import Empresa, ServicioPolo, TipoServicioPolo, Rol
@@ -31,6 +32,7 @@ POLO_CUIL = 44123456789  # Reemplaza con el CUIL real del polo en tu BD
 # Límites de usuarios por tipo de rol
 MAX_ADMIN_EMPRESA_PER_COMPANY = 3
 MAX_ADMIN_POLO_TOTAL = 3
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")
 
 def get_db():
     db = SessionLocal()
@@ -302,7 +304,7 @@ def polo_change_password_request(
     """Envía un email con enlace para cambiar la contraseña del admin polo"""
     # Usar la lógica del endpoint existente en auth.py
     token = services.create_password_reset_token(current_user.email)
-    reset_link = f"http://localhost:4200/password-reset?token={token}"
+    reset_link = f"{FRONTEND_BASE_URL}/password-reset?token={token}"
     
     # Enviar email (reutilizar lógica de auth.py)
     try:

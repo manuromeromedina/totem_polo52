@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from jose import JWTError, jwt
 from datetime import date, datetime, timedelta
+import os
 from app.config import SessionLocal, SECRET_KEY, ALGORITHM
 from app import models, schemas, services
 from app.models import Usuario
@@ -24,6 +25,7 @@ from app.services import (
 )
 
 router = APIRouter()
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")
 
 # OAuth2PasswordBearer para manejar el token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -542,7 +544,7 @@ def forgot_password(dto: PasswordResetRequest, db: Session = Depends(get_db)):
         expires_minutes=RESET_TOKEN_EXPIRE_MINUTES
     )
     
-    reset_link = f"http://localhost:4200/reset-password?token={token}"
+    reset_link = f"{FRONTEND_BASE_URL}/reset-password?token={token}"
     
     # Email con instrucciones claras
     email_body = f"""
