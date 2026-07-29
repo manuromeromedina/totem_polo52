@@ -141,7 +141,14 @@ async def startup_event():
     print(f" Entorno: {os.getenv('ENVIRONMENT', 'development')}")
     print(f"  Base de datos: Configurada")
     print(f" Gemini AI: Configurado")
-    
+
+    # Crea las tablas si no existen y siembra el admin_polo inicial si falta
+    from app.bootstrap import run_startup_bootstrap
+    try:
+        run_startup_bootstrap()
+    except Exception as e:
+        print(f"⚠️  Error en bootstrap de base de datos: {e}")
+
     # Verificar servicios de voz
     try:
         import app.services as services
