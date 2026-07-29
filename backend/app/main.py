@@ -1,7 +1,9 @@
 # app/main.py
+from datetime import datetime
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.config import SessionLocal
+from app import services
 from app.routes.auth import router as auth_router
 from app.routes.company_user import router as company_user_router
 from app.routes.admin_users import router as admin_users_router
@@ -13,7 +15,8 @@ from app.routes.google_auth import router as google_auth_router
 from app.routes.voice import router as voice_router
 
 from dotenv import load_dotenv
-from starlette.middleware.sessions import SessionMiddleware 
+from starlette.middleware.sessions import SessionMiddleware
+from app.security_headers import SecurityHeadersMiddleware
 import os
 
 # Cargar variables de entorno
@@ -56,6 +59,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
+
+# Headers de seguridad al final: envuelve la respuesta ya armada por los
+# middlewares anteriores (CORS incluido) sin pisarles ningún header propio.
+app.add_middleware(SecurityHeadersMiddleware)
 
 # ═══════════════════════════════════════════════════════════════════
 # RUTAS
@@ -104,15 +111,13 @@ def health_check():
     """
     Endpoint para verificar el estado de salud de la API
     """
-    import app.services as services
-    
     # Obtener estado de servicios de voz
     try:
         voice_status = services.get_voice_services_status()
         voice_provider = voice_status.get("provider", "none")
-    except:
+    except Exception:
         voice_provider = "error"
-    
+
     return {
         "status": "healthy",
         "api_version": "0.2.0",
@@ -121,7 +126,7 @@ def health_check():
             "gemini_ai": " Configured",
             "voice_provider": voice_provider if voice_provider else "⚠️ Not configured",
         },
-        "timestamp": os.popen('date').read().strip()
+        "timestamp": datetime.now().isoformat()
     }
 
 # ═══════════════════════════════════════════════════════════════════
@@ -151,7 +156,6 @@ async def startup_event():
 
     # Verificar servicios de voz
     try:
-        import app.services as services
         voice_status = services.get_voice_services_status()
         provider = voice_status.get("provider")
         

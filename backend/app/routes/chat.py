@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from app.services import get_chat_response, GENERIC_ERROR_MESSAGE
 from app.config import get_db
+from app.rate_limit import rate_limit
 from sqlalchemy.orm import Session
 from typing import List, Dict, Optional
 
@@ -16,7 +17,7 @@ class ChatRequest(BaseModel):
     message: str
     history: Optional[List[Dict[str, str]]] = None
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(rate_limit("chat", max_requests=30, window_seconds=60))])
 async def chat(request: ChatRequest, db: Session = Depends(get_db)):
     try:
         response_text, data, corrected_entity = get_chat_response(db, request.message, request.history)

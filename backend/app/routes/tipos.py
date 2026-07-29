@@ -1,7 +1,7 @@
 #app/routes/tipos.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app.config import SessionLocal
+from app.config import get_db
 from app import models, schemas
 from typing import List
 
@@ -9,13 +9,6 @@ router = APIRouter(
     prefix="/tipos",
     tags=["Tipos"],
 )
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # Tipos de Vehículo
 @router.get("/vehiculo", response_model=List[schemas.TipoVehiculoOut])

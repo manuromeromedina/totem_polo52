@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.routes.auth import require_public_role
 from app.config import get_db
+from app.rate_limit import reset_rate_limits
 
 
 class DummyUser:
@@ -29,9 +30,11 @@ def override_dependencies():
     """
     app.dependency_overrides[require_public_role] = lambda: DummyUser()
     app.dependency_overrides[get_db] = _dummy_db
+    reset_rate_limits()
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
+    reset_rate_limits()
 
 
 @pytest.fixture

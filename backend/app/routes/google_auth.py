@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from datetime import date
 import os
 import httpx
-from app.config import SessionLocal
+from urllib.parse import urlencode
 from app import models, services
 from app.routes.auth import get_db, require_admin_polo
 
@@ -17,6 +17,17 @@ EXTERNAL_BASE_URL = os.getenv("EXTERNAL_BASE_URL", "http://localhost:8000").rstr
 ROOT_PATH = os.getenv("ROOT_PATH", "")
 ROOT_PATH = "" if ROOT_PATH == "/" else ROOT_PATH  # evitar doble slash
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")
+
+
+def _frontend_redirect(path: str, **params) -> RedirectResponse:
+    """
+    Arma una URL de redirect al frontend con los parámetros correctamente
+    url-encoded. Sin esto, valores controlados por el usuario (como el
+    nombre de perfil de Google) podían romper la URL o inyectar parámetros
+    extra en la query string.
+    """
+    query = urlencode({k: v for k, v in params.items() if v is not None})
+    return RedirectResponse(url=f"{FRONTEND_BASE_URL}{path}?{query}")
 
 # Configurar OAuth
 oauth = OAuth()
@@ -73,18 +84,15 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 
         # 3.a) Si no existe, no loguear: redirigir a “pendiente de registro”
         if not user:
-            frontend_url = f"{FRONTEND_BASE_URL}/auth/pending?email={email}&name={name}"
-            return RedirectResponse(url=frontend_url)
+            return _frontend_redirect("/auth/pending", email=email, name=name)
 
         # 3.b) Bloquear si el usuario está inhabilitado
         if not user.estado:
-            frontend_url = f"{FRONTEND_BASE_URL}/auth/error?message=usuario_inhabilitado"
-            return RedirectResponse(url=frontend_url)
+            return _frontend_redirect("/auth/error", message="usuario_inhabilitado")
 
         # 3.c) Bloquear si la empresa está desactivada
         if not user.empresa or not user.empresa.estado:
-            frontend_url = f"{FRONTEND_BASE_URL}/auth/error?message=empresa_desactivada"
-            return RedirectResponse(url=frontend_url)
+            return _frontend_redirect("/auth/error", message="empresa_desactivada")
 
         # 4) OK: generar tu JWT y redirigir a éxito
         roles = (
@@ -97,13 +105,11 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 
         access_token = services.create_access_token(data={"sub": user.nombre})
 
-        frontend_url = f"{FRONTEND_BASE_URL}/auth/success?token={access_token}&tipo_rol={rol}"
-        return RedirectResponse(url=frontend_url)
+        return _frontend_redirect("/auth/success", token=access_token, tipo_rol=rol)
 
     except Exception as e:
         print(f"Error en Google callback: {str(e)}")
-        frontend_url = f"{FRONTEND_BASE_URL}/auth/error?message=Error_de_autenticacion"
-        return RedirectResponse(url=frontend_url)
+        return _frontend_redirect("/auth/error", message="Error_de_autenticacion")
 
 
 @router.post("/register-pending")

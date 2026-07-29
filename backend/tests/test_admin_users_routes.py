@@ -277,32 +277,26 @@ def test_change_password_request(admin_client, monkeypatch):
 
     called = {}
 
-    def fake_send(*args, **kwargs):
-        called["sent"] = True
+    def fake_send(*, email, nombre, reset_link):
+        called["email"] = email
+        called["reset_link"] = reset_link
         return True
 
-    monkeypatch.setattr(services, "send_password_change_notification", fake_send)
-
-    class DummySMTP:
-        def __init__(self, *args, **kwargs):
-            pass
-        def starttls(self):
-            pass
-        def login(self, *args, **kwargs):
-            pass
-        def send_message(self, *args, **kwargs):
-            called["smtp"] = True
-        def __enter__(self):
-            return self
-        def __exit__(self, exc_type, exc, tb):
-            pass
-
-    import types, sys
-    monkeypatch.setitem(sys.modules, "smtplib", types.SimpleNamespace(SMTP=DummySMTP))
+    monkeypatch.setattr(services, "send_admin_password_change_request_email", fake_send)
 
     response = client.post("/polo/change-password-request")
     assert response.status_code == 200
-    assert called.get("smtp") is True
+    assert called.get("reset_link", "").endswith("token123")
+
+
+def test_change_password_request_fails_when_email_not_sent(admin_client, monkeypatch):
+    client, SessionLocal, ctx = admin_client
+
+    monkeypatch.setattr(services, "create_password_reset_token", lambda email: "token123")
+    monkeypatch.setattr(services, "send_admin_password_change_request_email", lambda **kwargs: False)
+
+    response = client.post("/polo/change-password-request")
+    assert response.status_code == 500
 
 
 def test_list_roles_and_get_user(admin_client):

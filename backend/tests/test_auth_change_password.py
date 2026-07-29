@@ -61,8 +61,8 @@ def change_pw_context():
 
 @pytest.fixture(autouse=True)
 def mute_change_pw_emails(monkeypatch):
-    monkeypatch.setattr(auth_routes, "_send_change_password_success_email", lambda *args, **kwargs: None)
-    monkeypatch.setattr(auth_routes, "_send_change_password_failure_email", lambda *args, **kwargs: None)
+    monkeypatch.setattr(auth_routes.services, "send_password_change_notification", lambda *args, **kwargs: True)
+    monkeypatch.setattr(auth_routes.services, "send_password_change_failure_notification", lambda *args, **kwargs: True)
     auth_routes._change_pw_attempts.clear()
     yield
     auth_routes._change_pw_attempts.clear()

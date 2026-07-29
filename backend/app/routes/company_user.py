@@ -1,8 +1,9 @@
 #app/routes/company_user.py
 from fastapi import APIRouter, HTTPException, Depends, status
-from sqlalchemy.orm import Session
-from app.config import SessionLocal
+from sqlalchemy.orm import Session, selectinload
+from app.config import get_db
 from app.routes.auth import get_current_user, require_empresa_role
+from app.routes.admin_users import MAX_ADMIN_EMPRESA_PER_COMPANY
 from app import models, schemas, services
 
 
@@ -14,13 +15,6 @@ router = APIRouter(
 # ═══════════════════════════════════════════════════════════════════
 # CONFIGURACIÓN Y UTILIDADES
 # ═══════════════════════════════════════════════════════════════════
-
-def get_db():
-    db = SessionLocal() 
-    try: 
-        yield db
-    finally: 
-        db.close()
 
 def validar_datos_vehiculo(dto: schemas.VehiculoCreate, tipo_vehiculo: models.TipoVehiculo):
     """Validar datos específicos según el tipo de vehículo"""
@@ -185,7 +179,22 @@ def read_me(
     db: Session = Depends(get_db),
 ):
     """Obtener información completa de mi empresa"""
-    emp = db.query(models.Empresa).filter_by(cuil=current_user.cuil).first()
+    emp = (
+        db.query(models.Empresa)
+        .options(
+            selectinload(models.Empresa.vehiculos_emp)
+            .selectinload(models.VehiculosEmpresa.vehiculo)
+            .selectinload(models.Vehiculo.tipo_vehiculo),
+            selectinload(models.Empresa.contactos).selectinload(models.Contacto.tipo_contacto),
+            selectinload(models.Empresa.servicios)
+            .selectinload(models.EmpresaServicio.servicio)
+            .selectinload(models.Servicio.tipo_servicio),
+            selectinload(models.Empresa.servicios_polo).selectinload(models.ServicioPolo.tipo_servicio),
+            selectinload(models.Empresa.servicios_polo).selectinload(models.ServicioPolo.lotes),
+        )
+        .filter_by(cuil=current_user.cuil)
+        .first()
+    )
     if not emp:
         raise HTTPException(404, "Empresa no encontrada")
     return build_empresa_detail(emp)
@@ -280,6 +289,22 @@ def create_vehiculo(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
+def _get_owned_vehiculo(db: Session, veh_id: int, cuil: int) -> models.Vehiculo:
+    """Devuelve el vehículo si pertenece a la empresa, o levanta 404."""
+    v = (
+        db.query(models.Vehiculo)
+        .join(models.VehiculosEmpresa)
+        .filter(
+            models.Vehiculo.id_vehiculo == veh_id,
+            models.VehiculosEmpresa.cuil == cuil,
+        )
+        .first()
+    )
+    if not v:
+        raise HTTPException(status_code=404, detail="Vehículo no existe")
+    return v
+
+
 @router.put("/vehiculos/{veh_id}", response_model=schemas.VehiculoOut, summary="Actualizar un vehículo")
 def update_vehiculo(
     veh_id: int,
@@ -288,18 +313,8 @@ def update_vehiculo(
     db: Session = Depends(get_db),
 ):
     """Actualizar vehículo existente de la empresa"""
-    v = (
-        db.query(models.Vehiculo)
-        .join(models.VehiculosEmpresa)
-        .filter(
-            models.Vehiculo.id_vehiculo == veh_id,
-            models.VehiculosEmpresa.cuil == current_user.cuil,
-        )
-        .first()
-    )
-    if not v:
-        raise HTTPException(status_code=404, detail="Vehículo no existe")
-    
+    v = _get_owned_vehiculo(db, veh_id, current_user.cuil)
+
     for f in ("horarios", "frecuencia", "datos", "id_tipo_vehiculo"):
         val = getattr(dto, f, None)
         if val is not None:
@@ -333,17 +348,7 @@ def delete_vehiculo(
     db: Session = Depends(get_db),
 ):
     """Eliminar vehículo de la empresa"""
-    v = (
-        db.query(models.Vehiculo)
-        .join(models.VehiculosEmpresa)
-        .filter(
-            models.Vehiculo.id_vehiculo == veh_id,
-            models.VehiculosEmpresa.cuil == current_user.cuil,
-        )
-        .first()
-    )
-    if not v:
-        raise HTTPException(status_code=404, detail="Vehículo no existe")
+    v = _get_owned_vehiculo(db, veh_id, current_user.cuil)
     db.delete(v)
     db.commit()
 
@@ -378,6 +383,25 @@ def create_servicio(
 
     return servicio
 
+def _get_owned_servicio(db: Session, servicio_id: int, cuil: int) -> models.Servicio:
+    """Devuelve el servicio si pertenece a la empresa, o levanta 404."""
+    servicio_empresa = (
+        db.query(models.EmpresaServicio)
+        .filter(
+            models.EmpresaServicio.id_servicio == servicio_id,
+            models.EmpresaServicio.cuil == cuil,
+        )
+        .first()
+    )
+    if not servicio_empresa:
+        raise HTTPException(status_code=404, detail="Servicio no encontrado o no pertenece a tu empresa")
+
+    servicio = db.query(models.Servicio).filter(models.Servicio.id_servicio == servicio_id).first()
+    if not servicio:
+        raise HTTPException(status_code=404, detail="Servicio no encontrado")
+    return servicio
+
+
 @router.put("/servicios/{servicio_id}", response_model=schemas.ServicioOut, summary="Actualizar un servicio")
 def update_servicio(
     servicio_id: int,
@@ -386,23 +410,8 @@ def update_servicio(
     db: Session = Depends(get_db)
 ):
     """Actualizar servicio existente"""
-    # Verificar que el servicio pertenece a la empresa del usuario
-    servicio_empresa = (
-        db.query(models.EmpresaServicio)
-        .filter(
-            models.EmpresaServicio.id_servicio == servicio_id,
-            models.EmpresaServicio.cuil == current_user.cuil
-        )
-        .first()
-    )
-    
-    if not servicio_empresa:
-        raise HTTPException(status_code=404, detail="Servicio no encontrado o no pertenece a tu empresa")
+    servicio = _get_owned_servicio(db, servicio_id, current_user.cuil)
 
-    servicio = db.query(models.Servicio).filter(models.Servicio.id_servicio == servicio_id).first()
-    if not servicio:
-        raise HTTPException(status_code=404, detail="Servicio no encontrado")
-    
     for field, value in dto.model_dump(exclude_unset=True).items():
         setattr(servicio, field, value)
 
@@ -417,23 +426,8 @@ def delete_servicio(
     db: Session = Depends(get_db)
 ):
     """Eliminar servicio de la empresa"""
-    # Verificar que el servicio pertenece a la empresa del usuario
-    servicio_empresa = (
-        db.query(models.EmpresaServicio)
-        .filter(
-            models.EmpresaServicio.id_servicio == servicio_id,
-            models.EmpresaServicio.cuil == current_user.cuil
-        )
-        .first()
-    )
-    
-    if not servicio_empresa:
-        raise HTTPException(status_code=404, detail="Servicio no encontrado o no pertenece a tu empresa")
+    servicio = _get_owned_servicio(db, servicio_id, current_user.cuil)
 
-    servicio = db.query(models.Servicio).filter(models.Servicio.id_servicio == servicio_id).first()
-    if not servicio:
-        raise HTTPException(status_code=404, detail="Servicio no encontrado")
-    
     # Eliminar asociaciones en empresa_servicio primero
     db.query(models.EmpresaServicio).filter(models.EmpresaServicio.id_servicio == servicio_id).delete()
 
@@ -477,7 +471,7 @@ def update_contacto(
     if not contacto:
         raise HTTPException(status_code=404, detail="Contacto no encontrado")
     
-    for field, value in dto.dict().items():
+    for field, value in dto.model_dump().items():
         if value is not None:
             setattr(contacto, field, value)
     
@@ -560,7 +554,7 @@ def request_limit_increase(
         "message": "Solicitud de ampliación registrada",
         "empresa": empresa.nombre,
         "usuarios_actuales": current_count,
-        "limite_actual": 3,  # MAX_ADMIN_EMPRESA_PER_COMPANY
+        "limite_actual": MAX_ADMIN_EMPRESA_PER_COMPANY,
         "usuarios_adicionales_solicitados": dto.usuarios_adicionales_solicitados,
         "justificacion": dto.justificacion,
         "nota": "La solicitud será revisada por el administrador del polo. "

@@ -1,4 +1,4 @@
-# app/routers/voice.py
+# app/routes/voice.py
 
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Body, Request
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -11,29 +11,20 @@ import json
 
 from app.config import get_db
 from app.routes.auth import require_public_role
+from app.rate_limit import rate_limit
 from app import services
 
-# -------------------------------------------------------------------
-# STREAMING (Opcional)
-# -------------------------------------------------------------------
-# Si se habilita transmisión en vivo, se puede reutilizar la lógica
-# de FastAPI WebSocket. Referencia orientativa (comentada):
-#
-# from fastapi import WebSocket, WebSocketDisconnect
-# from google.cloud.speech_v1 import StreamingRecognizeResponse
-# 
-# @router.websocket("/ws/voice/stream")
-# async def voice_stream(websocket: WebSocket):
-#     await websocket.accept()
-#     try:
-#         await websocket.send_text("🚀 Streaming listo. Envía fragmentos de audio base64.")
-#         # Aquí se recibirían frames binarios/base64:
-#         # while True:
-#         #     payload = await websocket.receive_bytes()
-#         #     # Procesar frame y emitir resultados parciales:
-#         #     await websocket.send_json({"partial": "texto..."})
-#     except WebSocketDisconnect:
-#         print("Cliente desconectado del streaming de voz.")
+MAX_SYNTHESIZE_TEXT_LENGTH = 5000
+
+
+def _validate_synthesize_text(text: str) -> None:
+    if not text or len(text.strip()) == 0:
+        raise HTTPException(status_code=400, detail="El texto no puede estar vacío")
+    if len(text) > MAX_SYNTHESIZE_TEXT_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El texto es demasiado largo (máximo {MAX_SYNTHESIZE_TEXT_LENGTH} caracteres)",
+        )
 
 
 # Crear router
@@ -45,7 +36,7 @@ router = APIRouter(
 )
 
 
-@router.post("/chat/stream")
+@router.post("/chat/stream", dependencies=[Depends(rate_limit("voice-chat-stream", max_requests=30, window_seconds=60))])
 async def voice_chat_stream(
     payload: Dict = Body(..., description="JSON con 'text' y opcional 'history'"),
     db: Session = Depends(get_db),
@@ -106,7 +97,7 @@ async def get_voice_status():
 # ENDPOINT 2: Solo transcribir audio a texto
 # ═══════════════════════════════════════════════════════════════════
 
-@router.post("/transcribe")
+@router.post("/transcribe", dependencies=[Depends(rate_limit("voice-transcribe", max_requests=20, window_seconds=60))])
 async def transcribe_audio_endpoint(
     audio: UploadFile = File(..., description="Archivo de audio (WebM, WAV, MP3)"),
     language: str = "es-ES",
@@ -154,7 +145,7 @@ async def transcribe_audio_endpoint(
 # ENDPOINT 3: Solo convertir texto a audio
 # ═══════════════════════════════════════════════════════════════════
 
-@router.post("/synthesize")
+@router.post("/synthesize", dependencies=[Depends(rate_limit("voice-synthesize", max_requests=20, window_seconds=60))])
 async def synthesize_text_endpoint(
     text: str = Body(..., embed=True, description="Texto a convertir en audio")
 ):
@@ -162,11 +153,7 @@ async def synthesize_text_endpoint(
     Convierte texto a voz (streaming MP3) usando Google Cloud.
     """
     try:
-        if not text or len(text.strip()) == 0:
-            raise HTTPException(status_code=400, detail="El texto no puede estar vacío")
-
-        if len(text) > 5000:
-            raise HTTPException(status_code=400, detail="El texto es demasiado largo (máximo 5000 caracteres)")
+        _validate_synthesize_text(text)
 
         print(f" Sintetizando: {text[:100]}...")
 
@@ -191,7 +178,7 @@ async def synthesize_text_endpoint(
 # ENDPOINT 4: Chat completo con voz (PRINCIPAL)
 # ═══════════════════════════════════════════════════════════════════
 
-@router.post("/chat")
+@router.post("/chat", dependencies=[Depends(rate_limit("voice-chat", max_requests=30, window_seconds=60))])
 async def voice_chat_endpoint(
     request: Request,
     audio: Optional[UploadFile] = File(None, description="Archivo de audio del usuario"),
@@ -293,7 +280,7 @@ async def voice_chat_endpoint(
 # ENDPOINT 5: Test del pipeline completo
 # ═══════════════════════════════════════════════════════════════════
 
-@router.get("/test")
+@router.get("/test", dependencies=[Depends(rate_limit("voice-test", max_requests=5, window_seconds=60))])
 async def test_voice_pipeline_endpoint(
     db: Session = Depends(get_db)
 ):
@@ -321,7 +308,7 @@ async def test_voice_pipeline_endpoint(
 # ENDPOINT 6: Obtener audio de respuesta en base64 (para frontend)
 # ═══════════════════════════════════════════════════════════════════
 
-@router.post("/synthesize-base64")
+@router.post("/synthesize-base64", dependencies=[Depends(rate_limit("voice-synthesize-base64", max_requests=20, window_seconds=60))])
 async def synthesize_text_base64_endpoint(
     text: str = Body(..., embed=True)
 ):
@@ -329,8 +316,7 @@ async def synthesize_text_base64_endpoint(
     Igual que /synthesize pero devuelve el audio en base64 (útil para frontend).
     """
     try:
-        if not text or len(text.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Texto vacío")
+        _validate_synthesize_text(text)
 
         audio_bytes = services.text_to_speech(text)
         audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
@@ -346,31 +332,7 @@ async def synthesize_text_base64_endpoint(
             }
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-
-# -------------------------------------------------------------------
-# STREAMING RESPUESTA (Opcional)
-# -------------------------------------------------------------------
-# Para enviar el audio de respuesta mientras se genera, se puede
-# construir un endpoint alternativo que utilice StreamingResponse con
-# un generador que entregue los fragmentos producidos en
-# services.chunk_audio_payload. Ejemplo comentado:
-#
-# @router.post("/synthesize/stream")
-# async def synthesize_text_streaming_endpoint(
-#     text: str = Body(..., embed=True, description="Texto a convertir")
-# ):
-#     if not text.strip():
-#         raise HTTPException(status_code=400, detail="Texto vacío")
-# 
-#     audio_bytes = services.text_to_speech(text)
-# 
-#     def audio_generator():
-#         for chunk in services.chunk_audio_payload(audio_bytes):
-#             yield chunk
-# 
-#     return StreamingResponse(
-#         audio_generator(),
-#         media_type="audio/mpeg"
-#     )

@@ -22,7 +22,7 @@ from datetime import date
 
 class Empresa(Base):
     __tablename__ = "empresa"
-    cuil            = Column(Integer, primary_key=True, index=True)
+    cuil            = Column(BigInteger, primary_key=True, index=True)
     nombre          = Column(String,  nullable=False)
     rubro           = Column(String,  nullable=False)
     cant_empleados  = Column(Integer, nullable=False)
@@ -74,7 +74,7 @@ class Usuario(Base):
     estado         = Column(Boolean,  nullable=False)
     fecha_registro = Column(Date,    nullable=False)
     cuil           = Column(
-        Integer,
+        BigInteger,
         ForeignKey("empresa.cuil", ondelete="CASCADE"),
         nullable=False,
     )
@@ -183,7 +183,7 @@ class VehiculosEmpresa(Base):
         primary_key=True,
     )
     cuil         = Column(
-        BigInteger,  # para coincidir con bigint de la tabla
+        BigInteger,
         ForeignKey("empresa.cuil", ondelete="CASCADE"),
         primary_key=True,
     )
@@ -211,7 +211,7 @@ class Contacto(Base):
     datos            = Column(JSON)
     direccion        = Column(String)
     cuil_empresa     = Column(
-        Integer,
+        BigInteger,
         ForeignKey("empresa.cuil", ondelete="CASCADE"),
         nullable=False,
     )
@@ -246,7 +246,7 @@ class ServicioPolo(Base):
         Integer,
         ForeignKey("tipo_servicio_polo.id_tipo_servicio_polo", ondelete="CASCADE"),
     )
-    cuil                  = Column(Integer, ForeignKey("empresa.cuil", ondelete="CASCADE"), nullable=False)
+    cuil                  = Column(BigInteger, ForeignKey("empresa.cuil", ondelete="CASCADE"), nullable=False)
 
     tipo_servicio         = relationship("TipoServicioPolo", back_populates="servicios")
     lotes = relationship(
@@ -305,7 +305,7 @@ class EmpresaServicio(Base):
     __tablename__ = "empresa_servicio"
     
     cuil = Column(
-        Integer,
+        BigInteger,
         ForeignKey("empresa.cuil", ondelete="CASCADE"),
         primary_key=True,
     )

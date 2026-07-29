@@ -9,7 +9,9 @@ from app import models, services
 
 ROLES_BASE = ["admin_polo", "admin_empresa", "publico"]
 
-ADMIN_CUIL = int(os.getenv("BOOTSTRAP_ADMIN_CUIL", "0"))
+# Por defecto coincide con POLO_CUIL (app/routes/admin_users.py) para que el
+# admin inicial quede vinculado a la empresa que representa al propio Polo 52.
+ADMIN_CUIL = int(os.getenv("BOOTSTRAP_ADMIN_CUIL", os.getenv("POLO_CUIL", "44123456789")))
 ADMIN_USERNAME = os.getenv("BOOTSTRAP_ADMIN_USERNAME", "admin")
 ADMIN_EMAIL = os.getenv("BOOTSTRAP_ADMIN_EMAIL")
 ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD")
@@ -71,7 +73,7 @@ def run_startup_bootstrap() -> None:
 
         if not ADMIN_EMAIL or not ADMIN_PASSWORD:
             print(
-                "\n⚠️  No hay ningún usuario admin_polo y faltan las variables de entorno "
+                "\n  No hay ningún usuario admin_polo y faltan las variables de entorno "
                 "BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD: no se creó un admin automáticamente.\n"
             )
             return
@@ -92,6 +94,6 @@ def run_startup_bootstrap() -> None:
         db.add(models.RolUsuario(id_usuario=admin.id_usuario, id_rol=roles["admin_polo"].id_rol))
         db.commit()
 
-        print(f"\n✅ Usuario admin_polo inicial creado: nombre='{ADMIN_USERNAME}', email='{ADMIN_EMAIL}'\n")
+        print(f"\n Usuario admin_polo inicial creado: nombre='{ADMIN_USERNAME}', email='{ADMIN_EMAIL}'\n")
     finally:
         db.close()

@@ -6,23 +6,11 @@ from sqlalchemy import or_
 from jose import JWTError, jwt
 from datetime import date, datetime, timedelta
 import os
-from app.config import SessionLocal, SECRET_KEY, ALGORITHM
+from app.config import get_db, SECRET_KEY, ALGORITHM
 from app import models, schemas, services
 from app.models import Usuario
 from app.schemas import PasswordResetRequest, PasswordResetConfirm, PasswordResetConfirmSecure, ChangePasswordDirect, ForgotPasswordReset
-from email.mime.text import MIMEText
-import smtplib
-from app.config import settings
-from app.services import (
-    secure_password_reset_confirm, 
-    forgot_password_reset_confirm,
-    is_password_reused, 
-    save_password_to_history,
-    hash_password,
-    verify_password_reset_token,
-    consume_password_reset_token,
-    create_password_reset_token
-)
+from app.rate_limit import rate_limit
 
 router = APIRouter()
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")
@@ -33,13 +21,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 # ═══════════════════════════════════════════════════════════════════
 # CONFIGURACIÓN Y UTILIDADES
 # ═══════════════════════════════════════════════════════════════════
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -115,63 +96,6 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -
     # 3) Si nada funcionó, no hay usuario válido
     return None
 
-
-# ═══════════════════════════════════════════════════════════════════
-# >>> AGREGADO: Helpers de email para cambio de contraseña (éxito / fallo)
-# Reutiliza Gmail SMTP como en /forgot-password
-def _send_change_password_success_email(to_email: str, nombre: str):
-    cuerpo = f"""
-Hola {nombre},
-
-Confirmamos que tu contraseña fue actualizada correctamente.
-Si no fuiste vos, por favor contactá al soporte de inmediato.
-
-Saludos,
-Administración Polo 52
-""".strip()
-
-    msg = MIMEText(cuerpo)
-    msg["Subject"] = "Polo 52 - Tu contraseña fue actualizada"
-    msg["From"] = settings.EMAIL_USER
-    msg["To"] = to_email
-
-    try:
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
-            server.send_message(msg)
-    except Exception:
-        # No interrumpir el flujo por error de email
-        pass
-
-
-def _send_change_password_failure_email(to_email: str, nombre: str, reason: str):
-    cuerpo = f"""
-Hola {nombre},
-
-Se intentó actualizar tu contraseña pero ocurrió un problema:
-- Detalle: {reason}
-
-Por favor, intentá nuevamente. Si el problema persiste, contactá soporte.
-
-Saludos,
-Administración Polo 52
-""".strip()
-
-    msg = MIMEText(cuerpo)
-    msg["Subject"] = "Polo 52 - No pudimos actualizar tu contraseña"
-    msg["From"] = settings.EMAIL_USER
-    msg["To"] = to_email
-
-    try:
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
-            server.send_message(msg)
-    except Exception:
-        # No interrumpir el flujo por error de email
-        pass
-# <<< AGREGADO
 
 # ═══════════════════════════════════════════════════════════════════
 # >>> AGREGADO: Cooldown por intentos fallidos en cambio de contraseña
@@ -255,7 +179,7 @@ def require_public_role(
 # RUTAS DE AUTENTICACIÓN BÁSICA
 # ═══════════════════════════════════════════════════════════════════
 
-@router.post("/register", tags=["auth"])
+@router.post("/register", tags=["auth"], dependencies=[Depends(rate_limit("register", max_requests=5, window_seconds=60))])
 def register(dto: schemas.UserRegister, db: Session = Depends(get_db)):
     if db.query(models.Usuario).filter(models.Usuario.nombre == dto.nombre).first():
         raise HTTPException(status_code=400, detail="Nombre ya existe")
@@ -271,7 +195,12 @@ def register(dto: schemas.UserRegister, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Usuario creado"}
 
-@router.post("/login", response_model=schemas.Token, tags=["auth"])
+@router.post(
+    "/login",
+    response_model=schemas.Token,
+    tags=["auth"],
+    dependencies=[Depends(rate_limit("login", max_requests=10, window_seconds=60))],
+)
 def login(
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -458,8 +387,8 @@ def change_password_direct(
         # >>> AGREGADO: resetear intentos en éxito + enviar email de éxito
         _reset_change_pw_attempts(current_user.id_usuario)
         try:
-            _send_change_password_success_email(
-                to_email=current_user.email,
+            services.send_password_change_notification(
+                email=current_user.email,
                 nombre=current_user.nombre
             )
         except Exception:
@@ -478,8 +407,8 @@ def change_password_direct(
         _register_change_pw_failure(current_user.id_usuario)
         locked, wait_sec = _is_change_pw_locked(current_user.id_usuario)
         try:
-            _send_change_password_failure_email(
-                to_email=current_user.email,
+            services.send_password_change_failure_notification(
+                email=current_user.email,
                 nombre=current_user.nombre,
                 reason=e.detail
             )
@@ -504,8 +433,8 @@ def change_password_direct(
         _register_change_pw_failure(current_user.id_usuario)
         locked, wait_sec = _is_change_pw_locked(current_user.id_usuario)
         try:
-            _send_change_password_failure_email(
-                to_email=current_user.email,
+            services.send_password_change_failure_notification(
+                email=current_user.email,
                 nombre=current_user.nombre,
                 reason="Error interno al actualizar la contraseña"
             )
@@ -522,7 +451,11 @@ def change_password_direct(
 # RECUPERACIÓN DE CONTRASEÑA VIA EMAIL (USUARIO NO LOGUEADO)
 # ═══════════════════════════════════════════════════════════════════
 
-@router.post("/forgot-password", tags=["auth"])
+@router.post(
+    "/forgot-password",
+    tags=["auth"],
+    dependencies=[Depends(rate_limit("forgot-password", max_requests=5, window_seconds=60))],
+)
 def forgot_password(dto: PasswordResetRequest, db: Session = Depends(get_db)):
     """Solicitar reset de contraseña via email (para usuarios no logueados)"""
     user = db.query(models.Usuario).filter(models.Usuario.email == dto.email).first()
@@ -545,47 +478,10 @@ def forgot_password(dto: PasswordResetRequest, db: Session = Depends(get_db)):
     )
     
     reset_link = f"{FRONTEND_BASE_URL}/reset-password?token={token}"
-    
-    # Email con instrucciones claras
-    email_body = f"""
-Hola {user.nombre},
 
-Has solicitado restablecer tu contraseña en el sistema del Parque Industrial Polo 52.
+    if not services.send_password_reset_email(email=user.email, nombre=user.nombre, reset_link=reset_link):
+        raise HTTPException(status_code=500, detail="Error enviando email")
 
-Para proceder con el cambio, haz clic en el siguiente enlace:
-{reset_link}
-
-INSTRUCCIONES IMPORTANTES:
-• Deberás ingresar una nueva contraseña dos veces para confirmar
-• No podrás usar contraseñas que hayas utilizado anteriormente
-• Este enlace expirará en 1 hora por seguridad
-• Solo se puede usar una vez
-
-REQUISITOS PARA LA NUEVA CONTRASEÑA:
-• Mínimo 8 caracteres
-• Al menos una letra mayúscula
-• Al menos una letra minúscula  
-• Al menos un número
-
-Si no solicitaste este cambio, puedes ignorar este email de forma segura.
-
-Saludos,
-Administración Polo 52
-    """
-    
-    msg = MIMEText(email_body)
-    msg["Subject"] = "Recuperar Contraseña - Polo 52"
-    msg["From"] = settings.EMAIL_USER
-    msg["To"] = dto.email
-    
-    try:
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
-            server.send_message(msg)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error enviando email: {str(e)}")
-    
     return {
         "message": "Se ha enviado un email con instrucciones para restablecer tu contraseña",
         "expires_in_minutes": RESET_TOKEN_EXPIRE_MINUTES,

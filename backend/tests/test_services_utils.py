@@ -58,15 +58,17 @@ def test_execute_sql_query_allows_select_only():
 
 
 def test_transcribe_audio_raises_when_not_configured():
-    original_provider = services.VOICE_PROVIDER
-    original_client = services.speech_client
-    services.VOICE_PROVIDER = None
-    services.speech_client = None
+    # VOICE_PROVIDER/speech_client viven en app.services.voice_service; mutar
+    # services.VOICE_PROVIDER (el re-export) no afectaría al módulo real.
+    original_provider = services.voice_service.VOICE_PROVIDER
+    original_client = services.voice_service.speech_client
+    services.voice_service.VOICE_PROVIDER = None
+    services.voice_service.speech_client = None
     with pytest.raises(services.HTTPException) as exc:
         services.transcribe_audio(b"bytes")
     assert exc.value.status_code == 503
-    services.VOICE_PROVIDER = original_provider
-    services.speech_client = original_client
+    services.voice_service.VOICE_PROVIDER = original_provider
+    services.voice_service.speech_client = original_client
 
 
 def test_text_to_speech_rejects_unknown_provider():

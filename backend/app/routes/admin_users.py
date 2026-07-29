@@ -1,11 +1,11 @@
 #app/routes/admin_users.py
 from fastapi import APIRouter, HTTPException, Depends, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from datetime import date
 from uuid import UUID
 from typing import List
 import os
-from app.config import SessionLocal
+from app.config import get_db
 from app import models, schemas, services
 from app.models import Empresa, ServicioPolo, TipoServicioPolo, Rol
 from app.schemas import (
@@ -26,20 +26,32 @@ router = APIRouter(
 # CONFIGURACIÓN Y CONSTANTES
 # ═══════════════════════════════════════════════════════════════════
 
-# Constante para identificar al polo - AJUSTAR SEGÚN TU LÓGICA
-POLO_CUIL = 44123456789  # Reemplaza con el CUIL real del polo en tu BD
+# CUIL de la empresa que representa al propio Polo 52 en la tabla `empresa`.
+# Configurable por env var porque es un dato real de la organización, no una
+# constante de código. El default coincide con el placeholder que crea el
+# bootstrap inicial (ver app/bootstrap.py) para que /polo/me encuentre esa
+# empresa desde el primer arranque; reemplazalo por el CUIL real cuando lo
+# tengas y actualizá el registro existente en la tabla `empresa`.
+POLO_CUIL = int(os.getenv("POLO_CUIL", "44123456789"))
 
 # Límites de usuarios por tipo de rol
 MAX_ADMIN_EMPRESA_PER_COMPANY = 3
 MAX_ADMIN_POLO_TOTAL = 3
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def _count_active_users_by_role(db: Session, tipo_rol: str, cuil: int = None) -> int:
+    """Cuenta usuarios activos con un rol dado, opcionalmente filtrando por empresa."""
+    query = (
+        db.query(models.Usuario)
+        .join(models.RolUsuario)
+        .join(models.Rol)
+        .filter(models.Rol.tipo_rol == tipo_rol)
+        .filter(models.Usuario.estado == True)
+    )
+    if cuil is not None:
+        query = query.filter(models.Usuario.cuil == cuil)
+    return query.count()
+
 
 def validate_user_creation_limits(db: Session, dto: schemas.UserCreate):
     """Validar límites de creación de usuarios según el rol y empresa"""
@@ -59,15 +71,8 @@ def validate_user_creation_limits(db: Session, dto: schemas.UserCreate):
             )
         
         # Contar admin_polo existentes
-        admin_polo_count = (
-            db.query(models.Usuario)
-            .join(models.RolUsuario)
-            .join(models.Rol)
-            .filter(models.Rol.tipo_rol == "admin_polo")
-            .filter(models.Usuario.estado == True)
-            .count()
-        )
-        
+        admin_polo_count = _count_active_users_by_role(db, "admin_polo")
+
         if admin_polo_count >= MAX_ADMIN_POLO_TOTAL:
             raise HTTPException(
                 status_code=400,
@@ -87,16 +92,8 @@ def validate_user_creation_limits(db: Session, dto: schemas.UserCreate):
             )
         
         # Contar admin_empresa existentes para esta empresa específica
-        admin_empresa_count = (
-            db.query(models.Usuario)
-            .join(models.RolUsuario)
-            .join(models.Rol)
-            .filter(models.Rol.tipo_rol == "admin_empresa")
-            .filter(models.Usuario.cuil == dto.cuil)
-            .filter(models.Usuario.estado == True)
-            .count()
-        )
-        
+        admin_empresa_count = _count_active_users_by_role(db, "admin_empresa", cuil=dto.cuil)
+
         if admin_empresa_count >= MAX_ADMIN_EMPRESA_PER_COMPANY:
             empresa = db.query(models.Empresa).filter(models.Empresa.cuil == dto.cuil).first()
             empresa_nombre = empresa.nombre if empresa else f"CUIL {dto.cuil}"
@@ -133,15 +130,8 @@ def validate_user_activation_limits(db: Session, user: models.Usuario):
     
     # Validación para admin_polo
     if rol.tipo_rol == "admin_polo":
-        admin_polo_count = (
-            db.query(models.Usuario)
-            .join(models.RolUsuario)
-            .join(models.Rol)
-            .filter(models.Rol.tipo_rol == "admin_polo")
-            .filter(models.Usuario.estado == True)
-            .count()
-        )
-        
+        admin_polo_count = _count_active_users_by_role(db, "admin_polo")
+
         if admin_polo_count >= MAX_ADMIN_POLO_TOTAL:
             raise HTTPException(
                 status_code=400,
@@ -152,16 +142,8 @@ def validate_user_activation_limits(db: Session, user: models.Usuario):
     
     # Validación para admin_empresa
     elif rol.tipo_rol == "admin_empresa":
-        admin_empresa_count = (
-            db.query(models.Usuario)
-            .join(models.RolUsuario)
-            .join(models.Rol)
-            .filter(models.Rol.tipo_rol == "admin_empresa")
-            .filter(models.Usuario.cuil == user.cuil)
-            .filter(models.Usuario.estado == True)
-            .count()
-        )
-        
+        admin_empresa_count = _count_active_users_by_role(db, "admin_empresa", cuil=user.cuil)
+
         if admin_empresa_count >= MAX_ADMIN_EMPRESA_PER_COMPANY:
             empresa = db.query(models.Empresa).filter(models.Empresa.cuil == user.cuil).first()
             empresa_nombre = empresa.nombre if empresa else f"CUIL {user.cuil}"
@@ -175,6 +157,16 @@ def validate_user_activation_limits(db: Session, user: models.Usuario):
             )
     
     # Para usuarios públicos no hay límite, siempre se permite activar
+
+# Precarga usada por los endpoints que arman EmpresaDetailOutPublic: sin esto,
+# cada empresa listada dispara consultas separadas por sus contactos y
+# servicios del polo (N+1).
+EMPRESA_DETAIL_EAGER_OPTIONS = (
+    selectinload(models.Empresa.contactos).selectinload(models.Contacto.tipo_contacto),
+    selectinload(models.Empresa.servicios_polo).selectinload(models.ServicioPolo.tipo_servicio),
+    selectinload(models.Empresa.servicios_polo).selectinload(models.ServicioPolo.lotes),
+)
+
 
 def build_empresa_detail_public(emp: models.Empresa) -> schemas.EmpresaDetailOutPublic:
     """Construir detalle público de empresa con contactos y servicios polo"""
@@ -302,49 +294,17 @@ def polo_change_password_request(
     db: Session = Depends(get_db),
 ):
     """Envía un email con enlace para cambiar la contraseña del admin polo"""
-    # Usar la lógica del endpoint existente en auth.py
     token = services.create_password_reset_token(current_user.email)
     reset_link = f"{FRONTEND_BASE_URL}/password-reset?token={token}"
-    
-    # Enviar email (reutilizar lógica de auth.py)
-    try:
-        from email.mime.text import MIMEText
-        import smtplib
-        from app.config import settings
-        
-        email_body = f"""
-Hola {current_user.nombre},
 
-Has solicitado cambiar tu contraseña como administrador del polo.
+    sent = services.send_admin_password_change_request_email(
+        email=current_user.email,
+        nombre=current_user.nombre,
+        reset_link=reset_link,
+    )
+    if not sent:
+        raise HTTPException(status_code=500, detail="Error enviando email")
 
-Para proceder con el cambio, haz clic en el siguiente enlace:
-{reset_link}
-
-RECUERDA:
-• Necesitarás tu contraseña actual
-• Deberás confirmar la nueva contraseña dos veces
-• No podrás reutilizar contraseñas anteriores
-• Este enlace expira en 1 hora
-
-Si no solicitaste este cambio, ignora este email.
-
-Saludos,
-Sistema Polo 52
-        """
-        
-        msg = MIMEText(email_body)
-        msg["Subject"] = "Cambio de Contraseña Admin Polo - Polo 52"
-        msg["From"] = settings.EMAIL_USER
-        msg["To"] = current_user.email
-        
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(settings.EMAIL_USER, settings.EMAIL_PASS)
-            server.send_message(msg)
-            
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error enviando email: {str(e)}")
-    
     return {
         "message": "Se ha enviado un enlace de cambio de contraseña a tu email",
         "email": f"{current_user.email[:3]}***@{current_user.email.split('@')[1]}"
@@ -508,41 +468,18 @@ def get_users_limits_status(db: Session = Depends(get_db)):
     """Obtener información sobre límites de usuarios y estado actual"""
     
     # Información del Polo
-    polo_admin_count = (
-        db.query(models.Usuario)
-        .join(models.RolUsuario)
-        .join(models.Rol)
-        .filter(models.Rol.tipo_rol == "admin_polo")
-        .filter(models.Usuario.estado == True)
-        .count()
-    )
-    
+    polo_admin_count = _count_active_users_by_role(db, "admin_polo")
+
     # Contar usuarios públicos en el polo
-    polo_public_count = (
-        db.query(models.Usuario)
-        .join(models.RolUsuario)
-        .join(models.Rol)
-        .filter(models.Rol.tipo_rol == "publico")
-        .filter(models.Usuario.cuil == POLO_CUIL)
-        .filter(models.Usuario.estado == True)
-        .count()
-    )
-    
+    polo_public_count = _count_active_users_by_role(db, "publico", cuil=POLO_CUIL)
+
     # Información por empresa (admin_empresa)
     empresas_info = []
     empresas = db.query(models.Empresa).filter(models.Empresa.cuil != POLO_CUIL).all()
-    
+
     for empresa in empresas:
-        admin_count = (
-            db.query(models.Usuario)
-            .join(models.RolUsuario)
-            .join(models.Rol)
-            .filter(models.Rol.tipo_rol == "admin_empresa")
-            .filter(models.Usuario.cuil == empresa.cuil)
-            .filter(models.Usuario.estado == True)
-            .count()
-        )
-        
+        admin_count = _count_active_users_by_role(db, "admin_empresa", cuil=empresa.cuil)
+
         empresas_info.append({
             "cuil": empresa.cuil,
             "nombre": empresa.nombre,
@@ -621,48 +558,36 @@ def admin_update_empresa_nombre_rubro(
     db.refresh(emp)
     return emp
 
+def _set_empresa_and_related_estado(empresa: models.Empresa, estado: bool) -> None:
+    """Propaga el estado (activo/inactivo) de una empresa a sus registros relacionados."""
+    empresa.estado = estado
+    for usuario in empresa.usuarios:
+        usuario.estado = estado
+    for servicio_polo in empresa.servicios_polo:
+        if hasattr(servicio_polo, "estado"):
+            servicio_polo.estado = estado
+    for emp_serv in empresa.servicios:
+        if hasattr(emp_serv, "estado"):
+            emp_serv.estado = estado
+    for contacto in empresa.contactos:
+        if hasattr(contacto, "estado"):
+            contacto.estado = estado
+    for vehiculo in empresa.vehiculos_emp:
+        if hasattr(vehiculo, "estado"):
+            vehiculo.estado = estado
+
+
 @router.put("/empresas/{cuil}/desactivar", summary="Desactivar una empresa y sus registros asociados")
 def desactivar_empresa(cuil: int, db: Session = Depends(get_db)):
     """
     Desactiva una empresa (baja lógica) y todos sus registros relacionados:
-    - Usuarios
-    - Servicios Polo
-    - Servicios
-    - Contactos
-    - Vehículos
-    - Lotes
+    usuarios, servicios del polo, servicios, contactos y vehículos.
     """
     empresa = db.query(models.Empresa).filter(models.Empresa.cuil == cuil).first()
     if not empresa:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
 
-    # Marcar empresa como inactiva
-    empresa.estado = False
-
-    # Desactivar usuarios asociados
-    for usuario in empresa.usuarios:
-        usuario.estado = False
-
-    # Desactivar servicios del polo asociados
-    for servicio_polo in empresa.servicios_polo:
-        if hasattr(servicio_polo, "estado"):
-            servicio_polo.estado = False
-
-    # Desactivar relaciones empresa-servicio
-    for emp_serv in empresa.servicios:
-        if hasattr(emp_serv, "estado"):
-            emp_serv.estado = False
-
-    # Desactivar contactos
-    for contacto in empresa.contactos:
-        if hasattr(contacto, "estado"):
-            contacto.estado = False
-
-    # Desactivar vehículos
-    for vehiculo in empresa.vehiculos_emp:
-        if hasattr(vehiculo, "estado"):
-            vehiculo.estado = False
-
+    _set_empresa_and_related_estado(empresa, False)
     db.commit()
     return {"message": f"Empresa '{empresa.nombre}' y sus registros relacionados fueron desactivados correctamente."}
 
@@ -670,45 +595,14 @@ def desactivar_empresa(cuil: int, db: Session = Depends(get_db)):
 @router.put("/empresas/{cuil}/activar", summary="Reactivar una empresa y sus registros asociados")
 def activar_empresa(cuil: int, db: Session = Depends(get_db)):
     """
-    Reactiva una empresa (vuelve a 'estado=True') y opcionalmente todos sus registros relacionados:
-    - Usuarios
-    - Servicios Polo
-    - Servicios
-    - Contactos
-    - Vehículos
-    - Lotes
+    Reactiva una empresa (vuelve a 'estado=True') y todos sus registros relacionados:
+    usuarios, servicios del polo, servicios, contactos y vehículos.
     """
     empresa = db.query(models.Empresa).filter(models.Empresa.cuil == cuil).first()
     if not empresa:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
 
-    # Marcar empresa como activa
-    empresa.estado = True
-
-    # Reactivar usuarios asociados
-    for usuario in empresa.usuarios:
-        usuario.estado = True
-
-    # Reactivar servicios del polo asociados
-    for servicio_polo in empresa.servicios_polo:
-        if hasattr(servicio_polo, "estado"):
-            servicio_polo.estado = True
-
-    # Reactivar relaciones empresa-servicio (si manejan estado)
-    for emp_serv in empresa.servicios:
-        if hasattr(emp_serv, "estado"):
-            emp_serv.estado = True
-
-    # Reactivar contactos (si tienen estado)
-    for contacto in empresa.contactos:
-        if hasattr(contacto, "estado"):
-            contacto.estado = True
-
-    # Reactivar vehículos (si tienen estado en la relación o entidad)
-    for vehiculo in empresa.vehiculos_emp:
-        if hasattr(vehiculo, "estado"):
-            vehiculo.estado = True
-
+    _set_empresa_and_related_estado(empresa, True)
     db.commit()
     return {"message": f"Empresa '{empresa.nombre}' y sus registros relacionados fueron reactivados correctamente."}
 
@@ -816,7 +710,7 @@ def delete_lote(id_lotes: int, db: Session = Depends(get_db)):
 @router.get("/all", response_model=List[EmpresaDetailOutPublic], summary="Obtener todas las empresas con detalles completos")
 def get_all_companies(db: Session = Depends(get_db)):
     """Listar todas las empresas con información detallada para consulta pública"""
-    empresas = db.query(Empresa).all()
+    empresas = db.query(Empresa).options(*EMPRESA_DETAIL_EAGER_OPTIONS).all()
     if not empresas:
         raise HTTPException(status_code=404, detail="No se encontraron empresas")
     
@@ -834,8 +728,8 @@ def search_companies(
     db: Session = Depends(get_db)
 ):
     """Buscar empresas por nombre, rubro o tipo de servicio del polo"""
-    query = db.query(Empresa)
-    
+    query = db.query(Empresa).options(*EMPRESA_DETAIL_EAGER_OPTIONS)
+
     # Filtrar por nombre
     if name:
         query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
@@ -864,8 +758,10 @@ def search_companies(
 @router.get("/search/contactos", response_model=List[ContactoOutPublic], summary="Buscar contactos por empresa")
 def search_companies_contacts(name: str = None, db: Session = Depends(get_db)):
     """Buscar empresas por nombre y devolver solo los contactos"""
-    query = db.query(Empresa)
-    
+    query = db.query(Empresa).options(
+        selectinload(Empresa.contactos).selectinload(models.Contacto.tipo_contacto)
+    )
+
     if name:
         query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
 
@@ -894,8 +790,10 @@ def search_companies_contacts(name: str = None, db: Session = Depends(get_db)):
 @router.get("/search/lotes", response_model=List[LoteOutPublic], summary="Buscar lotes por empresa")
 def search_companies_lotes(name: str = None, db: Session = Depends(get_db)):
     """Buscar empresas por nombre y devolver solo los lotes"""
-    query = db.query(Empresa)
-    
+    query = db.query(Empresa).options(
+        selectinload(Empresa.servicios_polo).selectinload(models.ServicioPolo.lotes)
+    )
+
     if name:
         query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
 
