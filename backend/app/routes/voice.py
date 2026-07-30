@@ -3,6 +3,7 @@
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Body, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.encoders import jsonable_encoder
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict
 import io
@@ -113,7 +114,9 @@ async def transcribe_audio_endpoint(
 
         print(f" Recibido audio: {len(audio_bytes)} bytes, tipo: {audio.content_type}")
 
-        transcript = services.transcribe_audio(audio_bytes, language)
+        # Bloqueante (llamada de red a Google Speech): sin threadpool, colgaría
+        # todo el event loop mientras dura la transcripción.
+        transcript = await run_in_threadpool(services.transcribe_audio, audio_bytes, language)
 
         if not transcript:
             return JSONResponse(
@@ -157,7 +160,8 @@ async def synthesize_text_endpoint(
 
         print(f" Sintetizando: {text[:100]}...")
 
-        audio_bytes = services.text_to_speech(text)
+        # Bloqueante (llamada de red a Google TTS): ver nota en /transcribe.
+        audio_bytes = await run_in_threadpool(services.text_to_speech, text)
 
         return StreamingResponse(
             io.BytesIO(audio_bytes),
@@ -231,11 +235,13 @@ async def voice_chat_endpoint(
             print(f"📥 Audio recibido: {len(file_bytes)} bytes")
             audio_bytes = file_bytes
 
-        result = services.get_chat_response_with_audio(
-            db=db,
-            audio_content=audio_bytes,
-            text_message=text,
-            history=history
+        # Bloqueante (transcripción + Gemini + TTS encadenados): ver nota en /transcribe.
+        result = await run_in_threadpool(
+            services.get_chat_response_with_audio,
+            db,
+            audio_bytes,
+            text,
+            history,
         )
 
         payload = {
@@ -290,7 +296,8 @@ async def test_voice_pipeline_endpoint(
     - Chat response
     """
     try:
-        test_results = services.test_voice_pipeline(db)
+        # Bloqueante (TTS + chat encadenados): ver nota en /transcribe.
+        test_results = await run_in_threadpool(services.test_voice_pipeline, db)
         return JSONResponse(
             status_code=200,
             content={
@@ -318,7 +325,8 @@ async def synthesize_text_base64_endpoint(
     try:
         _validate_synthesize_text(text)
 
-        audio_bytes = services.text_to_speech(text)
+        # Bloqueante (llamada de red a Google TTS): ver nota en /transcribe.
+        audio_bytes = await run_in_threadpool(services.text_to_speech, text)
         audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
 
         return JSONResponse(

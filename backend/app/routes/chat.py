@@ -1,6 +1,7 @@
 #app/routes/chat.py
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 from app.services import get_chat_response, GENERIC_ERROR_MESSAGE
 from app.config import get_db
 from app.rate_limit import rate_limit
@@ -20,7 +21,14 @@ class ChatRequest(BaseModel):
 @router.post("/", dependencies=[Depends(rate_limit("chat", max_requests=30, window_seconds=60))])
 async def chat(request: ChatRequest, db: Session = Depends(get_db)):
     try:
-        response_text, data, corrected_entity = get_chat_response(db, request.message, request.history)
+        # get_chat_response es sincrónico y bloqueante (llamadas a Gemini + queries
+        # a la DB). Llamarlo directo desde un endpoint `async def` bloquearía el
+        # único event loop del proceso: mientras se procesa un chat, TODO el resto
+        # de la API (incluso endpoints livianos como /health) queda colgado.
+        # run_in_threadpool lo corre en un hilo aparte para que no bloquee.
+        response_text, data, corrected_entity = await run_in_threadpool(
+            get_chat_response, db, request.message, request.history
+        )
 
         if not isinstance(response_text, str):
             response_text = str(response_text)
