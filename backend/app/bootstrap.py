@@ -9,6 +9,40 @@ from app import models, services
 
 ROLES_BASE = ["admin_polo", "admin_empresa", "publico"]
 
+# Catálogos de referencia (tablas tipo_*) que la app da por cargados: los
+# formularios de alta de vehículos/contactos/servicios los consultan y
+# esperan encontrarlos. No son datos de negocio que cambien por sí solos,
+# así que se recrean automáticamente si la base queda vacía.
+CATALOGS = [
+    (
+        models.TipoVehiculo,
+        "id_tipo_vehiculo",
+        {1: "corporativos", 2: "terceros", 3: "personales"},
+    ),
+    (
+        models.TipoContacto,
+        "id_tipo_contacto",
+        {1: "comercial", 2: "empresarial"},
+    ),
+    (
+        models.TipoServicioPolo,
+        "id_tipo_servicio_polo",
+        {
+            1: "coworking",
+            2: "nave",
+            3: "oficina",
+            4: "local comercial",
+            5: "container",
+            6: "lavadero",
+        },
+    ),
+    (
+        models.TipoServicio,
+        "id_tipo_servicio",
+        {1: "agua", 2: "espacios verdes", 3: "internet", 4: "residuos"},
+    ),
+]
+
 # Por defecto coincide con POLO_CUIL (app/routes/admin_users.py) para que el
 # admin inicial quede vinculado a la empresa que representa al propio Polo 52.
 ADMIN_CUIL = int(os.getenv("BOOTSTRAP_ADMIN_CUIL", os.getenv("POLO_CUIL", "44123456789")))
@@ -26,6 +60,15 @@ def _ensure_roles(db: Session) -> dict:
             db.flush()
             roles[tipo] = rol
     return roles
+
+
+def _ensure_catalogs(db: Session) -> None:
+    """Inserta los valores de CATALOGS que falten, sin tocar los que ya existan."""
+    for model, id_field, values in CATALOGS:
+        existing_ids = {getattr(row, id_field) for row in db.query(model).all()}
+        for id_value, tipo_value in values.items():
+            if id_value not in existing_ids:
+                db.add(model(**{id_field: id_value, "tipo": tipo_value}))
 
 
 def _ensure_admin_empresa(db: Session) -> models.Empresa:
@@ -49,16 +92,19 @@ def _ensure_admin_empresa(db: Session) -> models.Empresa:
 
 def run_startup_bootstrap() -> None:
     """
-    Crea las tablas si no existen (idempotente) y garantiza que exista
-    al menos un usuario con rol admin_polo, tomando las credenciales de
-    BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD. No hace nada si ya
-    hay un admin_polo cargado.
+    Crea las tablas si no existen (idempotente), asegura los catálogos de
+    referencia (tipo_vehiculo, tipo_contacto, tipo_servicio_polo,
+    tipo_servicio) y garantiza que exista al menos un usuario con rol
+    admin_polo, tomando las credenciales de BOOTSTRAP_ADMIN_EMAIL /
+    BOOTSTRAP_ADMIN_PASSWORD. Los catálogos y roles se revisan en cada
+    arranque; la creación del admin solo pasa si todavía no hay ninguno.
     """
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
     try:
         roles = _ensure_roles(db)
+        _ensure_catalogs(db)
         db.commit()
 
         ya_hay_admin = (

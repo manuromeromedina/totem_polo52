@@ -138,6 +138,12 @@ def test_login_fails_when_empresa_desactivada(auth_client):
 
 
 def test_login_with_remember_me_sets_cookie(auth_client):
+    """
+    remember_me viaja como campo del form (igual que username/password), NO
+    como query param: así es como lo manda el frontend real. Un test previo
+    lo mandaba por query y pasaba en falso, sin detectar que el frontend
+    nunca llegaba a activar la cookie.
+    """
     client, SessionLocal = auth_client
     db = SessionLocal()
     empresa = _add_company(db)
@@ -149,9 +155,100 @@ def test_login_with_remember_me_sets_cookie(auth_client):
 
     response = client.post(
         "/login",
-        params={"remember_me": True},
-        data={"username": "sofia", "password": "ClaveSegura1"},
+        data={"username": "sofia", "password": "ClaveSegura1", "remember_me": "true"},
     )
 
     assert response.status_code == 200
     assert "remember_token" in response.cookies
+
+
+def test_login_without_remember_me_does_not_set_cookie(auth_client):
+    client, SessionLocal = auth_client
+    db = SessionLocal()
+    empresa = _add_company(db)
+    user = _add_user(db, nombre="martina", email="martina@example.com", password="ClaveSegura1", empresa=empresa)
+    role = _add_role(db)
+    db.add(models.RolUsuario(id_usuario=user.id_usuario, id_rol=role.id_rol))
+    db.commit()
+    db.close()
+
+    response = client.post(
+        "/login",
+        data={"username": "martina", "password": "ClaveSegura1"},
+    )
+
+    assert response.status_code == 200
+    assert "remember_token" not in response.cookies
+
+
+def test_check_remember_restores_session_from_cookie(auth_client):
+    """
+    Flujo completo: login con remember_me -> el navegador se "cierra" (ya no
+    manda el Bearer token) -> /check-remember debe restaurar la sesión
+    usando únicamente la cookie remember_token.
+    """
+    client, SessionLocal = auth_client
+    db = SessionLocal()
+    empresa = _add_company(db)
+    user = _add_user(db, nombre="lucia", email="lucia@example.com", password="ClaveSegura1", empresa=empresa)
+    role = _add_role(db)
+    db.add(models.RolUsuario(id_usuario=user.id_usuario, id_rol=role.id_rol))
+    db.commit()
+    db.close()
+
+    login_response = client.post(
+        "/login",
+        data={"username": "lucia", "password": "ClaveSegura1", "remember_me": "true"},
+    )
+    assert login_response.status_code == 200
+    assert "remember_token" in login_response.cookies
+
+    # La cookie se marca Secure (EXTERNAL_BASE_URL es https en el .env de
+    # test), así que el jar automático del TestClient no la reenvía sobre su
+    # base_url http://testserver. La adjuntamos a mano para simular lo que
+    # un navegador real haría sobre HTTPS en producción.
+    check_response = client.get(
+        "/check-remember",
+        cookies={"remember_token": login_response.cookies["remember_token"]},
+    )
+    body = check_response.json()
+
+    assert check_response.status_code == 200
+    assert body["logged_in"] is True
+    assert body["user"]["nombre"] == "lucia"
+    assert body["access_token"]
+
+
+def test_check_remember_without_cookie_reports_not_logged_in(auth_client):
+    client, SessionLocal = auth_client
+    response = client.get("/check-remember")
+    assert response.status_code == 200
+    assert response.json() == {"logged_in": False}
+
+
+def test_logout_clears_remember_cookie(auth_client):
+    client, SessionLocal = auth_client
+    db = SessionLocal()
+    empresa = _add_company(db)
+    user = _add_user(db, nombre="valentina", email="valentina@example.com", password="ClaveSegura1", empresa=empresa)
+    role = _add_role(db)
+    db.add(models.RolUsuario(id_usuario=user.id_usuario, id_rol=role.id_rol))
+    db.commit()
+    db.close()
+
+    login_response = client.post(
+        "/login",
+        data={"username": "valentina", "password": "ClaveSegura1", "remember_me": "true"},
+    )
+    access_token = login_response.json()["access_token"]
+
+    logout_response = client.post(
+        "/logout", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert logout_response.status_code == 200
+
+    # El cliente de test sigue mandando la cookie hasta que el server la
+    # invalide explícitamente; verificamos que la respuesta de logout la
+    # borre (Set-Cookie con expiración pasada / valor vacío).
+    set_cookie_headers = logout_response.headers.get_list("set-cookie")
+    assert any("remember_token=" in h and ("Max-Age=0" in h or "expires=" in h.lower()) for h in set_cookie_headers)

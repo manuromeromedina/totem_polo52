@@ -34,7 +34,7 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════
 
 
-def transcribe_audio_google(audio_content: bytes, language_code: str = "es-ES") -> str:
+def transcribe_audio_google(audio_content: bytes, language_code: str = "es-AR") -> str:
     """Convertir audio a texto usando Google Speech-to-Text"""
     try:
         if not speech_client:
@@ -65,7 +65,7 @@ def transcribe_audio_google(audio_content: bytes, language_code: str = "es-ES") 
         raise HTTPException(status_code=500, detail=GENERIC_ERROR_MESSAGE)
 
 
-def transcribe_audio(audio_content: bytes, language_code: str = "es-ES") -> str:
+def transcribe_audio(audio_content: bytes, language_code: str = "es-AR") -> str:
     """Transcribir audio usando Google Cloud"""
     if VOICE_PROVIDER == "google" and speech_client:
         return transcribe_audio_google(audio_content, language_code)
@@ -79,8 +79,11 @@ def transcribe_audio(audio_content: bytes, language_code: str = "es-ES") -> str:
 
 
 def text_to_speech_google(
-    text: str, language_code: str = "es-ES", voice_name: str = "es-ES-Neural2-A"
+    text: str, language_code: str = "es-US", voice_name: str = "es-US-Neural2-A"
 ) -> bytes:
+    # Google Cloud TTS no ofrece una voz específicamente "es-AR": solo tiene
+    # familias es-ES (España) y es-US (español latinoamericano neutro). es-US
+    # es la aproximación más cercana disponible al acento argentino.
     """Convertir texto a voz usando Google Text-to-Speech"""
     try:
         if not tts_client:

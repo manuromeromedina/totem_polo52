@@ -101,7 +101,7 @@ async def get_voice_status():
 @router.post("/transcribe", dependencies=[Depends(rate_limit("voice-transcribe", max_requests=20, window_seconds=60))])
 async def transcribe_audio_endpoint(
     audio: UploadFile = File(..., description="Archivo de audio (WebM, WAV, MP3)"),
-    language: str = "es-ES",
+    language: str = "es-AR",
 ):
     """
     Transcribe audio a texto sin pasar por el chatbot.

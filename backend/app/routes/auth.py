@@ -1,5 +1,5 @@
 #auth.py
-from fastapi import Depends, HTTPException, APIRouter, Response, Request
+from fastapi import Depends, HTTPException, APIRouter, Response, Request, Form
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
@@ -14,6 +14,10 @@ from app.rate_limit import rate_limit
 
 router = APIRouter()
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")
+# La cookie "remember_token" solo debe viajar sobre HTTPS en producción; en
+# desarrollo local (http://localhost) el navegador la descartaría si Secure
+# fuera True, así que se deriva del esquema real en el que corre el backend.
+COOKIE_SECURE = os.getenv("EXTERNAL_BASE_URL", "").startswith("https")
 
 # OAuth2PasswordBearer para manejar el token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -205,7 +209,11 @@ def login(
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
-    remember_me: bool = False
+    # Antes era un bool suelto: FastAPI lo interpretaba como query param (no
+    # como campo del form), y el frontend nunca lo mandaba ahí. Como Form()
+    # viaja en el mismo body application/x-www-form-urlencoded que
+    # username/password, coincide con cómo el frontend ya arma la request.
+    remember_me: bool = Form(False),
 ):
     user = (
         db.query(models.Usuario)
@@ -258,7 +266,7 @@ def login(
             value=remember_token,
             max_age=30 * 24 * 60 * 60,
             httponly=True,
-            secure=False,   # True en prod con HTTPS
+            secure=COOKIE_SECURE,
             samesite="lax"
         )
 
@@ -289,7 +297,7 @@ def logout(
     response.delete_cookie(
         key="remember_token",
         httponly=True,
-        secure=False,  # Cambiar a True en producción
+        secure=COOKIE_SECURE,
         samesite="lax"
     )
     return {"message": "Sesión cerrada correctamente"}
