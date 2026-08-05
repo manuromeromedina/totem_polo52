@@ -79,11 +79,14 @@ def transcribe_audio(audio_content: bytes, language_code: str = "es-AR") -> str:
 
 
 def text_to_speech_google(
-    text: str, language_code: str = "es-US", voice_name: str = "es-US-Neural2-A"
+    text: str, language_code: str = "es-US", voice_name: str = "es-US-Chirp3-HD-Kore"
 ) -> bytes:
     # Google Cloud TTS no ofrece una voz específicamente "es-AR": solo tiene
     # familias es-ES (España) y es-US (español latinoamericano neutro). es-US
     # es la aproximación más cercana disponible al acento argentino.
+    # Chirp3-HD es la generación de voces más nueva de Google (bastante más
+    # natural que Neural2, que sonaba robotizada); Kore es la que probamos
+    # y eligió el usuario.
     """Convertir texto a voz usando Google Text-to-Speech"""
     try:
         if not tts_client:
