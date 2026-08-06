@@ -79,14 +79,14 @@ def transcribe_audio(audio_content: bytes, language_code: str = "es-AR") -> str:
 
 
 def text_to_speech_google(
-    text: str, language_code: str = "es-US", voice_name: str = "es-US-Chirp3-HD-Kore"
+    text: str, language_code: str = "es-US", voice_name: str = "es-US-Studio-B"
 ) -> bytes:
     # Google Cloud TTS no ofrece una voz específicamente "es-AR": solo tiene
     # familias es-ES (España) y es-US (español latinoamericano neutro). es-US
     # es la aproximación más cercana disponible al acento argentino.
-    # Chirp3-HD es la generación de voces más nueva de Google (bastante más
-    # natural que Neural2, que sonaba robotizada); Kore es la que probamos
-    # y eligió el usuario.
+    # Studio-B: voz de la línea "Studio" de Google (más natural que Neural2,
+    # que sonaba robotizada), elegida por el usuario tras comparar muestras.
+    # Es una voz masculina (ssml_gender abajo debe coincidir).
     """Convertir texto a voz usando Google Text-to-Speech"""
     try:
         if not tts_client:
@@ -96,7 +96,7 @@ def text_to_speech_google(
         voice = texttospeech.VoiceSelectionParams(
             language_code=language_code,
             name=voice_name,
-            ssml_gender=texttospeech.SsmlVoiceGender.FEMALE,
+            ssml_gender=texttospeech.SsmlVoiceGender.MALE,
         )
         audio_config = texttospeech.AudioConfig(
             audio_encoding=texttospeech.AudioEncoding.MP3,
