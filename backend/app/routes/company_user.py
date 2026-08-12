@@ -1,4 +1,6 @@
 #app/routes/company_user.py
+from datetime import date
+
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session, selectinload
 from app.config import get_db
@@ -534,6 +536,31 @@ def read_my_comercial_info(
     return row
 
 
+@router.put(
+    "/companies/me/comercial",
+    response_model=schemas.InfoComercialOut,
+    summary="Editar mi información comercial ya cargada",
+)
+def update_my_comercial_info(
+    dto: schemas.InfoComercialUpdate,
+    current_user: models.Usuario = Depends(require_empresa_role),
+    db: Session = Depends(get_db),
+):
+    """Editar campos puntuales de la ficha comercial una vez completada por el wizard"""
+    row = db.query(models.InfoComercial).filter_by(cuil=current_user.cuil).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Todavía no cargaste información comercial")
+
+    data = dto.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(row, field, value)
+    row.fecha_actualizacion = date.today()
+
+    db.commit()
+    db.refresh(row)
+    return row
+
+
 @router.post(
     "/companies/me/comercial/chat",
     response_model=schemas.ComercialChatResponse,
@@ -546,10 +573,10 @@ def comercial_chat(
     db: Session = Depends(get_db),
 ):
     """
-    Avanza un paso en el cuestionario guiado (~14 preguntas) que completa la
-    ficha comercial de la empresa logueada. Enviar `message` vacío devuelve
-    la pregunta pendiente sin avanzar; con `message` completo, valida y
-    guarda la respuesta para el campo actual y devuelve la siguiente.
+    Avanza un paso en el cuestionario guiado que completa la ficha comercial
+    de la empresa logueada. Enviar `message` vacío devuelve la pregunta
+    pendiente sin avanzar; con `message` completo, valida y guarda la
+    respuesta para el campo actual y devuelve la siguiente.
     """
     reply, done, campo_actual, progreso_actual, progreso_total = services.get_comercial_chat_response(
         db, current_user.cuil, dto.message

@@ -699,13 +699,47 @@ class InfoComercialOut(BaseModel):
     horario_atencion_comercial: Optional[str] = None
     rango_precios: Optional[str] = None
     modalidad_venta: Optional[str] = None
-    sitio_web: Optional[str] = None
-    redes_sociales: Optional[str] = None
-    contacto_comercial: Optional[str] = None
     marcas_representadas: Optional[str] = None
     certificaciones: Optional[str] = None
     observaciones_comerciales: Optional[str] = None
     completado: bool
+
+    class Config:
+        from_attributes = True
+
+_PUBLICO_OBJETIVO_OPCIONES = {"B2B", "B2C", "Ambos"}
+_RANGO_PRECIOS_OPCIONES = {"Económico", "Medio", "Premium"}
+_MODALIDAD_VENTA_OPCIONES = {"Presencial", "Online", "Ambas"}
+
+class InfoComercialUpdate(BaseModel):
+    """Edición manual de la ficha comercial ya completada (fuera del wizard)."""
+    productos_servicios: Optional[str] = Field(None, max_length=2000)
+    publico_objetivo: Optional[str] = None
+    atiende_publico: Optional[bool] = None
+    horario_atencion_comercial: Optional[str] = Field(None, max_length=255)
+    rango_precios: Optional[str] = None
+    modalidad_venta: Optional[str] = None
+    marcas_representadas: Optional[str] = Field(None, max_length=2000)
+    certificaciones: Optional[str] = Field(None, max_length=2000)
+    observaciones_comerciales: Optional[str] = Field(None, max_length=2000)
+
+    @field_validator('publico_objetivo')
+    def validar_publico_objetivo(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in _PUBLICO_OBJETIVO_OPCIONES:
+            raise ValueError(f"Debe ser una de: {', '.join(_PUBLICO_OBJETIVO_OPCIONES)}")
+        return v
+
+    @field_validator('rango_precios')
+    def validar_rango_precios(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in _RANGO_PRECIOS_OPCIONES:
+            raise ValueError(f"Debe ser una de: {', '.join(_RANGO_PRECIOS_OPCIONES)}")
+        return v
+
+    @field_validator('modalidad_venta')
+    def validar_modalidad_venta(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in _MODALIDAD_VENTA_OPCIONES:
+            raise ValueError(f"Debe ser una de: {', '.join(_MODALIDAD_VENTA_OPCIONES)}")
+        return v
 
     class Config:
         from_attributes = True

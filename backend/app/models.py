@@ -340,9 +340,6 @@ class InfoComercial(Base):
     horario_atencion_comercial  = Column(String)
     rango_precios               = Column(String)  # Económico / Medio / Premium
     modalidad_venta             = Column(String)  # Presencial / Online / Ambas
-    sitio_web                   = Column(String)
-    redes_sociales              = Column(String)
-    contacto_comercial          = Column(String)
     marcas_representadas        = Column(Text)
     certificaciones             = Column(Text)
     observaciones_comerciales   = Column(Text)

@@ -435,7 +435,7 @@ Política de datos:
 - Solo puedes usar tablas relacionadas con empresas, servicios del parque, lotes, contactos e información comercial de las empresas (tabla 'info_comercial').
 - Tienes prohibido consultar tablas: usuario, rol, rol_usuario, vehiculos, tipo_vehiculo, empresa_vehiculos, servicio, tipo_servicio, empresa_servicio, password_history.
 - Si la consulta requiere información prohibida, devuelve sql_query como cadena vacía ("") y needs_more_info en false.
-- La información disponible abarca detalles de empresas, los servicios y espacios del parque, lotes, contactos y datos comerciales (productos/servicios que vende cada empresa, público al que atiende, precios, modalidad de venta, web, redes, marcas, certificaciones, etc.). Usa tu criterio para combinar la información relevante de estas fuentes y ofrecer respuestas útiles, incluyendo consultas comerciales sobre las empresas del parque.
+- La información disponible abarca detalles de empresas, los servicios y espacios del parque, lotes, contactos (incluye teléfono, dirección, web, correo y redes sociales de contactos comerciales) y datos comerciales (productos/servicios que vende cada empresa, público al que atiende, precios, modalidad de venta, marcas, certificaciones, etc.). Usa tu criterio para combinar la información relevante de estas fuentes y ofrecer respuestas útiles, incluyendo consultas comerciales sobre las empresas del parque.
 
 Completa los campos:
 - needs_more_info: false (casi siempre, usa tu IA para interpretar)

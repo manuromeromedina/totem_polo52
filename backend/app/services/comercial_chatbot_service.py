@@ -62,21 +62,6 @@ QUESTIONS: List[Dict] = [
         "options": ["Presencial", "Online", "Ambas"],
     },
     {
-        "field": "sitio_web",
-        "question": "¿Tenés sitio web? Pasame el link, o decime que no tenés.",
-        "type": "text",
-    },
-    {
-        "field": "redes_sociales",
-        "question": "¿Tenés redes sociales (Instagram, Facebook, LinkedIn, etc.)? Pasame el usuario o link, o decime que no tenés.",
-        "type": "text",
-    },
-    {
-        "field": "contacto_comercial",
-        "question": "¿Cuál es el teléfono o WhatsApp de contacto comercial para consultas de clientes?",
-        "type": "text",
-    },
-    {
         "field": "marcas_representadas",
         "question": "¿Representás o distribuís marcas específicas? Nombralas, o decime que no aplica.",
         "type": "text",
