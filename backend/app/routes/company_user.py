@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import get_db
 from app.routes.auth import get_current_user, require_empresa_role
 from app.routes.admin_users import MAX_ADMIN_EMPRESA_PER_COMPANY
+from app.rate_limit import rate_limit
 from app import models, schemas, services
 
 
@@ -512,6 +513,54 @@ def get_tipos_servicio(db: Session = Depends(get_db)):
 def get_tipos_contacto(db: Session = Depends(get_db)):
     """Listar todos los tipos de contacto disponibles"""
     return db.query(models.TipoContacto).all()
+
+# ═══════════════════════════════════════════════════════════════════
+# INFORMACIÓN COMERCIAL (bot de carga guiado, solo admin_empresa)
+# ═══════════════════════════════════════════════════════════════════
+
+@router.get(
+    "/companies/me/comercial",
+    response_model=schemas.InfoComercialOut,
+    summary="Ver mi información comercial cargada",
+)
+def read_my_comercial_info(
+    current_user: models.Usuario = Depends(require_empresa_role),
+    db: Session = Depends(get_db),
+):
+    """Obtener la ficha comercial cargada (o parcialmente cargada) de mi empresa"""
+    row = db.query(models.InfoComercial).filter_by(cuil=current_user.cuil).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Todavía no cargaste información comercial")
+    return row
+
+
+@router.post(
+    "/companies/me/comercial/chat",
+    response_model=schemas.ComercialChatResponse,
+    summary="Wizard de carga de información comercial",
+    dependencies=[Depends(rate_limit("comercial_chat", max_requests=30, window_seconds=60))],
+)
+def comercial_chat(
+    dto: schemas.ComercialChatRequest,
+    current_user: models.Usuario = Depends(require_empresa_role),
+    db: Session = Depends(get_db),
+):
+    """
+    Avanza un paso en el cuestionario guiado (~14 preguntas) que completa la
+    ficha comercial de la empresa logueada. Enviar `message` vacío devuelve
+    la pregunta pendiente sin avanzar; con `message` completo, valida y
+    guarda la respuesta para el campo actual y devuelve la siguiente.
+    """
+    reply, done, campo_actual, progreso_actual, progreso_total = services.get_comercial_chat_response(
+        db, current_user.cuil, dto.message
+    )
+    return schemas.ComercialChatResponse(
+        reply=reply,
+        done=done,
+        campo_actual=campo_actual,
+        progreso_actual=progreso_actual,
+        progreso_total=progreso_total,
+    )
 
 # ═══════════════════════════════════════════════════════════════════
 # SOLICITUDES DE AMPLIACIÓN DE LÍMITES

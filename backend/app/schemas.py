@@ -688,6 +688,47 @@ class PoloDetailOut(BaseModel):
         from_attributes = True
 
 
+# ═══════════════════════════════════════════════════════════════════
+# SCHEMAS DE INFORMACIÓN COMERCIAL (bot de carga, rol admin_empresa)
+# ═══════════════════════════════════════════════════════════════════
+
+class InfoComercialOut(BaseModel):
+    productos_servicios: Optional[str] = None
+    publico_objetivo: Optional[str] = None
+    atiende_publico: Optional[bool] = None
+    horario_atencion_comercial: Optional[str] = None
+    rango_precios: Optional[str] = None
+    modalidad_venta: Optional[str] = None
+    sitio_web: Optional[str] = None
+    redes_sociales: Optional[str] = None
+    contacto_comercial: Optional[str] = None
+    marcas_representadas: Optional[str] = None
+    certificaciones: Optional[str] = None
+    observaciones_comerciales: Optional[str] = None
+    completado: bool
+
+    class Config:
+        from_attributes = True
+
+class ComercialChatRequest(BaseModel):
+    message: Optional[str] = Field(
+        None, max_length=1000,
+        description="Respuesta en texto libre a la pregunta actual; vacío/omitido para obtener la pregunta pendiente"
+    )
+
+    class Config:
+        from_attributes = True
+
+class ComercialChatResponse(BaseModel):
+    reply: str
+    done: bool
+    campo_actual: Optional[str] = None
+    progreso_actual: int
+    progreso_total: int
+
+    class Config:
+        from_attributes = True
+
 #-------------#
 class UserLimitIncreaseRequest(BaseModel):
     cuil_empresa: int = Field(..., gt=0, description="CUIL de la empresa que solicita")

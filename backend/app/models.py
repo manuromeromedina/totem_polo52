@@ -62,7 +62,14 @@ class Empresa(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
-    
+    info_comercial  = relationship(
+        "InfoComercial",
+        back_populates="empresa",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
 
 
 class Usuario(Base):
@@ -317,6 +324,33 @@ class EmpresaServicio(Base):
 
     empresa = relationship("Empresa", back_populates="servicios")
     servicio = relationship("Servicio", back_populates="empresas_servicio")
+
+# ─── Información comercial (bot de carga guiado, rol admin_empresa) ──────────
+
+class InfoComercial(Base):
+    __tablename__ = "info_comercial"
+    cuil                        = Column(
+        BigInteger,
+        ForeignKey("empresa.cuil", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    productos_servicios         = Column(Text)
+    publico_objetivo            = Column(String)  # B2B / B2C / Ambos
+    atiende_publico             = Column(Boolean)
+    horario_atencion_comercial  = Column(String)
+    rango_precios               = Column(String)  # Económico / Medio / Premium
+    modalidad_venta             = Column(String)  # Presencial / Online / Ambas
+    sitio_web                   = Column(String)
+    redes_sociales              = Column(String)
+    contacto_comercial          = Column(String)
+    marcas_representadas        = Column(Text)
+    certificaciones             = Column(Text)
+    observaciones_comerciales   = Column(Text)
+    completado                  = Column(Boolean, nullable=False, default=False)
+    fecha_actualizacion         = Column(Date)
+
+    empresa = relationship("Empresa", back_populates="info_comercial")
+
 
 class PasswordHistory(Base):
     __tablename__ = "password_history"
