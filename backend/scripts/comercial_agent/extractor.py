@@ -45,7 +45,7 @@ class _ExtraccionComercial(TypedDict):
 _GENERATION_CONFIG = GenerationConfig(
     temperature=0.1,
     top_p=0.9,
-    max_output_tokens=500,
+    max_output_tokens=800,
     candidate_count=1,
     response_mime_type="application/json",
     response_schema=_ExtraccionComercial,
@@ -85,8 +85,8 @@ Completá estos campos SOLO si el texto los respalda con evidencia razonable.
 Si el texto no menciona algo, dejá ese campo como cadena vacía (""). NUNCA
 inventes datos que no estén en el texto.
 
-- descripcion_empresa: descripción general de la empresa (1-2 frases: quiénes son, historia, misión), para mostrar en su perfil. Distinta de productos_servicios (evitar repetir el mismo texto).
-- productos_servicios: resumen breve (1-2 frases) de qué vende/ofrece.
+- descripcion_empresa: descripción completa de la empresa para mostrar en su perfil (3 a 5 frases). Cubrí todo lo que el texto respalde de: quiénes son y a qué se dedican, trayectoria/historia/año de fundación, especialización o diferencial, a qué tipo de clientes atienden, alcance geográfico, y cualquier logro o dato distintivo mencionado. Es un párrafo más desarrollado que productos_servicios, sin repetir las mismas frases. Si el texto solo da para una o dos frases reales, no rellenes con relleno genérico: mejor corto y verídico que largo e inventado.
+- productos_servicios: resumen breve (1-2 frases) de qué vende/ofrece específicamente (productos, líneas, servicios concretos).
 - publico_objetivo: "B2B", "B2C" o "Ambos", solo si se infiere con claridad.
 - atiende_publico: "true" o "false" (string), solo si el texto lo aclara.
 - horario_atencion_comercial: horario de atención si figura.
