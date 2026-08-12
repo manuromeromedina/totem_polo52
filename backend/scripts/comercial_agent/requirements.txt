@@ -1,0 +1,7 @@
+openpyxl
+requests
+beautifulsoup4
+lxml
+python-dotenv
+google-generativeai
+typing_extensions

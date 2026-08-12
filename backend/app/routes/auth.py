@@ -1,5 +1,5 @@
 #auth.py
-from fastapi import Depends, HTTPException, APIRouter, Response, Request, Form
+from fastapi import Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
@@ -14,10 +14,6 @@ from app.rate_limit import rate_limit
 
 router = APIRouter()
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")
-# La cookie "remember_token" solo debe viajar sobre HTTPS en producción; en
-# desarrollo local (http://localhost) el navegador la descartaría si Secure
-# fuera True, así que se deriva del esquema real en el que corre el backend.
-COOKIE_SECURE = os.getenv("EXTERNAL_BASE_URL", "").startswith("https")
 
 # OAuth2PasswordBearer para manejar el token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -61,44 +57,6 @@ def get_current_user(
         return user
     except JWTError:
         raise HTTPException(401, "Token inválido")
-
-
-# Función para obtener usuario desde cookie de "recordarme"
-def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -> models.Usuario:
-    """
-    Obtiene el usuario actual desde token Bearer o cookie de "recordarme"
-    Usado para endpoints que pueden funcionar con o sin autenticación
-    """
-    # 1) Intentar con Authorization: Bearer
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.split(" ")[1]
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            nombre = payload.get("sub")
-            if nombre:
-                user = db.query(models.Usuario).filter(models.Usuario.nombre == nombre).first()
-                if user and user.estado and user.empresa and user.empresa.estado:
-                    return user
-        except JWTError:
-            pass  # ignorar y seguir a cookie
-
-    # 2) Intentar con cookie remember_token
-    remember_token = request.cookies.get("remember_token")
-    if remember_token:
-        try:
-            payload = jwt.decode(remember_token, SECRET_KEY, algorithms=[ALGORITHM])
-            nombre = payload.get("sub")
-            token_type = payload.get("type")
-            if nombre and token_type == "remember":
-                user = db.query(models.Usuario).filter(models.Usuario.nombre == nombre).first()
-                if user and user.estado and user.empresa and user.empresa.estado:
-                    return user
-        except JWTError:
-            pass
-
-    # 3) Si nada funcionó, no hay usuario válido
-    return None
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -206,14 +164,8 @@ def register(dto: schemas.UserRegister, db: Session = Depends(get_db)):
     dependencies=[Depends(rate_limit("login", max_requests=10, window_seconds=60))],
 )
 def login(
-    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
-    # Antes era un bool suelto: FastAPI lo interpretaba como query param (no
-    # como campo del form), y el frontend nunca lo mandaba ahí. Como Form()
-    # viaja en el mismo body application/x-www-form-urlencoded que
-    # username/password, coincide con cómo el frontend ya arma la request.
-    remember_me: bool = Form(False),
 ):
     user = (
         db.query(models.Usuario)
@@ -253,29 +205,11 @@ def login(
     # Access token
     access_token = services.create_access_token(data={"sub": user.nombre})
 
-    # Cookie remember opcional
-    if remember_me:
-        remember_data = {
-            "sub": user.nombre,
-            "type": "remember",
-            "exp": datetime.utcnow() + timedelta(days=30)
-        }
-        remember_token = jwt.encode(remember_data, SECRET_KEY, algorithm=ALGORITHM)
-        response.set_cookie(
-            key="remember_token",
-            value=remember_token,
-            max_age=30 * 24 * 60 * 60,
-            httponly=True,
-            secure=COOKIE_SECURE,
-            samesite="lax"
-        )
-
     return {
         # Campos originales
         "access_token": access_token,
         "token_type": "bearer",
         "tipo_rol": rol,
-        "remember_me": remember_me,
         # Alias adicionales para compatibilidad con frontends que esperan otros nombres
         "token": access_token,
         "role": rol,
@@ -290,52 +224,9 @@ def login(
 
 @router.post("/logout", tags=["auth"], summary="Cerrar sesión")
 def logout(
-    response: Response,
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    # Eliminar cookie de "recordarme" si existe
-    response.delete_cookie(
-        key="remember_token",
-        httponly=True,
-        secure=COOKIE_SECURE,
-        samesite="lax"
-    )
     return {"message": "Sesión cerrada correctamente"}
-
-# Nuevo endpoint para verificar si hay sesión activa desde cookie
-@router.get("/check-remember", tags=["auth"])
-def check_remember_session(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    """Verifica si existe una sesión válida desde cookie de 'recordarme'"""
-    user = get_current_user_optional(request, db)
-    
-    if user:
-        # Obtener roles del usuario
-        roles = (
-            db.query(models.Rol.tipo_rol)
-            .join(models.RolUsuario, models.Rol.id_rol == models.RolUsuario.id_rol)
-            .filter(models.RolUsuario.id_usuario == user.id_usuario)
-            .all()
-        )
-        rol = roles[0][0] if roles else "usuario"
-        
-        # Crear nuevo access token para la sesión
-        access_token = services.create_access_token(data={"sub": user.nombre})
-        
-        return {
-            "logged_in": True,
-            "user": {
-                "nombre": user.nombre,
-                "email": user.email,
-                "tipo_rol": rol
-            },
-            "access_token": access_token,
-            "token_type": "bearer"
-        }
-    
-    return {"logged_in": False}
 
 # ═══════════════════════════════════════════════════════════════════
 # CAMBIO DE CONTRASEÑA DIRECTO (USUARIO LOGUEADO)
