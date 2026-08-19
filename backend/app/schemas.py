@@ -1,7 +1,7 @@
 #app/schemas.py
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from uuid import UUID
-from datetime import date
+from datetime import date, datetime
 from typing import Optional, List, Dict
 import re
 
@@ -726,6 +726,18 @@ class ComercialChatResponse(BaseModel):
     campo_actual: Optional[str] = None
     progreso_actual: int
     progreso_total: int
+
+    class Config:
+        from_attributes = True
+
+# ═══════════════════════════════════════════════════════════════════
+# HISTORIAL DEL CHATBOT
+# ═══════════════════════════════════════════════════════════════════
+
+class ChatMensajeOut(BaseModel):
+    remitente: str
+    contenido: str
+    fecha: datetime
 
     class Config:
         from_attributes = True

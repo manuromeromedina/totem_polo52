@@ -6,11 +6,13 @@ from sqlalchemy import (
     String,
     Boolean,
     Date,
+    DateTime,
     Text,
     ForeignKey,
     JSON,
     Time,
-    BigInteger
+    BigInteger,
+    func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -110,6 +112,14 @@ class Usuario(Base):
         back_populates="usuario",
         cascade="all, delete-orphan",
         order_by="PasswordHistory.created_at.desc()"
+    )
+
+    chat_mensajes = relationship(
+        "ChatMensaje",
+        back_populates="usuario",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ChatMensaje.fecha",
     )
 
 class Rol(Base):
@@ -360,5 +370,24 @@ class PasswordHistory(Base):
     )
     password_hash = Column(String, nullable=False)
     created_at = Column(Date, nullable=False, default=date.today)
-   
+
     usuario = relationship("Usuario", back_populates="password_history")
+
+
+# ─── Historial del chatbot ─────────────────────────────────────────────────
+
+class ChatMensaje(Base):
+    __tablename__ = "chat_mensaje"
+
+    id_mensaje = Column(Integer, primary_key=True, index=True)
+    id_usuario = Column(
+        UUID(as_uuid=True),
+        ForeignKey("usuario.id_usuario", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    remitente  = Column(String, nullable=False)  # 'user' | 'bot'
+    contenido  = Column(Text, nullable=False)
+    fecha      = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    usuario = relationship("Usuario", back_populates="chat_mensajes")

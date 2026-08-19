@@ -288,6 +288,50 @@ def update_polo_details(dto: schemas.PoloSelfUpdate, db: Session = Depends(get_d
     # Devolver la información completa actualizada
     return get_polo_details(db)
 
+# ═══════════════════════════════════════════════════════════════════
+# INFORMACIÓN COMERCIAL DEL POLO (misma ficha que usan las empresas,
+# pero para la propia empresa Polo, solo accesible por admin_polo)
+# ═══════════════════════════════════════════════════════════════════
+
+@router.get(
+    "/polo/comercial",
+    response_model=schemas.InfoComercialOut,
+    summary="Ver la información comercial cargada del Polo",
+)
+def read_polo_comercial_info(db: Session = Depends(get_db)):
+    """Obtener la ficha comercial cargada (o parcialmente cargada) del Polo"""
+    row = db.query(models.InfoComercial).filter_by(cuil=POLO_CUIL).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Todavía no se cargó información comercial del Polo")
+    return row
+
+
+@router.put(
+    "/polo/comercial",
+    response_model=schemas.InfoComercialOut,
+    summary="Cargar/editar la información comercial del Polo",
+)
+def update_polo_comercial_info(dto: schemas.InfoComercialUpdate, db: Session = Depends(get_db)):
+    """
+    Crea o actualiza la ficha comercial del Polo directamente (sin wizard):
+    la carga un admin_polo con datos ya conocidos, no se completa de a un
+    campo por vez como en el flujo de las empresas.
+    """
+    row = db.query(models.InfoComercial).filter_by(cuil=POLO_CUIL).first()
+    if not row:
+        row = models.InfoComercial(cuil=POLO_CUIL)
+        db.add(row)
+
+    data = dto.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(row, field, value)
+    row.completado = True
+    row.fecha_actualizacion = date.today()
+
+    db.commit()
+    db.refresh(row)
+    return row
+
 @router.post("/polo/change-password-request", summary="Solicitar cambio de contraseña para admin polo")
 def polo_change_password_request(
     current_user: models.Usuario = Depends(get_current_user),

@@ -13,7 +13,7 @@ import json
 from app.config import get_db
 from app.routes.auth import require_public_role
 from app.rate_limit import rate_limit
-from app import services
+from app import services, models, schemas
 
 MAX_SYNTHESIZE_TEXT_LENGTH = 5000
 
@@ -190,6 +190,7 @@ async def voice_chat_endpoint(
     history_form: Optional[str] = Form(
         None, description="Historial de conversación en JSON (solo para multipart/form-data)"
     ),
+    current_user: models.Usuario = Depends(require_public_role),
     db: Session = Depends(get_db)
 ):
     """
@@ -244,6 +245,25 @@ async def voice_chat_endpoint(
             history,
         )
 
+        # Guarda el turno completo (usuario + bot) para que el historial
+        # persista entre sesiones (ver GET /history).
+        user_turn_text = (text or result.get("transcript") or "").strip()
+        bot_turn_text = (result.get("text") or "").strip()
+        if user_turn_text:
+            db.add(models.ChatMensaje(
+                id_usuario=current_user.id_usuario,
+                remitente="user",
+                contenido=user_turn_text,
+            ))
+        if bot_turn_text:
+            db.add(models.ChatMensaje(
+                id_usuario=current_user.id_usuario,
+                remitente="bot",
+                contenido=bot_turn_text,
+            ))
+        if user_turn_text or bot_turn_text:
+            db.commit()
+
         payload = {
             "success": True,
             "data": {
@@ -281,6 +301,23 @@ async def voice_chat_endpoint(
                 "message": "El servidor no pudo responder la consulta"
             }
         )
+
+# ═══════════════════════════════════════════════════════════════════
+# ENDPOINT 4b: Historial de conversación del usuario logueado
+# ═══════════════════════════════════════════════════════════════════
+
+@router.get("/history", response_model=List[schemas.ChatMensajeOut], summary="Historial de chat del usuario")
+def get_chat_history(
+    current_user: models.Usuario = Depends(require_public_role),
+    db: Session = Depends(get_db),
+):
+    """Devuelve toda la conversación previa del usuario logueado, en orden cronológico."""
+    return (
+        db.query(models.ChatMensaje)
+        .filter(models.ChatMensaje.id_usuario == current_user.id_usuario)
+        .order_by(models.ChatMensaje.fecha.asc(), models.ChatMensaje.id_mensaje.asc())
+        .all()
+    )
 
 # ═══════════════════════════════════════════════════════════════════
 # ENDPOINT 5: Test del pipeline completo

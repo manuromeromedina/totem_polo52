@@ -1,5 +1,6 @@
 import io
-from typing import Dict, Iterator
+from typing import Iterator
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,9 +19,10 @@ class DummyUser:
         self.roles = [{"tipo_rol": "publico"}]
 
 
-def _dummy_db() -> Iterator[Dict[str, str]]:
-    """Generador simple que simula la dependencia de DB."""
-    yield {}
+def _dummy_db() -> Iterator[MagicMock]:
+    """Simula la dependencia de DB: acepta add/commit/query/execute como no-ops,
+    ya que las pruebas mockean la lógica real vía app.routes.*.services.*."""
+    yield MagicMock()
 
 
 @pytest.fixture(autouse=True)
