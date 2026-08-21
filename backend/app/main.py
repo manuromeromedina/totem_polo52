@@ -1,5 +1,14 @@
 # app/main.py
+import sys
 from datetime import datetime
+
+# La consola de Windows arranca en cp1252 por default, que no puede
+# codificar los emojis que usan los prints de este proyecto (🎤, ⚠️, etc.)
+# y tira UnicodeEncodeError al loguear, tumbando el arranque. En Linux
+# (producción) esto no pasa porque la consola ya es UTF-8.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

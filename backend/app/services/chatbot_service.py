@@ -116,7 +116,13 @@ FORBIDDEN_SQL_TABLES = {
     "tipo_servicio",
     "empresa_servicio",
     "password_history",
+    "chat_mensaje",
 }
+
+# CUIL con el que se guarda la ficha comercial del propio Parque Industrial
+# Polo 52 dentro de 'info_comercial' (misma tabla que usan las empresas).
+# Ver app/routes/admin_users.py: POLO_CUIL.
+POLO_CUIL = int(os.getenv("POLO_CUIL", "44123456789"))
 
 FORBIDDEN_RESPONSE_TEXT = "No tengo permitido compartir esta información."
 
@@ -433,9 +439,11 @@ Tu inteligencia artificial debe SIEMPRE intentar responder con datos reales. Deb
 
 Política de datos:
 - Solo puedes usar tablas relacionadas con empresas, servicios del parque, lotes, contactos e información comercial de las empresas (tabla 'info_comercial').
-- Tienes prohibido consultar tablas: usuario, rol, rol_usuario, vehiculos, tipo_vehiculo, empresa_vehiculos, servicio, tipo_servicio, empresa_servicio, password_history.
+- Tienes prohibido consultar tablas: usuario, rol, rol_usuario, vehiculos, tipo_vehiculo, empresa_vehiculos, servicio, tipo_servicio, empresa_servicio, password_history, chat_mensaje.
 - Si la consulta requiere información prohibida, devuelve sql_query como cadena vacía ("") y needs_more_info en false.
 - La información disponible abarca detalles de empresas, los servicios y espacios del parque, lotes, contactos (incluye teléfono, dirección, web, correo y redes sociales de contactos comerciales) y datos comerciales (productos/servicios que vende cada empresa, público al que atiende, precios, modalidad de venta, marcas, certificaciones, etc.). Usa tu criterio para combinar la información relevante de estas fuentes y ofrecer respuestas útiles, incluyendo consultas comerciales sobre las empresas del parque.
+- La tabla 'info_comercial' es información PÚBLICA y comercial por definición (nunca la trates como restringida): tiene como clave 'cuil', que referencia a 'empresa.cuil'. Para preguntas sobre la ficha comercial de una empresa puntual, hacé JOIN de 'empresa' con 'info_comercial' por cuil. El propio Parque Industrial Polo 52 también tiene su ficha comercial cargada en 'info_comercial' con cuil = {POLO_CUIL}: si preguntan por los servicios/propuesta comercial "del polo" (no de una empresa en particular), consultá esa fila puntual (WHERE cuil = {POLO_CUIL}).
+- Si 'info_comercial' no tiene fila para una empresa, o campos en null, no es información prohibida: simplemente todavía no la cargaron. Respondé eso con naturalidad, nunca como si estuviera prohibida.
 
 Completa los campos:
 - needs_more_info: false (casi siempre, usa tu IA para interpretar)
@@ -498,7 +506,7 @@ Historial:
 Reglas que no podés romper:
 - Solo hablás de temas del Parque Industrial Polo 52 y de los datos que tenés disponibles. Si te preguntan algo ajeno, respondé: "Solo puedo ayudarte con información del Parque Industrial Polo 52."
 - Nunca muestres CUIL, IDs internos ni datos sensibles.
-- Si la consulta es sobre usuarios, vehículos o servicios internos del sistema, respondé exactamente: "No tengo permitido compartir esta información".
+- Si la consulta es sobre usuarios, contraseñas, roles o vehículos del sistema interno, respondé exactamente: "No tengo permitido compartir esta información". Esto NO aplica a información comercial (productos, servicios, precios, modalidad de venta, público al que atiende, marcas, certificaciones, contacto) de las empresas ni del propio Parque: esa información es pública y siempre podés compartirla con lo que tengas disponible.
 - Si no hay resultados para la consulta, decilo con naturalidad y, si tiene sentido, ofrecé una alternativa relacionada con el parque.
 
 Fuera de esas reglas, usá tu propio criterio: contestá de forma natural y breve (como en una conversación real, sin relleno), con el tono y formato que mejor se adapten a la pregunta.
