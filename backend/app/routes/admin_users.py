@@ -1,17 +1,14 @@
 #app/routes/admin_users.py
 from fastapi import APIRouter, HTTPException, Depends, status
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, joinedload
 from datetime import date
 from uuid import UUID
 from typing import List
 import os
 from app.config import get_db
 from app import models, schemas, services
-from app.models import Empresa, ServicioPolo, TipoServicioPolo, Rol
-from app.schemas import (
-    EmpresaOut, EmpresaCreate, RolOut, EmpresaDetailOutPublic, 
-    ContactoOutPublic, LoteOutPublic
-)
+from app.models import Empresa, Rol
+from app.schemas import EmpresaOut, RolOut
 from app.routes.auth import require_admin_polo, get_current_user
 import re
 NAME_RE = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+$")
@@ -81,31 +78,16 @@ def validate_user_creation_limits(db: Session, dto: schemas.UserCreate):
                        f"contacte con soporte técnico."
             )
     
-    # Validación para admin_empresa
+    # admin_empresa ya no se crea a mano: se crea (junto con su empresa) por
+    # el autoregistro público (POST /register) y su posterior aprobación por
+    # admin_polo (POST /empresas/{cuil}/aprobar).
     elif rol.tipo_rol == "admin_empresa":
-        # Verificar que NO sea la empresa Polo
-        if dto.cuil == POLO_CUIL:
-            raise HTTPException(
-                status_code=400,
-                detail="La empresa Polo no puede tener usuarios admin_empresa. "
-                       "Solo puede tener usuarios admin_polo y publicos."
-            )
-        
-        # Contar admin_empresa existentes para esta empresa específica
-        admin_empresa_count = _count_active_users_by_role(db, "admin_empresa", cuil=dto.cuil)
+        raise HTTPException(
+            status_code=400,
+            detail="Los usuarios admin_empresa se crean mediante el registro público "
+                   "de la empresa y su aprobación por admin_polo, no desde acá."
+        )
 
-        if admin_empresa_count >= MAX_ADMIN_EMPRESA_PER_COMPANY:
-            empresa = db.query(models.Empresa).filter(models.Empresa.cuil == dto.cuil).first()
-            empresa_nombre = empresa.nombre if empresa else f"CUIL {dto.cuil}"
-            
-            raise HTTPException(
-                status_code=400,
-                detail=f"La empresa '{empresa_nombre}' ya tiene el máximo de {MAX_ADMIN_EMPRESA_PER_COMPANY} "
-                       f"usuarios admin_empresa permitidos. Actualmente hay {admin_empresa_count}. "
-                       f"Si necesita más usuarios, contacte con el administrador del polo para solicitar "
-                       f"una ampliación del límite."
-            )
-    
     # Validación para usuarios públicos
     elif rol.tipo_rol == "publico":
         # Verificar que SOLO se puedan crear en la empresa Polo
@@ -157,60 +139,6 @@ def validate_user_activation_limits(db: Session, user: models.Usuario):
             )
     
     # Para usuarios públicos no hay límite, siempre se permite activar
-
-# Precarga usada por los endpoints que arman EmpresaDetailOutPublic: sin esto,
-# cada empresa listada dispara consultas separadas por sus contactos y
-# servicios del polo (N+1).
-EMPRESA_DETAIL_EAGER_OPTIONS = (
-    selectinload(models.Empresa.contactos).selectinload(models.Contacto.tipo_contacto),
-    selectinload(models.Empresa.servicios_polo).selectinload(models.ServicioPolo.tipo_servicio),
-    selectinload(models.Empresa.servicios_polo).selectinload(models.ServicioPolo.lotes),
-)
-
-
-def build_empresa_detail_public(emp: models.Empresa) -> schemas.EmpresaDetailOutPublic:
-    """Construir detalle público de empresa con contactos y servicios polo"""
-    # Contactos
-    conts = []
-    for c in emp.contactos:
-        tipo_contacto = c.tipo_contacto.tipo if c.tipo_contacto else None
-        conts.append(
-            schemas.ContactoOutPublic(
-                empresa_nombre=emp.nombre,
-                nombre=c.nombre,
-                telefono=c.telefono,
-                datos=c.datos,
-                direccion=c.direccion,
-                tipo_contacto=tipo_contacto
-            )
-        )
-
-    # Servicios asociados al Polo
-    servicios_polo = []
-    for esp in emp.servicios_polo:
-        svc = esp
-        tipo_servicio_polo = svc.tipo_servicio.tipo if svc.tipo_servicio else None
-        # Lotes asociados al servicio del polo
-        lotes = [schemas.LoteOut.from_orm(l) for l in svc.lotes] if svc.lotes else []
-
-        servicios_polo.append(
-            schemas.ServicioPoloOutPublic(
-                nombre=svc.nombre,
-                horario=svc.horario,
-                propietario=svc.propietario,
-                tipo_servicio_polo=tipo_servicio_polo,
-                lotes=lotes
-            )
-        )
-
-    return schemas.EmpresaDetailOutPublic(
-        nombre=emp.nombre,
-        rubro=emp.rubro,
-        fecha_ingreso=emp.fecha_ingreso,
-        horario_trabajo=emp.horario_trabajo,
-        contactos=conts,
-        servicios_polo=servicios_polo
-    )
 
 # ═══════════════════════════════════════════════════════════════════
 # GESTIÓN DEL POLO
@@ -552,27 +480,6 @@ def get_users_limits_status(db: Session = Depends(get_db)):
 # GESTIÓN DE EMPRESAS
 # ═══════════════════════════════════════════════════════════════════
 
-@router.post("/empresas", response_model=EmpresaOut, summary="Crear una nueva empresa")
-def create_empresa(dto: EmpresaCreate, db: Session = Depends(get_db)):
-    """Crear nueva empresa en el sistema"""
-    if db.query(Empresa).filter(Empresa.cuil == dto.cuil).first():
-        raise HTTPException(status_code=400, detail="Ya existe una empresa con ese CUIL")
-
-    nueva = Empresa(
-        cuil=dto.cuil,
-        nombre=dto.nombre,
-        rubro=dto.rubro,
-        cant_empleados=dto.cant_empleados,
-        observaciones=dto.observaciones,
-        fecha_ingreso=dto.fecha_ingreso or date.today(),
-        horario_trabajo=dto.horario_trabajo,
-        estado=dto.estado
-    )
-    db.add(nueva)
-    db.commit()
-    db.refresh(nueva)
-    return nueva
-
 @router.put("/empresas/{cuil}", response_model=schemas.EmpresaOut, summary="Actualizar nombre y rubro de empresa")
 def admin_update_empresa_nombre_rubro(
     cuil: int,
@@ -649,6 +556,87 @@ def activar_empresa(cuil: int, db: Session = Depends(get_db)):
     _set_empresa_and_related_estado(empresa, True)
     db.commit()
     return {"message": f"Empresa '{empresa.nombre}' y sus registros relacionados fueron reactivados correctamente."}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SOLICITUDES DE REGISTRO (autoregistro público, pendientes de aprobación)
+# ═══════════════════════════════════════════════════════════════════
+
+@router.get("/empresas/solicitudes", summary="Listar solicitudes de registro pendientes")
+def list_solicitudes_registro(db: Session = Depends(get_db)):
+    """Empresas autoregistradas que todavía no fueron aprobadas ni rechazadas."""
+    empresas = (
+        db.query(models.Empresa)
+        .filter(models.Empresa.estado_solicitud == "pendiente")
+        .all()
+    )
+    resultado = []
+    for empresa in empresas:
+        usuario = empresa.usuarios[0] if empresa.usuarios else None
+        resultado.append({
+            "cuil": empresa.cuil,
+            "nombre": empresa.nombre,
+            "rubro": empresa.rubro,
+            "cant_empleados": empresa.cant_empleados,
+            "horario_trabajo": empresa.horario_trabajo,
+            "observaciones": empresa.observaciones,
+            "fecha_ingreso": empresa.fecha_ingreso,
+            "estado_solicitud": empresa.estado_solicitud,
+            "usuario": {
+                "nombre": usuario.nombre,
+                "email": usuario.email,
+            } if usuario else None,
+        })
+    return resultado
+
+
+@router.post("/empresas/{cuil}/aprobar", summary="Aprobar una solicitud de registro")
+def aprobar_solicitud_registro(cuil: int, db: Session = Depends(get_db)):
+    """
+    Aprueba una empresa autoregistrada: la activa (junto con su usuario) y
+    le manda un email avisando que ya puede ingresar. También sirve para
+    revertir un rechazo anterior.
+    """
+    empresa = db.query(models.Empresa).filter(models.Empresa.cuil == cuil).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+    empresa.estado_solicitud = "aprobada"
+    _set_empresa_and_related_estado(empresa, True)
+    db.commit()
+
+    for usuario in empresa.usuarios:
+        services.send_registration_approved_email(
+            email=usuario.email,
+            nombre=usuario.nombre,
+            nombre_empresa=empresa.nombre,
+        )
+
+    return {"message": f"Empresa '{empresa.nombre}' aprobada correctamente."}
+
+
+@router.post("/empresas/{cuil}/rechazar", summary="Rechazar una solicitud de registro")
+def rechazar_solicitud_registro(cuil: int, db: Session = Depends(get_db)):
+    """
+    Rechaza una empresa autoregistrada: no borra nada, solo marca
+    estado_solicitud='rechazada' (la empresa sigue inactiva). Reversible
+    desde /empresas/{cuil}/aprobar.
+    """
+    empresa = db.query(models.Empresa).filter(models.Empresa.cuil == cuil).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+    empresa.estado_solicitud = "rechazada"
+    db.commit()
+
+    for usuario in empresa.usuarios:
+        services.send_registration_rejected_email(
+            email=usuario.email,
+            nombre=usuario.nombre,
+            nombre_empresa=empresa.nombre,
+        )
+
+    return {"message": f"Solicitud de '{empresa.nombre}' rechazada."}
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -747,114 +735,3 @@ def delete_lote(id_lotes: int, db: Session = Depends(get_db)):
     
     return {"msg": "Lote eliminado exitosamente"}
 
-# ═══════════════════════════════════════════════════════════════════
-# BÚSQUEDAS Y CONSULTAS PÚBLICAS
-# ═══════════════════════════════════════════════════════════════════
-
-@router.get("/all", response_model=List[EmpresaDetailOutPublic], summary="Obtener todas las empresas con detalles completos")
-def get_all_companies(db: Session = Depends(get_db)):
-    """Listar todas las empresas con información detallada para consulta pública"""
-    empresas = db.query(Empresa).options(*EMPRESA_DETAIL_EAGER_OPTIONS).all()
-    if not empresas:
-        raise HTTPException(status_code=404, detail="No se encontraron empresas")
-    
-    empresa_details = []
-    for empresa in empresas:
-        empresa_details.append(build_empresa_detail_public(empresa))
-    
-    return empresa_details
-
-@router.get("/search", response_model=List[EmpresaDetailOutPublic], summary="Buscar empresas por criterios específicos")
-def search_companies(
-    name: str = None,
-    rubro: str = None,
-    servicio_polo: str = None,
-    db: Session = Depends(get_db)
-):
-    """Buscar empresas por nombre, rubro o tipo de servicio del polo"""
-    query = db.query(Empresa).options(*EMPRESA_DETAIL_EAGER_OPTIONS)
-
-    # Filtrar por nombre
-    if name:
-        query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
-    
-    # Filtrar por rubro
-    if rubro:
-        query = query.filter(Empresa.rubro.ilike(f"%{rubro}%"))
-    
-    # Filtrar por tipo de servicio_polo
-    if servicio_polo:
-        query = query.join(ServicioPolo).join(TipoServicioPolo).filter(
-            TipoServicioPolo.tipo.ilike(f"%{servicio_polo}%")
-        )
-
-    companies = query.all()
-
-    if not companies:
-        raise HTTPException(status_code=404, detail="No se encontraron empresas")
-    
-    empresa_details = []
-    for empresa in companies:
-        empresa_details.append(build_empresa_detail_public(empresa))
-    
-    return empresa_details
-
-@router.get("/search/contactos", response_model=List[ContactoOutPublic], summary="Buscar contactos por empresa")
-def search_companies_contacts(name: str = None, db: Session = Depends(get_db)):
-    """Buscar empresas por nombre y devolver solo los contactos"""
-    query = db.query(Empresa).options(
-        selectinload(Empresa.contactos).selectinload(models.Contacto.tipo_contacto)
-    )
-
-    if name:
-        query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
-
-    companies = query.all()
-
-    if not companies:
-        raise HTTPException(status_code=404, detail="No se encontraron empresas")
-    
-    all_contacts = []
-    for empresa in companies:
-        for contacto in empresa.contactos:
-            tipo_contacto = contacto.tipo_contacto.tipo if contacto.tipo_contacto else None
-            all_contacts.append(
-                schemas.ContactoOutPublic(
-                    empresa_nombre=empresa.nombre,
-                    nombre=contacto.nombre,
-                    telefono=contacto.telefono,
-                    datos=contacto.datos,
-                    direccion=contacto.direccion,
-                    tipo_contacto=tipo_contacto
-                )
-            )
-        
-    return all_contacts
-
-@router.get("/search/lotes", response_model=List[LoteOutPublic], summary="Buscar lotes por empresa")
-def search_companies_lotes(name: str = None, db: Session = Depends(get_db)):
-    """Buscar empresas por nombre y devolver solo los lotes"""
-    query = db.query(Empresa).options(
-        selectinload(Empresa.servicios_polo).selectinload(models.ServicioPolo.lotes)
-    )
-
-    if name:
-        query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
-
-    companies = query.all()
-
-    if not companies:
-        raise HTTPException(status_code=404, detail="No se encontraron empresas")
-    
-    all_lotes = []
-    for empresa in companies:
-        for servicio_polo in empresa.servicios_polo:
-            for lote in servicio_polo.lotes:
-                lote_data = schemas.LoteOutPublic(
-                    empresa_nombre=empresa.nombre,
-                    lote=lote.lote,
-                    manzana=lote.manzana
-                )
-                all_lotes.append(lote_data)
-    
-    return all_lotes

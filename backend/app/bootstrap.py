@@ -2,6 +2,7 @@
 import os
 from datetime import date
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import SessionLocal, engine, Base
@@ -90,6 +91,24 @@ def _ensure_admin_empresa(db: Session) -> models.Empresa:
     return empresa
 
 
+def _ensure_schema_upgrades() -> None:
+    """
+    Agrega columnas nuevas a tablas ya existentes: `Base.metadata.create_all()`
+    solo crea tablas faltantes, no columnas faltantes en tablas que ya
+    existen. Sin Alembic, esta es la forma más simple de mantener el schema
+    al día en cada arranque (idempotente gracias a IF NOT EXISTS).
+    """
+    with engine.begin() as conn:
+        conn.execute(text(
+            "ALTER TABLE empresa ADD COLUMN IF NOT EXISTS estado_solicitud "
+            "VARCHAR(20) NOT NULL DEFAULT 'aprobada'"
+        ))
+        conn.execute(text(
+            "ALTER TABLE usuario ADD COLUMN IF NOT EXISTS mostrar_bienvenida "
+            "BOOLEAN NOT NULL DEFAULT TRUE"
+        ))
+
+
 def run_startup_bootstrap() -> None:
     """
     Crea las tablas si no existen (idempotente), asegura los catálogos de
@@ -100,6 +119,7 @@ def run_startup_bootstrap() -> None:
     arranque; la creación del admin solo pasa si todavía no hay ninguno.
     """
     Base.metadata.create_all(bind=engine)
+    _ensure_schema_upgrades()
 
     db = SessionLocal()
     try:

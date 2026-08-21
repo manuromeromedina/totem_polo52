@@ -43,6 +43,9 @@ from app.services.email_service import (
     send_password_change_failure_notification,
     send_password_change_notification,
     send_password_reset_email,
+    send_registration_approved_email,
+    send_registration_received_email,
+    send_registration_rejected_email,
     send_welcome_email,
 )
 

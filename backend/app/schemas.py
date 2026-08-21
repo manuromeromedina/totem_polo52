@@ -24,25 +24,29 @@ class UserLogin(BaseModel):
     class Config:
         from_attributes = True
 
-class UserRegister(BaseModel):
-    nombre: str = Field(
+class EmpresaRegisterRequest(BaseModel):
+    """Autoregistro público: crea la empresa y su primer usuario (admin_empresa)
+    juntos, quedando pendientes de aprobación por admin_polo."""
+    # Datos de la empresa (mismos campos/obligatoriedad que EmpresaCreate)
+    cuil: int = Field(..., gt=0, description="CUIL numérico positivo")
+    nombre: str = Field(..., min_length=1, description="Razón social / nombre de la empresa")
+    rubro: str = Field(..., min_length=1)
+    cant_empleados: int = Field(..., ge=0)
+    observaciones: Optional[str] = None
+    horario_trabajo: str = Field(..., min_length=1)
+
+    # Datos del usuario que administrará la empresa
+    usuario_nombre: str = Field(
         ..., min_length=3, max_length=50,
         description="Entre 3 y 50 caracteres"
     )
-    email: EmailStr = Field(
-        ..., max_length=255,
-        description="Email válido"
-    )
+    email: EmailStr = Field(..., max_length=255, description="Email válido")
     password: str = Field(
         ..., min_length=8, max_length=128,
         description=(
             "8–128 caracteres, al menos una mayúscula, "
             "una minúscula y un dígito"
         ),
-    )
-    cuil: int = Field(
-        ..., gt=0,
-        description="CUIL numérico positivo"
     )
 
     @field_validator('password')
@@ -62,6 +66,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     tipo_rol: str
+    mostrar_bienvenida: bool = False
 
     class Config:
            from_attributes = True
@@ -340,19 +345,7 @@ class EmpresaOut(BaseModel):
     fecha_ingreso: date
     horario_trabajo: str
     estado: bool
-
-    class Config:
-           from_attributes = True
-
-class EmpresaCreate(BaseModel):
-    cuil: int
-    nombre: str
-    rubro: str
-    cant_empleados: int
-    observaciones: Optional[str] = None
-    fecha_ingreso: Optional[date] = None
-    horario_trabajo: str
-    estado: bool
+    estado_solicitud: str
 
     class Config:
            from_attributes = True
@@ -615,12 +608,16 @@ class EmpresaDetailOut(BaseModel):
         from_attributes = True
 
 class EmpresaDetailOutPublic(BaseModel):
+    cuil: int
     nombre: str
     rubro: str
+    cant_empleados: int
+    observaciones: Optional[str] = None
     fecha_ingreso: date
     horario_trabajo: str
     contactos: List[ContactoOutPublic]
     servicios_polo: List[ServicioPoloOutPublic]
+    info_comercial: Optional["InfoComercialOut"] = None
 
     class Config:
         from_attributes = True

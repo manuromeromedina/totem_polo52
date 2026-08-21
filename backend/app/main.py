@@ -16,6 +16,7 @@ from app import services
 from app.routes.auth import router as auth_router
 from app.routes.company_user import router as company_user_router
 from app.routes.admin_users import router as admin_users_router
+from app.routes.directory import router as directory_router
 from app.routes.chat import router as chat_router
 from app.routes.tipos import router as tipos
 from app.routes.google_auth import router as google_auth_router
@@ -81,6 +82,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.include_router(auth_router)
 app.include_router(company_user_router)
 app.include_router(admin_users_router)
+app.include_router(directory_router)
 app.include_router(chat_router)  # Chat de texto
 app.include_router(tipos)
 app.include_router(google_auth_router)

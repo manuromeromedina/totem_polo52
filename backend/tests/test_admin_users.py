@@ -134,16 +134,11 @@ def test_validate_user_creation_limits_admin_polo_max(admin_db):
     session.close()
 
 
-def test_validate_user_creation_limits_admin_empresa_max(admin_db):
+def test_validate_user_creation_limits_admin_empresa_rejected(admin_db):
+    """admin_empresa ya no se crea a mano: se crea (junto con su empresa) por
+    el autoregistro público y su aprobación por admin_polo."""
     SessionLocal, roles = admin_db
     session = SessionLocal()
-    for idx in range(admin_routes.MAX_ADMIN_EMPRESA_PER_COMPANY):
-        _create_user_with_role(
-            session,
-            nombre=f"empresa{idx}",
-            cuil=roles["empresa_cuil"],
-            role_id=roles["admin_empresa"],
-        )
     dto = UserCreate(
         nombre="extraEmpresa",
         email="extraEmpresa@test.com",
@@ -153,7 +148,7 @@ def test_validate_user_creation_limits_admin_empresa_max(admin_db):
     )
     with pytest.raises(Exception) as exc:
         admin_routes.validate_user_creation_limits(session, dto)
-    assert "máximo" in str(exc.value).lower()
+    assert "registro público" in str(exc.value).lower()
     session.close()
 
 

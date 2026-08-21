@@ -32,6 +32,10 @@ class Empresa(Base):
     fecha_ingreso   = Column(Date,    nullable=False)
     horario_trabajo = Column(String,  nullable=False)
     estado         = Column(Boolean,  nullable=False)
+    # 'pendiente' | 'aprobada' | 'rechazada' — estado de la solicitud de
+    # registro, independiente de `estado` (activo/inactivo). Las empresas
+    # creadas antes de este flujo (o por el bootstrap) quedan 'aprobada'.
+    estado_solicitud = Column(String, nullable=False, default="aprobada", server_default="aprobada")
 
     # relaciones con cascade delete-orphan
     usuarios        = relationship(
@@ -81,6 +85,9 @@ class Usuario(Base):
     nombre         = Column(String,  unique=True, index=True)
     contrasena     = Column(String,  nullable=False)
     estado         = Column(Boolean,  nullable=False)
+    # Controla el aviso de bienvenida (cambiar contraseña / completar info
+    # comercial) que se muestra una sola vez, en el primer login.
+    mostrar_bienvenida = Column(Boolean, nullable=False, default=True, server_default="true")
     fecha_registro = Column(Date,    nullable=False)
     cuil           = Column(
         BigInteger,

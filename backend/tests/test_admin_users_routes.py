@@ -122,25 +122,10 @@ def admin_client():
     engine.dispose()
 
 
-def test_create_user_enforces_admin_empresa_limit(admin_client):
+def test_create_user_rejects_admin_empresa_role(admin_client):
+    """admin_empresa ya no se crea a mano desde /usuarios: se crea (junto con
+    su empresa) por el autoregistro público y su aprobación por admin_polo."""
     client, SessionLocal, ctx = admin_client
-    session = SessionLocal()
-    # Crear usuarios admin_empresa hasta llegar al límite
-    for idx in range(admin_routes.MAX_ADMIN_EMPRESA_PER_COMPANY):
-        user = models.Usuario(
-            nombre=f"emp{idx}",
-            email=f"emp{idx}@test.com",
-            contrasena=services.hash_password("Clave123!"),
-            estado=True,
-            fecha_registro=date.today(),
-            cuil=ctx["empresa_cuil"],
-        )
-        session.add(user)
-        session.commit()
-        session.refresh(user)
-        session.add(models.RolUsuario(id_usuario=user.id_usuario, id_rol=ctx["role_admin_empresa"]))
-        session.commit()
-    session.close()
 
     response = client.post(
         "/usuarios",
@@ -154,7 +139,7 @@ def test_create_user_enforces_admin_empresa_limit(admin_client):
     )
 
     assert response.status_code == 400
-    assert "máximo" in response.json()["detail"].lower()
+    assert "registro público" in response.json()["detail"].lower()
 
 
 def test_polo_details_endpoint_returns_data(admin_client):
@@ -174,23 +159,63 @@ def test_toggle_company_state(admin_client):
     assert activate.status_code == 200
 
 
-def test_create_and_list_companies(admin_client):
+def test_list_companies(admin_client):
     client, SessionLocal, ctx = admin_client
-    response = client.post(
-        "/empresas",
-        json={
-            "cuil": 7777,
-            "nombre": "Nueva",
-            "rubro": "IT",
-            "cant_empleados": 10,
-            "fecha_ingreso": "2023-01-01",
-            "horario_trabajo": "09-18",
-            "estado": True,
-        },
-    )
-    assert response.status_code == 200
     listado = client.get("/empresas")
-    assert any(emp["cuil"] == 7777 for emp in listado.json())
+    assert listado.status_code == 200
+    assert any(emp["cuil"] == ctx["empresa_cuil"] for emp in listado.json())
+
+
+def test_solicitudes_registro_approve_and_reject(admin_client, monkeypatch):
+    client, SessionLocal, ctx = admin_client
+    monkeypatch.setattr(services, "send_registration_approved_email", lambda **kwargs: True)
+    monkeypatch.setattr(services, "send_registration_rejected_email", lambda **kwargs: True)
+
+    session = SessionLocal()
+    pendiente = models.Empresa(
+        cuil=9999,
+        nombre="Pendiente SA",
+        rubro="Comercio",
+        cant_empleados=5,
+        observaciones="",
+        fecha_ingreso=date.today(),
+        horario_trabajo="09-18",
+        estado=False,
+        estado_solicitud="pendiente",
+    )
+    session.add(pendiente)
+    session.commit()
+    usuario = models.Usuario(
+        nombre="pendiente_admin",
+        email="pendiente@test.com",
+        contrasena=services.hash_password("Clave123!"),
+        estado=True,
+        fecha_registro=date.today(),
+        cuil=pendiente.cuil,
+    )
+    session.add(usuario)
+    session.commit()
+    session.close()
+
+    solicitudes = client.get("/empresas/solicitudes")
+    assert solicitudes.status_code == 200
+    assert any(s["cuil"] == 9999 for s in solicitudes.json())
+
+    rechazo = client.post("/empresas/9999/rechazar")
+    assert rechazo.status_code == 200
+    session = SessionLocal()
+    emp = session.query(models.Empresa).filter(models.Empresa.cuil == 9999).first()
+    assert emp.estado_solicitud == "rechazada"
+    assert emp.estado is False
+    session.close()
+
+    aprobar = client.post("/empresas/9999/aprobar")
+    assert aprobar.status_code == 200
+    session = SessionLocal()
+    emp = session.query(models.Empresa).filter(models.Empresa.cuil == 9999).first()
+    assert emp.estado_solicitud == "aprobada"
+    assert emp.estado is True
+    session.close()
 
 
 def test_search_public_endpoints(admin_client):
@@ -257,7 +282,7 @@ def test_list_endpoints_return_data(admin_client):
     assert client.get("/usuarios").status_code == 200
     assert client.get("/serviciopolo").status_code == 200
     assert client.get("/lotes").status_code == 200
-    all_resp = client.get("/all")
+    all_resp = client.get("/empresas/directorio")
     assert all_resp.status_code == 200
 
 

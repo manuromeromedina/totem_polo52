@@ -19,7 +19,7 @@ import pytest
 
 from app.main import app
 from app.rate_limit import reset_rate_limits
-from app.routes.auth import require_public_role
+from app.routes.auth import get_current_user
 
 
 class _DummyPublicUser:
@@ -40,7 +40,7 @@ SERIALIZED_THRESHOLD = SIMULATED_BLOCKING_SECONDS * CONCURRENT_REQUESTS * 0.6
 def _isolate():
     reset_rate_limits()
     yield
-    app.dependency_overrides.pop(require_public_role, None)
+    app.dependency_overrides.pop(get_current_user, None)
     reset_rate_limits()
 
 
@@ -69,7 +69,7 @@ def test_chat_endpoint_does_not_block_the_event_loop():
 
 
 def test_voice_transcribe_does_not_block_the_event_loop():
-    app.dependency_overrides[require_public_role] = lambda: _DummyPublicUser()
+    app.dependency_overrides[get_current_user] = lambda: _DummyPublicUser()
 
     def slow_transcribe(audio_bytes, language):
         time.sleep(SIMULATED_BLOCKING_SECONDS)

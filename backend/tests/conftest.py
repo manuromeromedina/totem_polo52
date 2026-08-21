@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.routes.auth import require_public_role
+from app.routes.auth import get_current_user
 from app.config import get_db
 from app.rate_limit import reset_rate_limits
 
@@ -30,7 +30,7 @@ def override_dependencies():
     """
     Sobrescribe dependencias globales del proyecto para aislar las pruebas.
     """
-    app.dependency_overrides[require_public_role] = lambda: DummyUser()
+    app.dependency_overrides[get_current_user] = lambda: DummyUser()
     app.dependency_overrides[get_db] = _dummy_db
     reset_rate_limits()
     client = TestClient(app)

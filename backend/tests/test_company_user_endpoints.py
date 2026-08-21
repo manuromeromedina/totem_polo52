@@ -174,3 +174,30 @@ def test_create_and_update_contact(company_client):
     update_resp = client.put(f"/contactos/{contact_id}", json=contact_payload)
     assert update_resp.status_code == 200
     assert update_resp.json()["telefono"] == "999"
+
+
+def test_admin_empresa_can_read_directorio(company_client):
+    """El directorio de empresas del parque (nombre, contacto comercial,
+    telefono y datos comerciales) debe ser accesible para una cuenta
+    admin_empresa, no solo para admin_polo."""
+    client, SessionLocal = company_client
+
+    contact_payload = {
+        "id_tipo_contacto": 1,
+        "nombre": "Referente Comercial",
+        "telefono": "351-555-1234",
+        "datos": {"email": "comercial@empresa.com"},
+        "direccion": "Calle 123",
+    }
+    create_resp = client.post("/contactos", json=contact_payload)
+    assert create_resp.status_code == 200, create_resp.text
+
+    resp = client.get("/empresas/directorio")
+    assert resp.status_code == 200, resp.text
+
+    data = resp.json()
+    assert len(data) == 1
+    empresa = data[0]
+    assert empresa["nombre"] == "Empresa Uno"
+    assert empresa["contactos"][0]["nombre"] == "Referente Comercial"
+    assert empresa["contactos"][0]["telefono"] == "351-555-1234"

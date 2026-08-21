@@ -22,6 +22,16 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 # CONFIGURACIÓN Y UTILIDADES
 # ═══════════════════════════════════════════════════════════════════
 
+def _empresa_inactiva_detail(empresa: models.Empresa) -> str:
+    """Mensaje de bloqueo de login/uso de API según por qué la empresa
+    (y por lo tanto sus usuarios) está inactiva."""
+    if empresa.estado_solicitud == "pendiente":
+        return "Tu registro está pendiente de aprobación por el administrador del Polo."
+    if empresa.estado_solicitud == "rechazada":
+        return "Tu solicitud de registro fue rechazada. Contactá al administrador del Polo para más información."
+    return "La empresa asociada está desactivada."
+
+
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
@@ -47,11 +57,11 @@ def get_current_user(
                 detail="Su cuenta ha sido deshabilitada. Contacte con el administrador."
             )
 
-        # Empresa desactivada
+        # Empresa desactivada / pendiente / rechazada
         if not user.empresa or not user.empresa.estado:
             raise HTTPException(
                 status_code=403,
-                detail="La empresa asociada está desactivada."
+                detail=_empresa_inactiva_detail(user.empresa) if user.empresa else "La empresa asociada está desactivada."
             )
 
         return user
@@ -142,20 +152,64 @@ def require_public_role(
 # ═══════════════════════════════════════════════════════════════════
 
 @router.post("/register", tags=["auth"], dependencies=[Depends(rate_limit("register", max_requests=5, window_seconds=60))])
-def register(dto: schemas.UserRegister, db: Session = Depends(get_db)):
-    if db.query(models.Usuario).filter(models.Usuario.nombre == dto.nombre).first():
-        raise HTTPException(status_code=400, detail="Nombre ya existe")
-    new = models.Usuario(
+def register(dto: schemas.EmpresaRegisterRequest, db: Session = Depends(get_db)):
+    """
+    Autoregistro público: crea la empresa y su usuario admin_empresa juntos,
+    ambos pendientes de aprobación por admin_polo (empresa.estado=False,
+    estado_solicitud='pendiente'). No hay login automático: recién puede
+    ingresar una vez aprobada.
+    """
+    if db.query(models.Empresa).filter(models.Empresa.cuil == dto.cuil).first():
+        raise HTTPException(status_code=400, detail="Ya existe una empresa con ese CUIL")
+    if db.query(models.Usuario).filter(models.Usuario.nombre == dto.usuario_nombre).first():
+        raise HTTPException(status_code=400, detail="Ya existe un usuario con ese nombre")
+    if db.query(models.Usuario).filter(models.Usuario.email == dto.email).first():
+        raise HTTPException(status_code=400, detail="Ya existe un usuario con ese email")
+
+    rol_admin_empresa = db.query(models.Rol).filter(models.Rol.tipo_rol == "admin_empresa").first()
+    if not rol_admin_empresa:
+        raise HTTPException(status_code=500, detail="El rol admin_empresa no está configurado")
+
+    empresa = models.Empresa(
+        cuil=dto.cuil,
         nombre=dto.nombre,
+        rubro=dto.rubro,
+        cant_empleados=dto.cant_empleados,
+        observaciones=dto.observaciones,
+        fecha_ingreso=date.today(),
+        horario_trabajo=dto.horario_trabajo,
+        estado=False,
+        estado_solicitud="pendiente",
+    )
+    db.add(empresa)
+    db.flush()
+
+    nuevo_usuario = models.Usuario(
+        nombre=dto.usuario_nombre,
         email=dto.email,
         contrasena=services.hash_password(dto.password),
         estado=True,
+        mostrar_bienvenida=True,
         fecha_registro=date.today(),
-        cuil=dto.cuil,
+        cuil=empresa.cuil,
     )
-    db.add(new)
+    db.add(nuevo_usuario)
+    db.flush()
+
+    db.add(models.RolUsuario(id_usuario=nuevo_usuario.id_usuario, id_rol=rol_admin_empresa.id_rol))
     db.commit()
-    return {"message": "Usuario creado"}
+
+    email_sent = services.send_registration_received_email(
+        email=dto.email,
+        nombre=dto.usuario_nombre,
+        nombre_empresa=dto.nombre,
+    )
+    if not email_sent:
+        print(f"Registro creado pero email no enviado para: {dto.email}")
+
+    return {
+        "message": "Solicitud de registro recibida. Te avisaremos por email cuando sea aprobada."
+    }
 
 @router.post(
     "/login",
@@ -186,11 +240,11 @@ def login(
             detail="Su cuenta ha sido deshabilitada. Contacte con el administrador para más información."
         )
 
-    # Empresa desactivada
+    # Empresa desactivada / pendiente / rechazada
     if not user.empresa or not user.empresa.estado:
         raise HTTPException(
             status_code=403,
-            detail="La empresa asociada está desactivada."
+            detail=_empresa_inactiva_detail(user.empresa) if user.empresa else "La empresa asociada está desactivada."
         )
 
     # Roles
@@ -210,6 +264,7 @@ def login(
         "access_token": access_token,
         "token_type": "bearer",
         "tipo_rol": rol,
+        "mostrar_bienvenida": bool(user.mostrar_bienvenida),
         # Alias adicionales para compatibilidad con frontends que esperan otros nombres
         "token": access_token,
         "role": rol,
@@ -227,6 +282,16 @@ def logout(
     current_user: models.Usuario = Depends(get_current_user)
 ):
     return {"message": "Sesión cerrada correctamente"}
+
+
+@router.post("/bienvenida-vista", tags=["auth"], summary="Marcar como visto el aviso de bienvenida del primer login")
+def marcar_bienvenida_vista(
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.mostrar_bienvenida = False
+    db.commit()
+    return {"message": "Aviso de bienvenida marcado como visto"}
 
 # ═══════════════════════════════════════════════════════════════════
 # CAMBIO DE CONTRASEÑA DIRECTO (USUARIO LOGUEADO)

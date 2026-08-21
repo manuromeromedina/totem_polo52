@@ -133,6 +133,64 @@ Sistema Polo 52
     return _send_smtp_email(email, "Cambio de Contraseña Admin Polo - Polo 52", body)
 
 
+def send_registration_received_email(email: str, nombre: str, nombre_empresa: str) -> bool:
+    """Confirma que llegó una solicitud de autoregistro de empresa, pendiente de aprobación."""
+    body = f"""
+Hola {nombre},
+
+Recibimos la solicitud de registro de "{nombre_empresa}" en el Parque Industrial Polo 52.
+
+Tu cuenta está pendiente de aprobación por el administrador del Polo. Te vamos a avisar
+por email apenas esté activa y puedas ingresar al sistema.
+
+Saludos,
+Administración Polo 52
+    """
+    sent = _send_smtp_email(email, "Polo 52 - Solicitud de registro recibida", body)
+    if sent:
+        print(f"Email de registro recibido enviado a {email}")
+    return sent
+
+
+def send_registration_approved_email(email: str, nombre: str, nombre_empresa: str) -> bool:
+    """Avisa que la empresa fue aprobada y ya puede iniciar sesión."""
+    frontend_url = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")
+    body = f"""
+Hola {nombre},
+
+¡Buenas noticias! La solicitud de registro de "{nombre_empresa}" fue aprobada.
+
+Ya podés ingresar al sistema con el usuario y la contraseña que elegiste al registrarte:
+{frontend_url}/login
+
+Saludos,
+Administración Polo 52
+    """
+    sent = _send_smtp_email(email, "Polo 52 - Tu cuenta ya está activa", body)
+    if sent:
+        print(f"Email de aprobación de registro enviado a {email}")
+    return sent
+
+
+def send_registration_rejected_email(email: str, nombre: str, nombre_empresa: str) -> bool:
+    """Avisa que la solicitud de registro fue rechazada."""
+    body = f"""
+Hola {nombre},
+
+La solicitud de registro de "{nombre_empresa}" en el Parque Industrial Polo 52 fue rechazada
+por el administrador del Polo.
+
+Si creés que se trata de un error, contactá al administrador del Polo para más información.
+
+Saludos,
+Administración Polo 52
+    """
+    sent = _send_smtp_email(email, "Polo 52 - Solicitud de registro rechazada", body)
+    if sent:
+        print(f"Email de rechazo de registro enviado a {email}")
+    return sent
+
+
 def send_welcome_email(email: str, nombre: str, username: str, password: str) -> bool:
     """Envía email de bienvenida con credenciales"""
     frontend_url = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")

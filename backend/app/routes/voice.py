@@ -11,7 +11,7 @@ import base64
 import json
 
 from app.config import get_db
-from app.routes.auth import require_public_role
+from app.routes.auth import get_current_user
 from app.rate_limit import rate_limit
 from app import services, models, schemas
 
@@ -33,7 +33,7 @@ router = APIRouter(
     prefix="/api/voice",
     tags=["voice"],
     responses={404: {"description": "Not found"}},
-    dependencies=[Depends(require_public_role)]
+    dependencies=[Depends(get_current_user)]
 )
 
 
@@ -190,7 +190,7 @@ async def voice_chat_endpoint(
     history_form: Optional[str] = Form(
         None, description="Historial de conversación en JSON (solo para multipart/form-data)"
     ),
-    current_user: models.Usuario = Depends(require_public_role),
+    current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -308,7 +308,7 @@ async def voice_chat_endpoint(
 
 @router.get("/history", response_model=List[schemas.ChatMensajeOut], summary="Historial de chat del usuario")
 def get_chat_history(
-    current_user: models.Usuario = Depends(require_public_role),
+    current_user: models.Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Devuelve toda la conversación previa del usuario logueado, en orden cronológico."""
