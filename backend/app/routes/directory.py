@@ -190,7 +190,9 @@ def search_companies_lotes(name: Optional[str] = None, db: Session = Depends(get
                 lote_data = schemas.LoteOutPublic(
                     empresa_nombre=empresa.nombre,
                     lote=lote.lote,
-                    manzana=lote.manzana
+                    manzana=lote.manzana,
+                    latitud=lote.latitud,
+                    longitud=lote.longitud,
                 )
                 all_lotes.append(lote_data)
 

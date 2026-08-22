@@ -107,6 +107,12 @@ def _ensure_schema_upgrades() -> None:
             "ALTER TABLE usuario ADD COLUMN IF NOT EXISTS mostrar_bienvenida "
             "BOOLEAN NOT NULL DEFAULT TRUE"
         ))
+        conn.execute(text(
+            "ALTER TABLE lotes ADD COLUMN IF NOT EXISTS latitud DOUBLE PRECISION"
+        ))
+        conn.execute(text(
+            "ALTER TABLE lotes ADD COLUMN IF NOT EXISTS longitud DOUBLE PRECISION"
+        ))
 
 
 def run_startup_bootstrap() -> None:

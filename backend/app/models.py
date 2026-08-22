@@ -12,6 +12,7 @@ from sqlalchemy import (
     JSON,
     Time,
     BigInteger,
+    Float,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -292,6 +293,9 @@ class Lote(Base):
     dueno             = Column(String,  nullable=False)
     lote              = Column(Integer, nullable=False)
     manzana           = Column(Integer, nullable=False)
+    # Ubicacion del lote en Google Maps, cargada por admin_polo al crearlo.
+    latitud           = Column(Float, nullable=True)
+    longitud          = Column(Float, nullable=True)
 
     servicio_polo     = relationship("ServicioPolo", back_populates="lotes")
 

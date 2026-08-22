@@ -716,8 +716,53 @@ def create_lote(dto: schemas.LoteCreate, db: Session = Depends(get_db)):
         lote=dto.lote,
         manzana=dto.manzana,
         id_servicio_polo=dto.id_servicio_polo,
+        latitud=dto.latitud,
+        longitud=dto.longitud,
     )
     db.add(lote)
+    db.commit()
+    db.refresh(lote)
+    return lote
+
+@router.put("/lotes/{id_lotes}", response_model=schemas.LoteOut, summary="Actualizar un lote (p.ej. su ubicacion en Google Maps)")
+def update_lote(id_lotes: int, dto: schemas.LoteUpdate, db: Session = Depends(get_db)):
+    """Actualizar campos de un lote existente. Solo pisa los campos enviados."""
+    lote = db.query(models.Lote).filter(models.Lote.id_lotes == id_lotes).first()
+    if not lote:
+        raise HTTPException(status_code=404, detail="Lote no encontrado")
+
+    data = dto.model_dump(exclude_unset=True)
+
+    if "dueno" in data:
+        if not NAME_RE.fullmatch(data["dueno"].strip()):
+            raise HTTPException(
+                status_code=400,
+                detail="El campo 'dueno' solo admite letras y espacios (sin números ni símbolos)"
+            )
+        data["dueno"] = re.sub(r"\s+", " ", data["dueno"].strip()).title()
+
+    if "manzana" in data or "lote" in data:
+        nueva_manzana = data.get("manzana", lote.manzana)
+        nuevo_lote = data.get("lote", lote.lote)
+        existing_lote = (
+            db.query(models.Lote)
+            .filter(models.Lote.manzana == nueva_manzana)
+            .filter(models.Lote.lote == nuevo_lote)
+            .filter(models.Lote.id_lotes != id_lotes)
+            .first()
+        )
+        if existing_lote:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Ya existe un lote con número '{nuevo_lote}' en la manzana '{nueva_manzana}'. "
+                    "No se pueden crear lotes duplicados."
+                )
+            )
+
+    for field, value in data.items():
+        setattr(lote, field, value)
+
     db.commit()
     db.refresh(lote)
     return lote

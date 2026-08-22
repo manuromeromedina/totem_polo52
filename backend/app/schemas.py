@@ -431,6 +431,8 @@ class LoteCreate(BaseModel):
     lote: int
     manzana: int
     id_servicio_polo: Optional[int] = None
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
 
     @field_validator("dueno")
     @classmethod
@@ -462,12 +464,24 @@ class LoteCreate(BaseModel):
     class Config:
         from_attributes = True
 
+class LoteUpdate(BaseModel):
+    dueno: Optional[str] = None
+    lote: Optional[int] = None
+    manzana: Optional[int] = None
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
 class LoteOut(BaseModel):
     id_lotes: int
     dueno: str
     lote: int
     manzana: int
     id_servicio_polo: int
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -476,7 +490,9 @@ class LoteOutPublic(BaseModel):
     empresa_nombre: str
     lote: int
     manzana: int
-    
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
+
     class Config:
         from_attributes = True
 
