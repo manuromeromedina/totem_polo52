@@ -1,6 +1,6 @@
 #app/routes/admin_users.py
 from fastapi import APIRouter, HTTPException, Depends, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from datetime import date
 from uuid import UUID
 from typing import List
@@ -31,53 +31,26 @@ router = APIRouter(
 # tengas y actualizá el registro existente en la tabla `empresa`.
 POLO_CUIL = int(os.getenv("POLO_CUIL", "44123456789"))
 
-# Límites de usuarios por tipo de rol
-MAX_ADMIN_EMPRESA_PER_COMPANY = 3
-MAX_ADMIN_POLO_TOTAL = 3
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:4200").rstrip("/")
-
-def _count_active_users_by_role(db: Session, tipo_rol: str, cuil: int = None) -> int:
-    """Cuenta usuarios activos con un rol dado, opcionalmente filtrando por empresa."""
-    query = (
-        db.query(models.Usuario)
-        .join(models.RolUsuario)
-        .join(models.Rol)
-        .filter(models.Rol.tipo_rol == tipo_rol)
-        .filter(models.Usuario.estado == True)
-    )
-    if cuil is not None:
-        query = query.filter(models.Usuario.cuil == cuil)
-    return query.count()
 
 
 def validate_user_creation_limits(db: Session, dto: schemas.UserCreate):
-    """Validar límites de creación de usuarios según el rol y empresa"""
-    
+    """Validar reglas de asignación de rol al crear un usuario (sin límites de cantidad)"""
+
     # Obtener información del rol
     rol = db.query(models.Rol).filter(models.Rol.id_rol == dto.id_rol).first()
     if not rol:
         raise HTTPException(status_code=400, detail="Rol inválido")
-    
+
     # Validación para admin_polo
     if rol.tipo_rol == "admin_polo":
         # Verificar que la empresa sea el POLO
         if dto.cuil != POLO_CUIL:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail="El rol admin_polo solo puede asignarse a usuarios de la empresa Polo"
             )
-        
-        # Contar admin_polo existentes
-        admin_polo_count = _count_active_users_by_role(db, "admin_polo")
 
-        if admin_polo_count >= MAX_ADMIN_POLO_TOTAL:
-            raise HTTPException(
-                status_code=400,
-                detail=f"No se pueden crear más de {MAX_ADMIN_POLO_TOTAL} usuarios admin_polo. "
-                       f"Actualmente hay {admin_polo_count}. Si necesita más usuarios, "
-                       f"contacte con soporte técnico."
-            )
-    
     # admin_empresa ya no se crea a mano: se crea (junto con su empresa) por
     # el autoregistro público (POST /register) y su posterior aprobación por
     # admin_polo (POST /empresas/{cuil}/aprobar).
@@ -97,48 +70,6 @@ def validate_user_creation_limits(db: Session, dto: schemas.UserCreate):
                 detail="Los usuarios con rol 'publico' solo pueden crearse en la empresa Polo. "
                        "Las demás empresas solo pueden tener usuarios 'admin_empresa'."
             )
-
-def validate_user_activation_limits(db: Session, user: models.Usuario):
-    """Validar límites específicamente para rehabilitar/activar usuarios existentes"""
-    
-    # Obtener el rol del usuario
-    if not user.rol_usuario_links:
-        raise HTTPException(status_code=400, detail="Usuario sin rol asignado")
-    
-    rol_id = user.rol_usuario_links[0].id_rol
-    rol = db.query(models.Rol).filter(models.Rol.id_rol == rol_id).first()
-    if not rol:
-        raise HTTPException(status_code=400, detail="Rol del usuario inválido")
-    
-    # Validación para admin_polo
-    if rol.tipo_rol == "admin_polo":
-        admin_polo_count = _count_active_users_by_role(db, "admin_polo")
-
-        if admin_polo_count >= MAX_ADMIN_POLO_TOTAL:
-            raise HTTPException(
-                status_code=400,
-                detail=f"No se puede activar este usuario admin_polo. "
-                       f"Ya hay {admin_polo_count} usuarios admin_polo activos (máximo: {MAX_ADMIN_POLO_TOTAL}). "
-                       f"Debe inhabilitar otro usuario admin_polo antes de activar este."
-            )
-    
-    # Validación para admin_empresa
-    elif rol.tipo_rol == "admin_empresa":
-        admin_empresa_count = _count_active_users_by_role(db, "admin_empresa", cuil=user.cuil)
-
-        if admin_empresa_count >= MAX_ADMIN_EMPRESA_PER_COMPANY:
-            empresa = db.query(models.Empresa).filter(models.Empresa.cuil == user.cuil).first()
-            empresa_nombre = empresa.nombre if empresa else f"CUIL {user.cuil}"
-            
-            raise HTTPException(
-                status_code=400,
-                detail=f"No se puede activar este usuario admin_empresa. "
-                       f"La empresa '{empresa_nombre}' ya tiene {admin_empresa_count} usuarios activos "
-                       f"(máximo: {MAX_ADMIN_EMPRESA_PER_COMPANY}). "
-                       f"Debe inhabilitar otro usuario admin_empresa de esta empresa antes de activar este."
-            )
-    
-    # Para usuarios públicos no hay límite, siempre se permite activar
 
 # ═══════════════════════════════════════════════════════════════════
 # GESTIÓN DEL POLO
@@ -167,10 +98,14 @@ def get_polo_details(db: Session = Depends(get_db)):
     empresas = db.query(models.Empresa).filter(models.Empresa.cuil != POLO_CUIL).all()
     
     # Obtener todos los servicios del polo
-    servicios_polo = db.query(models.ServicioPolo).all()
-    
+    servicios_polo = (
+        db.query(models.ServicioPolo)
+        .options(selectinload(models.ServicioPolo.lotes))
+        .all()
+    )
+
     # Obtener todos los usuarios
-    usuarios = db.query(models.Usuario).all()
+    usuarios = db.query(models.Usuario).options(selectinload(models.Usuario.roles)).all()
     
     # Obtener todos los lotes
     lotes = db.query(models.Lote).all()
@@ -294,12 +229,12 @@ def list_empresas(db: Session = Depends(get_db)):
 @router.get("/usuarios", response_model=List[schemas.UserOut], summary="Listar todos los usuarios")
 def list_usuarios(db: Session = Depends(get_db)):
     """Devuelve todos los usuarios registrados en el sistema"""
-    return db.query(models.Usuario).all()
+    return db.query(models.Usuario).options(selectinload(models.Usuario.roles)).all()
 
 @router.get("/serviciopolo", response_model=List[schemas.ServicioPoloOut], summary="Listar servicios del polo")
 def list_servicios_polo(db: Session = Depends(get_db)):
     """Devuelve todos los servicios del polo registrados"""
-    return db.query(models.ServicioPolo).all()
+    return db.query(models.ServicioPolo).options(selectinload(models.ServicioPolo.lotes)).all()
 
 @router.get("/lotes", response_model=List[schemas.LoteOut], summary="Listar todos los lotes")
 def list_lotes(db: Session = Depends(get_db)):
@@ -395,12 +330,7 @@ def update_user(user_id: UUID, dto: schemas.UserUpdate, db: Session = Depends(ge
     u = db.query(models.Usuario).get(user_id)
     if not u:
         raise HTTPException(status_code=404, detail="Usuario no existe")
-    
-    # Si se está cambiando el estado de False a True (rehabilitando usuario)
-    # VALIDAR LÍMITES ESTRICTOS - SIN EXCEPCIONES
-    if dto.estado is not None and dto.estado == True and u.estado == False:
-        validate_user_activation_limits(db, u)
-    
+
     if dto.password:
         # Validar que no reutilice contraseñas anteriores
         if services.is_password_reused(db, u.id_usuario, dto.password):
@@ -430,51 +360,6 @@ def delete_user(user_id: UUID, db: Session = Depends(get_db)):
     u.estado = False  # Marcamos como inhabilitado
     db.commit()
     return {"msg": "Usuario inhabilitado exitosamente"}
-
-# ═══════════════════════════════════════════════════════════════════
-# ENDPOINTS DE LÍMITES Y CONSULTAS
-# ═══════════════════════════════════════════════════════════════════
-
-@router.get("/usuarios/limits-status", summary="Consultar límites de usuarios por empresa")
-def get_users_limits_status(db: Session = Depends(get_db)):
-    """Obtener información sobre límites de usuarios y estado actual"""
-    
-    # Información del Polo
-    polo_admin_count = _count_active_users_by_role(db, "admin_polo")
-
-    # Contar usuarios públicos en el polo
-    polo_public_count = _count_active_users_by_role(db, "publico", cuil=POLO_CUIL)
-
-    # Información por empresa (admin_empresa)
-    empresas_info = []
-    empresas = db.query(models.Empresa).filter(models.Empresa.cuil != POLO_CUIL).all()
-
-    for empresa in empresas:
-        admin_count = _count_active_users_by_role(db, "admin_empresa", cuil=empresa.cuil)
-
-        empresas_info.append({
-            "cuil": empresa.cuil,
-            "nombre": empresa.nombre,
-            "admin_empresa_actuales": admin_count,
-            "limite_admin_empresa": MAX_ADMIN_EMPRESA_PER_COMPANY,
-            "puede_crear_mas": admin_count < MAX_ADMIN_EMPRESA_PER_COMPANY
-        })
-    
-    return {
-        "polo_info": {
-            "admin_polo_actuales": polo_admin_count,
-            "usuarios_publicos_actuales": polo_public_count,
-            "limite_admin_polo": MAX_ADMIN_POLO_TOTAL,
-            "puede_crear_admin_polo": polo_admin_count < MAX_ADMIN_POLO_TOTAL,
-            "puede_crear_publico": True  # Sin límite para públicos
-        },
-        "empresas_info": empresas_info,
-        "limites_configurados": {
-            "max_admin_empresa_per_company": MAX_ADMIN_EMPRESA_PER_COMPANY,
-            "max_admin_polo_total": MAX_ADMIN_POLO_TOTAL,
-            "polo_cuil": POLO_CUIL
-        }
-    }
 
 # ═══════════════════════════════════════════════════════════════════
 # GESTIÓN DE EMPRESAS

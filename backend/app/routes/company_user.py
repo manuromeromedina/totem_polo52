@@ -4,8 +4,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session, selectinload
 from app.config import get_db
-from app.routes.auth import get_current_user, require_empresa_role
-from app.routes.admin_users import MAX_ADMIN_EMPRESA_PER_COMPANY
+from app.routes.auth import require_empresa_role
 from app.rate_limit import rate_limit
 from app import models, schemas, services
 
@@ -144,16 +143,14 @@ def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
 @router.put("/update_password", response_model=schemas.UserOut, summary="Actualizar la contraseña del usuario")
 def update_password(
     dto: schemas.UserUpdateCompany,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db)
 ):
     """Actualizar contraseña del usuario logueado"""
     if dto.password is None:
         raise HTTPException(status_code=400, detail="Se debe proporcionar una nueva contraseña")
 
-    user = db.query(models.Usuario).filter(models.Usuario.id_usuario == current_user.id_usuario).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    user = current_user
 
     # Validar que no reutilice contraseñas anteriores
     if services.is_password_reused(db, user.id_usuario, dto.password):
@@ -178,7 +175,7 @@ def update_password(
 
 @router.get("/me", response_model=schemas.EmpresaDetailOut, summary="Mis datos completos de empresa")
 def read_me(
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db),
 ):
     """Obtener información completa de mi empresa"""
@@ -209,7 +206,7 @@ def read_me(
 )
 def update_my_company(
     dto: schemas.EmpresaSelfUpdate,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db),
 ):
     """Actualizar datos editables de mi empresa"""
@@ -237,7 +234,7 @@ def update_my_company(
 @router.post("/vehiculos", response_model=schemas.VehiculoOut, summary="Crear un vehículo")
 def create_vehiculo(
     dto: schemas.VehiculoCreate,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db),
 ):
     """Crear nuevo vehículo para la empresa"""
@@ -312,7 +309,7 @@ def _get_owned_vehiculo(db: Session, veh_id: int, cuil: int) -> models.Vehiculo:
 def update_vehiculo(
     veh_id: int,
     dto: schemas.VehiculoCreate,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db),
 ):
     """Actualizar vehículo existente de la empresa"""
@@ -347,7 +344,7 @@ def update_vehiculo(
 @router.delete("/vehiculos/{veh_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un vehículo")
 def delete_vehiculo(
     veh_id: int,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db),
 ):
     """Eliminar vehículo de la empresa"""
@@ -362,7 +359,7 @@ def delete_vehiculo(
 @router.post("/servicios", response_model=schemas.ServicioOut, summary="Crear un servicio")
 def create_servicio(
     dto: schemas.ServicioCreate,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db)
 ):
     """Crear nuevo servicio para la empresa"""
@@ -409,7 +406,7 @@ def _get_owned_servicio(db: Session, servicio_id: int, cuil: int) -> models.Serv
 def update_servicio(
     servicio_id: int,
     dto: schemas.ServicioUpdate,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db)
 ):
     """Actualizar servicio existente"""
@@ -425,7 +422,7 @@ def update_servicio(
 @router.delete("/servicios/{servicio_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un servicio")
 def delete_servicio(
     servicio_id: int,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db)
 ):
     """Eliminar servicio de la empresa"""
@@ -445,7 +442,7 @@ def delete_servicio(
 @router.post("/contactos", response_model=schemas.ContactoOut, summary="Crear un contacto para la empresa")
 def create_contacto(
     dto: schemas.ContactoCreate,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db),
 ):
     """Crear nuevo contacto para la empresa"""
@@ -466,7 +463,7 @@ def create_contacto(
 def update_contacto(
     cid: int,
     dto: schemas.ContactoCreate,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db),
 ):
     """Actualizar contacto existente de la empresa"""
@@ -485,7 +482,7 @@ def update_contacto(
 @router.delete("/contactos/{cid}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar un contacto para la empresa")
 def delete_contacto(
     cid: int,
-    current_user: models.Usuario = Depends(get_current_user),
+    current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db),
 ):
     """Eliminar contacto de la empresa"""
@@ -588,51 +585,3 @@ def comercial_chat(
         progreso_actual=progreso_actual,
         progreso_total=progreso_total,
     )
-
-# ═══════════════════════════════════════════════════════════════════
-# SOLICITUDES DE AMPLIACIÓN DE LÍMITES
-# ═══════════════════════════════════════════════════════════════════
-
-@router.post("/request-limit-increase", summary="Solicitar ampliación de límite de usuarios")
-def request_limit_increase(
-    dto: schemas.UserLimitIncreaseRequest,
-    current_user: models.Usuario = Depends(require_empresa_role),
-    db: Session = Depends(get_db)
-):
-    """Endpoint para que las empresas soliciten más usuarios admin_empresa"""
-    
-    # Verificar que el usuario pertenece a la empresa que solicita
-    if current_user.cuil != dto.cuil_empresa:
-        raise HTTPException(
-            status_code=403,
-            detail="Solo puedes solicitar ampliación de límites para tu propia empresa"
-        )
-    
-    empresa = db.query(models.Empresa).filter(models.Empresa.cuil == dto.cuil_empresa).first()
-    if not empresa:
-        raise HTTPException(status_code=404, detail="Empresa no encontrada")
-    
-    # Contar usuarios actuales
-    current_count = (
-        db.query(models.Usuario)
-        .join(models.RolUsuario)
-        .join(models.Rol)
-        .filter(models.Rol.tipo_rol == "admin_empresa")
-        .filter(models.Usuario.cuil == dto.cuil_empresa)
-        .filter(models.Usuario.estado == True)
-        .count()
-    )
-    
-    # Aquí podrías agregar lógica para enviar email al admin_polo
-    # o guardar la solicitud en una tabla de solicitudes pendientes
-    
-    return {
-        "message": "Solicitud de ampliación registrada",
-        "empresa": empresa.nombre,
-        "usuarios_actuales": current_count,
-        "limite_actual": MAX_ADMIN_EMPRESA_PER_COMPANY,
-        "usuarios_adicionales_solicitados": dto.usuarios_adicionales_solicitados,
-        "justificacion": dto.justificacion,
-        "nota": "La solicitud será revisada por el administrador del polo. "
-                "Recibirá una respuesta por email en los próximos días hábiles."
-    }

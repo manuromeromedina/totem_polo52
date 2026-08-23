@@ -78,7 +78,7 @@ def _ensure_admin_empresa(db: Session) -> models.Empresa:
         return empresa
     empresa = models.Empresa(
         cuil=ADMIN_CUIL,
-        nombre="Administración Polo 52",
+        nombre="Parque Industrial Polo 52",
         rubro="Administración",
         cant_empleados=1,
         observaciones="Empresa interna generada automáticamente para alojar al usuario admin_polo inicial.",

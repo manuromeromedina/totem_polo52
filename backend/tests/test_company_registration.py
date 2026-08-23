@@ -10,6 +10,7 @@ from app import models, services
 from app.config import Base, get_db
 from app.main import app
 from app.rate_limit import reset_rate_limits
+from app.routes.auth import get_current_user
 
 
 def _setup_memory_db():
@@ -44,6 +45,11 @@ def registration_client():
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    # El conftest.py raiz pisa get_current_user globalmente (autouse) para el
+    # resto de la suite; acá lo sacamos para que /bienvenida-vista (y
+    # cualquier otra ruta autenticada) resuelva al usuario real registrado
+    # en esta sqlite, no a un DummyUser suelto de otra sesión.
+    app.dependency_overrides.pop(get_current_user, None)
     reset_rate_limits()
 
     client = TestClient(app)

@@ -286,15 +286,6 @@ def test_list_endpoints_return_data(admin_client):
     assert all_resp.status_code == 200
 
 
-def test_users_limits_status(admin_client):
-    client, SessionLocal, ctx = admin_client
-    session = SessionLocal()
-    data = admin_routes.get_users_limits_status(db=session)
-    session.close()
-    assert "polo_info" in data
-    assert data["limites_configurados"]["polo_cuil"] == POLO_TEST_CUIL
-
-
 def test_change_password_request(admin_client, monkeypatch):
     client, SessionLocal, ctx = admin_client
 

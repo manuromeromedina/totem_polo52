@@ -55,7 +55,7 @@ RECORDATORIOS DE SEGURIDAD:
 • Si sospechas actividad no autorizada, cambia tu contraseña inmediatamente
 
 Saludos,
-Administración Polo 52
+Parque Industrial Polo 52
     """
     sent = _send_smtp_email(email, "Contraseña Cambiada - Polo 52", body)
     if sent:
@@ -74,7 +74,7 @@ Se intentó actualizar tu contraseña pero ocurrió un problema:
 Por favor, intentá nuevamente. Si el problema persiste, contactá soporte.
 
 Saludos,
-Administración Polo 52
+Parque Industrial Polo 52
     """
     return _send_smtp_email(email, "Polo 52 - No pudimos actualizar tu contraseña", body)
 
@@ -104,7 +104,7 @@ REQUISITOS PARA LA NUEVA CONTRASEÑA:
 Si no solicitaste este cambio, puedes ignorar este email de forma segura.
 
 Saludos,
-Administración Polo 52
+Parque Industrial Polo 52
     """
     return _send_smtp_email(email, "Recuperar Contraseña - Polo 52", body)
 
@@ -144,7 +144,7 @@ Tu cuenta está pendiente de aprobación por el administrador del Polo. Te vamos
 por email apenas esté activa y puedas ingresar al sistema.
 
 Saludos,
-Administración Polo 52
+Parque Industrial Polo 52
     """
     sent = _send_smtp_email(email, "Polo 52 - Solicitud de registro recibida", body)
     if sent:
@@ -164,7 +164,7 @@ Ya podés ingresar al sistema con el usuario y la contraseña que elegiste al re
 {frontend_url}/login
 
 Saludos,
-Administración Polo 52
+Parque Industrial Polo 52
     """
     sent = _send_smtp_email(email, "Polo 52 - Tu cuenta ya está activa", body)
     if sent:
@@ -183,7 +183,7 @@ por el administrador del Polo.
 Si creés que se trata de un error, contactá al administrador del Polo para más información.
 
 Saludos,
-Administración Polo 52
+Parque Industrial Polo 52
     """
     sent = _send_smtp_email(email, "Polo 52 - Solicitud de registro rechazada", body)
     if sent:
@@ -212,7 +212,7 @@ Para comenzar a usar el sistema, ingrese en:
 Si necesita ayuda, puede contactar con el administrador del sitio.
 
 Saludos,
-Administración Polo 52
+Parque Industrial Polo 52
     """
     sent = _send_smtp_email(email, "Bienvenido al Parque Industrial Polo 52", body)
     if sent:

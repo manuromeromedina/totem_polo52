@@ -9,7 +9,7 @@ import os
 from app.config import get_db, SECRET_KEY, ALGORITHM
 from app import models, schemas, services
 from app.models import Usuario
-from app.schemas import PasswordResetRequest, PasswordResetConfirm, PasswordResetConfirmSecure, ChangePasswordDirect, ForgotPasswordReset
+from app.schemas import PasswordResetRequest, PasswordResetConfirmSecure, ChangePasswordDirect, ForgotPasswordReset
 from app.rate_limit import rate_limit
 
 router = APIRouter()
@@ -44,6 +44,7 @@ def get_current_user(
 
         user = (
             db.query(models.Usuario)
+            .options(joinedload(models.Usuario.roles))
             .filter(models.Usuario.nombre == nombre)
             .first()
         )
@@ -107,43 +108,24 @@ def _reset_change_pw_attempts(user_id: int):
 
 def require_admin_polo(
     current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
 ) -> Usuario:
-    user = (
-        db.query(Usuario)
-        .options(joinedload(Usuario.roles))
-        .filter(Usuario.id_usuario == current_user.id_usuario)
-        .first()
-    )
-    if not any(r.tipo_rol == "admin_polo" for r in user.roles):
+    # get_current_user ya trae current_user.roles con eager load: evita
+    # repetir la misma consulta de Usuario por segunda vez en el request.
+    if not any(r.tipo_rol == "admin_polo" for r in current_user.roles):
         raise HTTPException(403, "Se requiere rol admin_polo")
-    return user
+    return current_user
 
 def require_empresa_role(
     current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
 ) -> Usuario:
-    user = (
-        db.query(Usuario)
-        .options(joinedload(Usuario.roles))
-        .filter(Usuario.id_usuario == current_user.id_usuario)
-        .first()
-    )
-    if not any(r.tipo_rol == "admin_empresa" for r in user.roles):
+    if not any(r.tipo_rol == "admin_empresa" for r in current_user.roles):
         raise HTTPException(403, "Se requiere rol admin_empresa")
-    return user
+    return current_user
 
 def require_public_role(
     current_user: Usuario = Depends(get_current_user),
-    db: Session = Depends(get_db)
 ) -> Usuario:
-    user = (
-        db.query(Usuario)
-        .options(joinedload(Usuario.roles))
-        .filter(Usuario.id_usuario == current_user.id_usuario)
-        .first()
-    )
-    if not any(r.tipo_rol == "publico" for r in user.roles):
+    if not any(r.tipo_rol == "publico" for r in current_user.roles):
         raise HTTPException(403, "Se requiere rol 'publico'")
     return current_user
 

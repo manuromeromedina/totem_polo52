@@ -94,6 +94,7 @@ class Usuario(Base):
         BigInteger,
         ForeignKey("empresa.cuil", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
 
     empresa            = relationship(
@@ -239,6 +240,7 @@ class Contacto(Base):
         BigInteger,
         ForeignKey("empresa.cuil", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     id_tipo_contacto = Column(
         Integer,
@@ -271,7 +273,7 @@ class ServicioPolo(Base):
         Integer,
         ForeignKey("tipo_servicio_polo.id_tipo_servicio_polo", ondelete="CASCADE"),
     )
-    cuil                  = Column(BigInteger, ForeignKey("empresa.cuil", ondelete="CASCADE"), nullable=False)
+    cuil                  = Column(BigInteger, ForeignKey("empresa.cuil", ondelete="CASCADE"), nullable=False, index=True)
 
     tipo_servicio         = relationship("TipoServicioPolo", back_populates="servicios")
     lotes = relationship(
@@ -289,6 +291,7 @@ class Lote(Base):
         Integer,
         ForeignKey("servicio_polo.id_servicio_polo", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     dueno             = Column(String,  nullable=False)
     lote              = Column(Integer, nullable=False)
@@ -377,7 +380,8 @@ class PasswordHistory(Base):
     id_usuario = Column(
         UUID(as_uuid=True),
         ForeignKey("usuario.id_usuario", ondelete="CASCADE"),
-        nullable=False
+        nullable=False,
+        index=True,
     )
     password_hash = Column(String, nullable=False)
     created_at = Column(Date, nullable=False, default=date.today)

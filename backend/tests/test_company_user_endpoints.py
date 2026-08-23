@@ -94,7 +94,6 @@ def company_client(monkeypatch):
         return usr
 
     app.dependency_overrides[company_routes.get_db] = override_get_db
-    app.dependency_overrides[company_routes.get_current_user] = override_current_user
     app.dependency_overrides[company_routes.require_empresa_role] = override_current_user
 
     client = TestClient(app)

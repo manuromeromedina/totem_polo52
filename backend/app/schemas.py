@@ -11,19 +11,6 @@ PASSWORD_REGEX = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$'
 # SCHEMAS DE AUTENTICACIÓN
 # ═══════════════════════════════════════════════════════════════════
 
-class UserLogin(BaseModel):
-    identifier: str = Field(
-        ..., min_length=3, max_length=255,
-        description="Nombre de usuario o email"
-    )
-    password: str = Field(
-        ..., min_length=8, max_length=128,
-        description="Password registrada"
-    )
-
-    class Config:
-        from_attributes = True
-
 class EmpresaRegisterRequest(BaseModel):
     """Autoregistro público: crea la empresa y su primer usuario (admin_empresa)
     juntos, quedando pendientes de aprobación por admin_polo."""
@@ -81,31 +68,6 @@ class PasswordResetRequest(BaseModel):
         description="Email registrado"
     )
     
-    class Config:
-        from_attributes = True
-
-class PasswordResetConfirm(BaseModel):
-    token: str = Field(
-        ..., description="Token de recuperación válido"
-    )
-    new_password: str = Field(
-        ..., min_length=8, max_length=128,
-        description=(
-            "8–128 caracteres, al menos una mayúscula, una minúscula "
-            "y un dígito"
-        ),
-    )
-
-    @field_validator('new_password')
-    def password_complexity(cls, v: str) -> str:
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('La contraseña debe contener al menos una mayúscula')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('La contraseña debe contener al menos una minúscula')
-        if not re.search(r'\d', v):
-            raise ValueError('La contraseña debe contener al menos un dígito')
-        return v
-
     class Config:
         from_attributes = True
 
@@ -352,20 +314,20 @@ class EmpresaOut(BaseModel):
 
 class EmpresaAdminUpdate(BaseModel):
     """Solo admin_polo puede tocar nombre, rubro y estado"""
-    nombre: Optional[str]
-    rubro: Optional[str]
-    estado: Optional[bool]
-    cant_empleados: Optional[int]
-    observaciones: Optional[str]
-    horario_trabajo: Optional[str]
+    nombre: Optional[str] = None
+    rubro: Optional[str] = None
+    estado: Optional[bool] = None
+    cant_empleados: Optional[int] = None
+    observaciones: Optional[str] = None
+    horario_trabajo: Optional[str] = None
 
     class Config:
            from_attributes = True
 
 class EmpresaSelfUpdate(BaseModel):
-    cant_empleados: Optional[int]
-    observaciones: Optional[str]
-    horario_trabajo: Optional[str]
+    cant_empleados: Optional[int] = None
+    observaciones: Optional[str] = None
+    horario_trabajo: Optional[str] = None
 
 
 
@@ -386,10 +348,10 @@ class EmpresaSelfOut(BaseModel):
 
 class ServicioPoloCreate(BaseModel):
     nombre: str
-    horario: Optional[str]
-    datos: Optional[dict]
-    propietario: Optional[str]
-    id_tipo_servicio_polo: Optional[int]
+    horario: Optional[str] = None
+    datos: Optional[dict] = None
+    propietario: Optional[str] = None
+    id_tipo_servicio_polo: Optional[int] = None
     cuil: int
 
     class Config:
@@ -542,8 +504,8 @@ class ServicioCreate(BaseModel):
         from_attributes = True
 
 class ServicioUpdate(BaseModel):
-    datos: Optional[dict]
-    id_tipo_servicio: Optional[int]
+    datos: Optional[dict] = None
+    id_tipo_servicio: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -572,11 +534,11 @@ class ContactoOut(BaseModel):
         from_attributes = True
 
 class ContactoCreate(BaseModel):
-    id_tipo_contacto: Optional[int]
-    nombre: Optional[str]
-    telefono: Optional[str]
-    datos: Optional[Dict]
-    direccion: Optional[str]
+    id_tipo_contacto: Optional[int] = None
+    nombre: Optional[str] = None
+    telefono: Optional[str] = None
+    datos: Optional[Dict] = None
+    direccion: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -755,11 +717,3 @@ class ChatMensajeOut(BaseModel):
     class Config:
         from_attributes = True
 
-#-------------#
-class UserLimitIncreaseRequest(BaseModel):
-    cuil_empresa: int = Field(..., gt=0, description="CUIL de la empresa que solicita")
-    justificacion: str = Field(..., min_length=20, max_length=500, description="Justificación de la solicitud")
-    usuarios_adicionales_solicitados: int = Field(..., gt=0, le=10, description="Cantidad de usuarios adicionales solicitados")
-    
-    class Config:
-        from_attributes = True
