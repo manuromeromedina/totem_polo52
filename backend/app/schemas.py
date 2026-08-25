@@ -248,6 +248,22 @@ class UserCreate(BaseModel):
     class Config:
         from_attributes = True
 
+class EmpresaUserCreate(BaseModel):
+    """Alta de un usuario adicional para una empresa ya existente, hecha por
+    admin_polo. Sin contraseña: se genera automáticamente y se envía por
+    email junto con el nombre de usuario."""
+    nombre: str = Field(
+        ..., min_length=3, max_length=50,
+        description="Entre 3 y 50 caracteres"
+    )
+    email: EmailStr = Field(
+        ..., max_length=255,
+        description="Email válido"
+    )
+
+    class Config:
+        from_attributes = True
+
 class UserUpdate(BaseModel):
     password: Optional[str] = Field(
         None, min_length=8, max_length=128,

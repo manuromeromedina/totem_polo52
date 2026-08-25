@@ -443,6 +443,66 @@ def activar_empresa(cuil: int, db: Session = Depends(get_db)):
     return {"message": f"Empresa '{empresa.nombre}' y sus registros relacionados fueron reactivados correctamente."}
 
 
+@router.post(
+    "/empresas/{cuil}/usuarios",
+    response_model=schemas.UserOut,
+    summary="Agregar un usuario a una empresa existente (contraseña automática)",
+)
+def create_empresa_user(cuil: int, dto: schemas.EmpresaUserCreate, db: Session = Depends(get_db)):
+    """
+    Da de alta un usuario adicional (rol admin_empresa) para una empresa que
+    ya está activa. No recibe contraseña: se genera una automáticamente y se
+    envía por email junto con el nombre de usuario, quedando la cuenta lista
+    para el primer ingreso (que va a pedir el cambio de esa contraseña).
+    """
+    empresa = db.query(models.Empresa).filter(models.Empresa.cuil == cuil).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    if not empresa.estado:
+        raise HTTPException(
+            status_code=400,
+            detail="La empresa está desactivada. Reactivala antes de agregarle usuarios."
+        )
+
+    if db.query(models.Usuario).filter(models.Usuario.nombre == dto.nombre).first():
+        raise HTTPException(status_code=400, detail="Ya existe un usuario con ese nombre")
+    if db.query(models.Usuario).filter(models.Usuario.email == dto.email).first():
+        raise HTTPException(status_code=400, detail="Ya existe un usuario con ese email")
+
+    rol_admin_empresa = db.query(models.Rol).filter(models.Rol.tipo_rol == "admin_empresa").first()
+    if not rol_admin_empresa:
+        raise HTTPException(status_code=500, detail="El rol admin_empresa no está configurado")
+
+    generated_password = services.generate_random_password()
+
+    nuevo_usuario = models.Usuario(
+        nombre=dto.nombre,
+        email=dto.email,
+        contrasena=services.hash_password(generated_password),
+        estado=True,
+        mostrar_bienvenida=True,
+        fecha_registro=date.today(),
+        cuil=empresa.cuil,
+    )
+    db.add(nuevo_usuario)
+    db.flush()
+
+    db.add(models.RolUsuario(id_usuario=nuevo_usuario.id_usuario, id_rol=rol_admin_empresa.id_rol))
+    db.commit()
+    db.refresh(nuevo_usuario)
+
+    email_sent = services.send_welcome_email(
+        email=dto.email,
+        nombre=dto.nombre,
+        username=dto.nombre,
+        password=generated_password,
+    )
+    if not email_sent:
+        print(f"Usuario creado pero email no enviado para: {dto.email}")
+
+    return nuevo_usuario
+
+
 # ═══════════════════════════════════════════════════════════════════
 # SOLICITUDES DE REGISTRO (autoregistro público, pendientes de aprobación)
 # ═══════════════════════════════════════════════════════════════════

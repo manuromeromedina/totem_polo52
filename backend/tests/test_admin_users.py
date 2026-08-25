@@ -225,3 +225,83 @@ def test_get_polo_details_returns_related_data(admin_client):
     assert len(body["servicios_polo"]) >= 1
     assert len(body["usuarios"]) >= 1
     assert len(body["lotes"]) >= 1
+
+
+def test_create_empresa_user_success(admin_client):
+    client, SessionLocal, roles = admin_client
+    resp = client.post(
+        f"/empresas/{roles['empresa_cuil']}/usuarios",
+        json={"nombre": "nuevoEmpleado", "email": "nuevoempleado@test.com"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["nombre"] == "nuevoEmpleado"
+    assert body["email"] == "nuevoempleado@test.com"
+    assert body["cuil"] == roles["empresa_cuil"]
+    assert body["estado"] is True
+    assert [r["tipo_rol"] for r in body["roles"]] == ["admin_empresa"]
+
+    session = SessionLocal()
+    creado = session.query(models.Usuario).filter(models.Usuario.nombre == "nuevoEmpleado").first()
+    assert creado is not None
+    assert creado.mostrar_bienvenida is True
+    # La contraseña generada automáticamente nunca queda en texto plano ni vacía
+    assert creado.contrasena and creado.contrasena != ""
+    session.close()
+
+
+def test_create_empresa_user_duplicate_nombre(admin_client):
+    client, SessionLocal, roles = admin_client
+    session = SessionLocal()
+    _create_user_with_role(
+        session, nombre="repetido", cuil=roles["empresa_cuil"], role_id=roles["admin_empresa"]
+    )
+    session.close()
+
+    resp = client.post(
+        f"/empresas/{roles['empresa_cuil']}/usuarios",
+        json={"nombre": "repetido", "email": "otro@test.com"},
+    )
+    assert resp.status_code == 400
+    assert "nombre" in resp.json()["detail"].lower()
+
+
+def test_create_empresa_user_duplicate_email(admin_client):
+    client, SessionLocal, roles = admin_client
+    session = SessionLocal()
+    _create_user_with_role(
+        session, nombre="original", cuil=roles["empresa_cuil"], role_id=roles["admin_empresa"]
+    )
+    session.close()
+
+    resp = client.post(
+        f"/empresas/{roles['empresa_cuil']}/usuarios",
+        json={"nombre": "otroNombre", "email": "original@test.com"},
+    )
+    assert resp.status_code == 400
+    assert "email" in resp.json()["detail"].lower()
+
+
+def test_create_empresa_user_empresa_inexistente(admin_client):
+    client, SessionLocal, roles = admin_client
+    resp = client.post(
+        "/empresas/999999/usuarios",
+        json={"nombre": "quienSea", "email": "quiensea@test.com"},
+    )
+    assert resp.status_code == 404
+
+
+def test_create_empresa_user_empresa_desactivada(admin_client):
+    client, SessionLocal, roles = admin_client
+    session = SessionLocal()
+    empresa = session.query(models.Empresa).filter(models.Empresa.cuil == roles["empresa_cuil"]).first()
+    empresa.estado = False
+    session.commit()
+    session.close()
+
+    resp = client.post(
+        f"/empresas/{roles['empresa_cuil']}/usuarios",
+        json={"nombre": "quienSea", "email": "quiensea@test.com"},
+    )
+    assert resp.status_code == 400
+    assert "desactivada" in resp.json()["detail"].lower()
