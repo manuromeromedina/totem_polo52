@@ -18,6 +18,7 @@ from app.services.common import GENERIC_ERROR_MESSAGE
 
 from app.services.auth_service import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    REVOKED_ACCESS_TOKENS,
     USED_RESET_TOKENS,
     check_token_validity,
     cleanup_used_tokens,
@@ -28,10 +29,12 @@ from app.services.auth_service import (
     generate_random_password,
     get_used_tokens_count,
     hash_password,
+    is_access_token_revoked,
     is_password_reused,
     is_token_already_used,
     mark_token_as_used,
     pwd_context,
+    revoke_access_token,
     save_password_to_history,
     secure_password_reset_confirm,
     verify_password,

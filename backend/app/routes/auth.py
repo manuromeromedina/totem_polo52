@@ -6,6 +6,7 @@ from sqlalchemy import or_
 from jose import JWTError, jwt
 from datetime import date, datetime, timedelta
 import os
+import time
 from app.config import get_db, SECRET_KEY, ALGORITHM
 from app import models, schemas, services
 from app.models import Usuario
@@ -41,6 +42,9 @@ def get_current_user(
         nombre = payload.get("sub")
         if not nombre:
             raise HTTPException(401, "Token inválido")
+        # Token de una sesión ya cerrada (POST /logout)
+        if services.is_access_token_revoked(payload.get("jti")):
+            raise HTTPException(401, "Sesión cerrada")
 
         user = (
             db.query(models.Usuario)
@@ -51,18 +55,20 @@ def get_current_user(
         if not user:
             raise HTTPException(401, "Usuario no encontrado")
 
+        # Empresa desactivada / pendiente / rechazada (antes que el usuario:
+        # desactivar la empresa también deshabilita a sus usuarios, y el motivo
+        # real que tiene que ver es el de la empresa)
+        if not user.empresa or not user.empresa.estado:
+            raise HTTPException(
+                status_code=403,
+                detail=_empresa_inactiva_detail(user.empresa) if user.empresa else "La empresa asociada está desactivada."
+            )
+
         # Usuario deshabilitado
         if not user.estado:
             raise HTTPException(
                 status_code=403,
                 detail="Su cuenta ha sido deshabilitada. Contacte con el administrador."
-            )
-
-        # Empresa desactivada / pendiente / rechazada
-        if not user.empresa or not user.empresa.estado:
-            raise HTTPException(
-                status_code=403,
-                detail=_empresa_inactiva_detail(user.empresa) if user.empresa else "La empresa asociada está desactivada."
             )
 
         return user
@@ -193,6 +199,44 @@ def register(dto: schemas.EmpresaRegisterRequest, db: Session = Depends(get_db))
         "message": "Solicitud de registro recibida. Te avisaremos por email cuando sea aprobada."
     }
 
+# Bloqueo por CUENTA (no por IP) ante intentos fallidos de login: el límite
+# por IP solo no alcanza contra fuerza bruta distribuida, y el bloqueo de 5
+# intentos del frontend vive en el navegador (se borra con el localStorage).
+# En memoria, igual que el rate limit: pensado para un único proceso.
+_LOGIN_MAX_FAILS = 5
+_LOGIN_FAIL_WINDOW_SECONDS = 15 * 60
+_LOGIN_LOCK_SECONDS = 5 * 60
+_login_fails: dict = {}  # cuenta -> {"fails": [timestamps], "lock_until": float | None}
+
+
+def _check_login_lock(cuenta: str) -> None:
+    info = _login_fails.get(cuenta)
+    if not info or not info.get("lock_until"):
+        return
+    restante = info["lock_until"] - time.monotonic()
+    if restante > 0:
+        raise HTTPException(
+            status_code=429,
+            detail="Demasiados intentos fallidos para esta cuenta. Intentá de nuevo en unos minutos.",
+            headers={"Retry-After": str(int(restante) + 1)},
+        )
+    _login_fails.pop(cuenta, None)
+
+
+def _register_login_fail(cuenta: str) -> None:
+    ahora = time.monotonic()
+    info = _login_fails.setdefault(cuenta, {"fails": [], "lock_until": None})
+    info["fails"] = [t for t in info["fails"] if ahora - t < _LOGIN_FAIL_WINDOW_SECONDS] + [ahora]
+    if len(info["fails"]) >= _LOGIN_MAX_FAILS:
+        info["lock_until"] = ahora + _LOGIN_LOCK_SECONDS
+        info["fails"] = []
+
+
+def reset_login_locks() -> None:
+    """Limpia los bloqueos por cuenta. Pensado para uso en tests."""
+    _login_fails.clear()
+
+
 @router.post(
     "/login",
     response_model=schemas.Token,
@@ -203,6 +247,9 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
+    cuenta = form_data.username.strip().lower()
+    _check_login_lock(cuenta)
+
     user = (
         db.query(models.Usuario)
         .filter(
@@ -213,20 +260,24 @@ def login(
     )
 
     if not user or not services.verify_password(form_data.password, user.contrasena):
+        _register_login_fail(cuenta)
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    _login_fails.pop(cuenta, None)
+
+    # Empresa desactivada / pendiente / rechazada. Va antes que el estado del
+    # usuario: desactivar una empresa también deshabilita a sus usuarios, y
+    # el motivo que tiene que ver el usuario es el de la empresa.
+    if not user.empresa or not user.empresa.estado:
+        raise HTTPException(
+            status_code=403,
+            detail=_empresa_inactiva_detail(user.empresa) if user.empresa else "La empresa asociada está desactivada."
+        )
 
     # Usuario deshabilitado
     if not user.estado:
         raise HTTPException(
             status_code=403,
             detail="Su cuenta ha sido deshabilitada. Contacte con el administrador para más información."
-        )
-
-    # Empresa desactivada / pendiente / rechazada
-    if not user.empresa or not user.empresa.estado:
-        raise HTTPException(
-            status_code=403,
-            detail=_empresa_inactiva_detail(user.empresa) if user.empresa else "La empresa asociada está desactivada."
         )
 
     # Roles
@@ -261,8 +312,12 @@ def login(
 
 @router.post("/logout", tags=["auth"], summary="Cerrar sesión")
 def logout(
-    current_user: models.Usuario = Depends(get_current_user)
+    token: str = Depends(oauth2_scheme),
+    current_user: models.Usuario = Depends(get_current_user),
 ):
+    # Revoca ESTE token: si alguien lo copió, deja de servir ya, sin esperar a que venza.
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    services.revoke_access_token(payload.get("jti"), payload.get("exp"))
     return {"message": "Sesión cerrada correctamente"}
 
 
@@ -403,33 +458,27 @@ def change_password_direct(
     dependencies=[Depends(rate_limit("forgot-password", max_requests=5, window_seconds=60))],
 )
 def forgot_password(dto: PasswordResetRequest, db: Session = Depends(get_db)):
-    """Solicitar reset de contraseña via email (para usuarios no logueados)"""
-    user = db.query(models.Usuario).filter(models.Usuario.email == dto.email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Email no registrado")
-    
-    # VALIDACIÓN: No permitir reset de contraseña para usuarios inhabilitados
-    if not user.estado:
-        raise HTTPException(
-            status_code=403, 
-            detail="No se puede restablecer la contraseña de una cuenta deshabilitada. "
-                   "Contacte con el administrador."
-        )
-    
-    RESET_TOKEN_EXPIRE_MINUTES = 60  # 1 hora
-    
-    token = services.create_password_reset_token(
-        user.email, 
-        expires_minutes=RESET_TOKEN_EXPIRE_MINUTES
-    )
-    
-    reset_link = f"{FRONTEND_BASE_URL}/reset-password?token={token}"
+    """Solicitar reset de contraseña via email (para usuarios no logueados).
 
-    if not services.send_password_reset_email(email=user.email, nombre=user.nombre, reset_link=reset_link):
-        raise HTTPException(status_code=500, detail="Error enviando email")
+    Responde SIEMPRE lo mismo, exista o no el email (y esté o no habilitada la
+    cuenta): si la respuesta cambiara, cualquiera podría averiguar qué emails
+    tienen cuenta en el sistema. El email solo se manda si corresponde.
+    """
+    RESET_TOKEN_EXPIRE_MINUTES = 60  # 1 hora
+
+    user = db.query(models.Usuario).filter(models.Usuario.email == dto.email).first()
+    if user and user.estado:
+        token = services.create_password_reset_token(
+            user.email,
+            expires_minutes=RESET_TOKEN_EXPIRE_MINUTES
+        )
+        reset_link = f"{FRONTEND_BASE_URL}/reset-password?token={token}"
+        if not services.send_password_reset_email(email=user.email, nombre=user.nombre, reset_link=reset_link):
+            # se registra pero no se avisa distinto: delataría que el email existe
+            print(f"No se pudo enviar el email de recuperación a {user.email}")
 
     return {
-        "message": "Se ha enviado un email con instrucciones para restablecer tu contraseña",
+        "message": "Si el email corresponde a una cuenta habilitada, te enviamos las instrucciones para restablecer tu contraseña.",
         "expires_in_minutes": RESET_TOKEN_EXPIRE_MINUTES,
         "note": "Revisa tu bandeja de entrada y sigue las instrucciones del email"
     }

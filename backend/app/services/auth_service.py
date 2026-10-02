@@ -36,11 +36,30 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Crear token JWT de acceso"""
+    """Crear token JWT de acceso (con un jti único, para poder revocarlo en el logout)"""
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "jti": str(uuid.uuid4())})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+# Tokens de acceso revocados por logout: jti -> exp (epoch). Se guardan solo
+# hasta que vencen (después el propio JWT ya no sirve). En memoria, igual que
+# USED_RESET_TOKENS: pensado para un único proceso.
+REVOKED_ACCESS_TOKENS: dict = {}
+
+
+def revoke_access_token(jti: Optional[str], exp: Optional[float]) -> None:
+    if not jti:
+        return
+    ahora = datetime.utcnow().timestamp()
+    for viejo in [k for k, v in REVOKED_ACCESS_TOKENS.items() if v < ahora]:
+        del REVOKED_ACCESS_TOKENS[viejo]
+    REVOKED_ACCESS_TOKENS[jti] = float(exp or ahora + ACCESS_TOKEN_EXPIRE_MINUTES * 60)
+
+
+def is_access_token_revoked(jti: Optional[str]) -> bool:
+    return bool(jti) and jti in REVOKED_ACCESS_TOKENS
 
 
 def generate_random_password(length: int = 12) -> str:

@@ -37,10 +37,24 @@ EMPRESA_DETAIL_EAGER_OPTIONS = (
 )
 
 
+def _solo_empresas_visibles(query):
+    """Solo empresas activas y con la solicitud de registro aprobada: las
+    pendientes, rechazadas o desactivadas no se muestran a otros usuarios."""
+    return query.filter(Empresa.estado == True, Empresa.estado_solicitud == "aprobada")  # noqa: E712
+
+
+def _es_contacto_publico(contacto: models.Contacto) -> bool:
+    """Solo los contactos comerciales son públicos para el resto del parque;
+    los empresariales son internos (gerencia, administración). Se compara
+    por nombre de tipo, no por id."""
+    tipo = contacto.tipo_contacto.tipo if contacto.tipo_contacto else ""
+    return tipo.strip().lower() == "comercial"
+
+
 def build_empresa_detail_public(emp: models.Empresa) -> schemas.EmpresaDetailOutPublic:
-    """Construir detalle publico de empresa con contactos, servicios polo e info comercial"""
+    """Construir detalle publico de empresa con contactos comerciales, servicios polo e info comercial"""
     conts = []
-    for c in emp.contactos:
+    for c in filter(_es_contacto_publico, emp.contactos):
         tipo_contacto = c.tipo_contacto.tipo if c.tipo_contacto else None
         conts.append(
             schemas.ContactoOutPublic(
@@ -97,9 +111,7 @@ def build_empresa_detail_public(emp: models.Empresa) -> schemas.EmpresaDetailOut
 def get_empresas_directorio(db: Session = Depends(get_db)):
     """Listar todas las empresas activas con su contacto comercial y datos comerciales, para networking entre inquilinos"""
     empresas = (
-        db.query(Empresa)
-        .options(*EMPRESA_DETAIL_EAGER_OPTIONS)
-        .filter(Empresa.estado == True)
+        _solo_empresas_visibles(db.query(Empresa).options(*EMPRESA_DETAIL_EAGER_OPTIONS))
         .filter(Empresa.cuil != POLO_CUIL)
         .all()
     )
@@ -114,7 +126,7 @@ def search_companies(
     db: Session = Depends(get_db)
 ):
     """Buscar empresas por nombre, rubro o tipo de servicio del polo"""
-    query = db.query(Empresa).options(*EMPRESA_DETAIL_EAGER_OPTIONS)
+    query = _solo_empresas_visibles(db.query(Empresa).options(*EMPRESA_DETAIL_EAGER_OPTIONS))
 
     if name:
         query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
@@ -137,10 +149,10 @@ def search_companies(
 
 @router.get("/search/contactos", response_model=List[ContactoOutPublic], summary="Buscar contactos por empresa")
 def search_companies_contacts(name: Optional[str] = None, db: Session = Depends(get_db)):
-    """Buscar empresas por nombre y devolver solo los contactos"""
-    query = db.query(Empresa).options(
+    """Buscar empresas por nombre y devolver solo sus contactos comerciales"""
+    query = _solo_empresas_visibles(db.query(Empresa).options(
         selectinload(Empresa.contactos).selectinload(models.Contacto.tipo_contacto)
-    )
+    ))
 
     if name:
         query = query.filter(Empresa.nombre.ilike(f"%{name}%"))
@@ -152,7 +164,7 @@ def search_companies_contacts(name: Optional[str] = None, db: Session = Depends(
 
     all_contacts = []
     for empresa in companies:
-        for contacto in empresa.contactos:
+        for contacto in filter(_es_contacto_publico, empresa.contactos):
             tipo_contacto = contacto.tipo_contacto.tipo if contacto.tipo_contacto else None
             all_contacts.append(
                 schemas.ContactoOutPublic(
@@ -171,9 +183,9 @@ def search_companies_contacts(name: Optional[str] = None, db: Session = Depends(
 @router.get("/search/lotes", response_model=List[LoteOutPublic], summary="Buscar lotes por empresa")
 def search_companies_lotes(name: Optional[str] = None, db: Session = Depends(get_db)):
     """Buscar empresas por nombre y devolver solo los lotes"""
-    query = db.query(Empresa).options(
+    query = _solo_empresas_visibles(db.query(Empresa).options(
         selectinload(Empresa.servicios_polo).selectinload(models.ServicioPolo.lotes)
-    )
+    ))
 
     if name:
         query = query.filter(Empresa.nombre.ilike(f"%{name}%"))

@@ -1,4 +1,5 @@
 #app/routes/company_user.py
+import re
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Depends, status
@@ -18,21 +19,50 @@ router = APIRouter(
 # CONFIGURACIÓN Y UTILIDADES
 # ═══════════════════════════════════════════════════════════════════
 
-def validar_datos_vehiculo(dto: schemas.VehiculoCreate, tipo_vehiculo: models.TipoVehiculo):
-    """Validar datos específicos según el tipo de vehículo"""
-    datos = dto.datos
+# Patentes argentinas: formato viejo (ABC123) y Mercosur (AB123CD). Se
+# aceptan varias separadas por coma (una flota corporativa) y se guardan
+# normalizadas: en mayúsculas y sin espacios ni guiones.
+_PATENTE_RE = re.compile(r"^(?:[A-Z]{3}\d{3}|[A-Z]{2}\d{3}[A-Z]{2})$")
 
-    if tipo_vehiculo.id_tipo_vehiculo == 1:  # Corporativo
+
+def _normalizar_patentes(valor) -> str:
+    """Devuelve las patentes normalizadas o levanta 400 si alguna no es válida."""
+    patentes = [re.sub(r"[\s\-.]", "", p).upper() for p in str(valor).split(",") if p.strip()]
+    invalidas = [p for p in patentes if not _PATENTE_RE.fullmatch(p)]
+    if invalidas:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Patente inválida: {', '.join(invalidas)}. Usá el formato ABC123 o AB123CD (varias, separadas por coma).",
+        )
+    return ", ".join(patentes)
+
+
+def validar_datos_vehiculo(dto: schemas.VehiculoCreate, tipo_vehiculo: models.TipoVehiculo):
+    """Validar datos específicos según el tipo de vehículo.
+
+    Se decide por el NOMBRE del tipo y no por su id: en la tabla tipo_vehiculo
+    los ids no siguen un orden fijo (hoy 2 = terceros y 3 = personales), y
+    comparar contra números aplicaba las reglas de un tipo a otro.
+    """
+    datos = dto.datos
+    nombre = (tipo_vehiculo.tipo or "").strip().lower()
+
+    if nombre.startswith("corporativ"):
         if not all(k in datos for k in ("cantidad", "patente", "carga")):
             raise HTTPException(status_code=400, detail="Para vehículos corporativos, los datos deben incluir cantidad, patente y carga")
         if datos.get("carga") not in ("baja", "mediana", "alta"):
             raise HTTPException(status_code=400, detail="El valor de 'carga' debe ser 'baja', 'mediana' o 'alta'")
+        if not str(datos.get("patente") or "").strip():
+            raise HTTPException(status_code=400, detail="Para vehículos corporativos la patente es obligatoria")
+        datos["patente"] = _normalizar_patentes(datos["patente"])
 
-    elif tipo_vehiculo.id_tipo_vehiculo == 2:  # Personal
+    elif nombre.startswith("personal"):
         if not all(k in datos for k in ("cantidad", "patente")):
             raise HTTPException(status_code=400, detail="Para vehículos personales, los datos deben incluir cantidad y patente")
+        if str(datos.get("patente") or "").strip():  # en personales es opcional
+            datos["patente"] = _normalizar_patentes(datos["patente"])
 
-    elif tipo_vehiculo.id_tipo_vehiculo == 3:  # Terceros
+    elif nombre.startswith("tercer"):
         if not all(k in datos for k in ("cantidad", "carga")):
             raise HTTPException(status_code=400, detail="Para vehículos de terceros, los datos deben incluir cantidad y carga")
         if datos.get("carga") not in ("baja", "mediana", "alta"):
@@ -130,6 +160,7 @@ def build_empresa_detail(emp: models.Empresa) -> schemas.EmpresaDetailOut:
         observaciones=emp.observaciones,
         fecha_ingreso=emp.fecha_ingreso,
         horario_trabajo=emp.horario_trabajo,
+        estado=emp.estado,
         vehiculos=vehs,
         contactos=conts,
         servicios=servicios,
@@ -173,7 +204,10 @@ def update_password(
 # GESTIÓN DE EMPRESA
 # ═══════════════════════════════════════════════════════════════════
 
-@router.get("/me", response_model=schemas.EmpresaDetailOut, summary="Mis datos completos de empresa")
+# /companies/me es la misma ruta que usa el PUT para editar; /me se mantiene
+# porque es la que usa el frontend.
+@router.get("/companies/me", response_model=schemas.EmpresaDetailOut, summary="Mis datos completos de empresa")
+@router.get("/me", response_model=schemas.EmpresaDetailOut, summary="Mis datos completos de empresa (alias de /companies/me)")
 def read_me(
     current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db),
@@ -202,8 +236,7 @@ def read_me(
 @router.put(
     "/companies/me",
     response_model=schemas.EmpresaSelfOut,
-    summary="Actualizar mis datos de empresa (cant_empleados, observaciones, horario_trabajo)"
-)
+    summary="Actualizar mis datos de empresa (cant_empleados, observaciones, horario_trabajo)")
 def update_my_company(
     dto: schemas.EmpresaSelfUpdate,
     current_user: models.Usuario = Depends(require_empresa_role),
@@ -314,6 +347,14 @@ def update_vehiculo(
 ):
     """Actualizar vehículo existente de la empresa"""
     v = _get_owned_vehiculo(db, veh_id, current_user.cuil)
+
+    # Mismas reglas por tipo que al crearlo (antes editar no validaba nada)
+    tipo_id = dto.id_tipo_vehiculo if dto.id_tipo_vehiculo is not None else v.id_tipo_vehiculo
+    tipo = db.query(models.TipoVehiculo).filter(models.TipoVehiculo.id_tipo_vehiculo == tipo_id).first()
+    if not tipo:
+        raise HTTPException(status_code=400, detail=f"Tipo de vehículo {tipo_id} no existe")
+    if dto.datos is not None:
+        validar_datos_vehiculo(dto, tipo)
 
     for f in ("horarios", "frecuencia", "datos", "id_tipo_vehiculo"):
         val = getattr(dto, f, None)
@@ -536,8 +577,7 @@ def read_my_comercial_info(
 @router.put(
     "/companies/me/comercial",
     response_model=schemas.InfoComercialOut,
-    summary="Editar mi información comercial ya cargada",
-)
+    summary="Editar mi información comercial ya cargada")
 def update_my_comercial_info(
     dto: schemas.InfoComercialUpdate,
     current_user: models.Usuario = Depends(require_empresa_role),

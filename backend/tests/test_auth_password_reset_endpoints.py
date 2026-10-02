@@ -94,10 +94,29 @@ def test_forgot_password_sends_email_when_user_active(seeded_reset_client):
     smtp_mock.assert_called()
 
 
-def test_forgot_password_rejects_unknown_email(reset_client):
-    client, *_ = reset_client
-    response = client.post("/forgot-password", json={"email": "no@existe.com"})
-    assert response.status_code == 404
+def test_forgot_password_answers_the_same_for_unknown_or_disabled_accounts(reset_client, seeded_reset_client):
+    """No tiene que dejar averiguar qué emails tienen cuenta (enumeración de usuarios)."""
+    client, SessionLocal, user = seeded_reset_client
+    with patch("smtplib.SMTP") as smtp_mock:
+        existente = client.post("/forgot-password", json={"email": user["email"]})
+    with patch("smtplib.SMTP") as smtp_mock_no:
+        inexistente = client.post("/forgot-password", json={"email": "no@existe.com"})
+
+    assert existente.status_code == inexistente.status_code == 200
+    assert existente.json()["message"] == inexistente.json()["message"]
+    smtp_mock.assert_called()
+    smtp_mock_no.assert_not_called()  # al email que no existe no se le manda nada
+
+
+def test_forgot_password_does_not_email_disabled_accounts(reset_client):
+    client, SessionLocal = reset_client
+    session = SessionLocal()
+    _seed_user(session, email="deshabilitado@example.com", estado=False)
+    session.close()
+    with patch("smtplib.SMTP") as smtp_mock:
+        response = client.post("/forgot-password", json={"email": "deshabilitado@example.com"})
+    assert response.status_code == 200
+    smtp_mock.assert_not_called()
 
 
 def test_verify_reset_token_detects_disabled_user(reset_client):

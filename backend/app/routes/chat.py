@@ -5,13 +5,17 @@ from starlette.concurrency import run_in_threadpool
 from app.services import get_chat_response, GENERIC_ERROR_MESSAGE
 from app.config import get_db
 from app.rate_limit import rate_limit
+from app.routes.auth import get_current_user
 from sqlalchemy.orm import Session
 from typing import List, Dict, Optional
 
+# Requiere sesión, como /api/voice/chat (que es el que usa el frontend): sin
+# esto cualquiera en internet podía usar el chatbot y la cuota de Gemini.
 router = APIRouter(
     prefix="/chat",
     tags=["chat"],
     redirect_slashes=True,
+    dependencies=[Depends(get_current_user)],
 )
 
 class ChatRequest(BaseModel):

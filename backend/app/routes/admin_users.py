@@ -381,8 +381,16 @@ def admin_update_empresa_nombre_rubro(
         emp.nombre = dto.nombre
     if dto.rubro is not None:
         emp.rubro = dto.rubro
-    if dto.estado is not None:
-        emp.estado = dto.estado
+    if dto.estado is not None and dto.estado != emp.estado:
+        # Mismas reglas que /activar y /desactivar: una solicitud pendiente o
+        # rechazada solo se habilita aprobándola, y el estado se propaga a los
+        # usuarios y registros de la empresa.
+        if dto.estado and emp.estado_solicitud != "aprobada":
+            raise HTTPException(
+                status_code=400,
+                detail=f"La solicitud de registro de '{emp.nombre}' está {emp.estado_solicitud}. Aprobala desde Solicitudes para activarla.",
+            )
+        _set_empresa_and_related_estado(emp, dto.estado)
     if dto.cant_empleados is not None:
         emp.cant_empleados = dto.cant_empleados
     if dto.observaciones is not None:
@@ -437,6 +445,13 @@ def activar_empresa(cuil: int, db: Session = Depends(get_db)):
     empresa = db.query(models.Empresa).filter(models.Empresa.cuil == cuil).first()
     if not empresa:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    # Una solicitud pendiente o rechazada se habilita con /aprobar (que además
+    # marca estado_solicitud y avisa por email), no reactivándola.
+    if empresa.estado_solicitud != "aprobada":
+        raise HTTPException(
+            status_code=400,
+            detail=f"La solicitud de registro de '{empresa.nombre}' está {empresa.estado_solicitud}. Aprobala desde Solicitudes para activarla.",
+        )
 
     _set_empresa_and_related_estado(empresa, True)
     db.commit()
@@ -591,6 +606,10 @@ def rechazar_solicitud_registro(cuil: int, db: Session = Depends(get_db)):
 @router.post("/serviciopolo", response_model=schemas.ServicioPoloOut, summary="Crear un servicio de polo")
 def create_servicio_polo(dto: schemas.ServicioPoloCreate, db: Session = Depends(get_db)):
     """Crear nuevo servicio del polo asociado a una empresa"""
+    if not db.query(models.Empresa).filter(models.Empresa.cuil == dto.cuil).first():
+        raise HTTPException(status_code=400, detail=f"No existe una empresa registrada con CUIL {dto.cuil}")
+    if dto.id_tipo_servicio_polo is not None and not db.get(models.TipoServicioPolo, dto.id_tipo_servicio_polo):
+        raise HTTPException(status_code=400, detail="Tipo de servicio del polo inválido")
     servicio = models.ServicioPolo(
         nombre=dto.nombre,
         horario=dto.horario,
@@ -628,6 +647,10 @@ def create_lote(dto: schemas.LoteCreate, db: Session = Depends(get_db)):
     Crear nuevo lote y asociarlo a un servicio de polo.
     No permite duplicar lotes con misma manzana y número de lote.
     """
+    # id_servicio_polo es opcional en el schema pero obligatorio en la tabla
+    if dto.id_servicio_polo is None or not db.get(models.ServicioPolo, dto.id_servicio_polo):
+        raise HTTPException(status_code=400, detail="El servicio del polo indicado no existe")
+
     # 🔍 Verificar duplicado de manzana + lote
     existing_lote = (
         db.query(models.Lote)

@@ -593,6 +593,7 @@ class EmpresaDetailOut(BaseModel):
     observaciones: Optional[str]
     fecha_ingreso: date
     horario_trabajo: str
+    estado: bool
     vehiculos: List[VehiculoOut]
     contactos: List[ContactoOut]
     servicios_polo: List[ServicioPoloOut]

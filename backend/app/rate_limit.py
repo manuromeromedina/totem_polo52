@@ -8,6 +8,7 @@ esto hay que migrarlo a un backend compartido (Redis) para que el límite
 sea efectivo entre procesos; en memoria, cada proceso llevaría su propio
 conteo y el límite real terminaría siendo N veces el configurado.
 """
+import os
 import time
 from collections import defaultdict, deque
 from typing import Deque, Dict, Tuple
@@ -17,20 +18,27 @@ from fastapi import HTTPException, Request
 
 _buckets: Dict[Tuple[str, str], Deque[float]] = defaultdict(deque)
 
+# De qué header sale la IP del cliente (RATE_LIMIT_CLIENT_IP_HEADER):
+#   "cloudflare" (default): CF-Connecting-IP, que pone Cloudflare y el cliente
+#                no puede cambiar si el tráfico pasa por Cloudflare.
+#   "x-forwarded-for": la ÚLTIMA IP de X-Forwarded-For (la que agregó el proxy
+#                de confianza; las anteriores las puede inventar el cliente).
+#   "none": solo la IP de la conexión.
+# Antes se usaba la PRIMERA IP de X-Forwarded-For, que la elige el cliente:
+# rotándola se esquivaba el límite (p. ej. fuerza bruta contra /login).
+CLIENT_IP_HEADER = os.getenv("RATE_LIMIT_CLIENT_IP_HEADER", "cloudflare").strip().lower()
+
 
 def _client_key(request: Request) -> str:
-    """
-    Identifica al cliente por IP. Prioriza los headers que pone un proxy
-    delante (Cloudflare / nginx) sobre request.client.host, que detrás de
-    un proxy sería la IP del proxy y no la del usuario real.
-    """
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-
-    cf_ip = request.headers.get("cf-connecting-ip")
-    if cf_ip:
-        return cf_ip
+    """Identifica al cliente por IP, sin creerle a headers que el cliente puede falsificar."""
+    if CLIENT_IP_HEADER == "cloudflare":
+        cf_ip = request.headers.get("cf-connecting-ip")
+        if cf_ip:
+            return cf_ip.strip()
+    elif CLIENT_IP_HEADER == "x-forwarded-for":
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",")[-1].strip()
 
     return request.client.host if request.client else "unknown"
 

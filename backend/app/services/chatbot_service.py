@@ -83,6 +83,7 @@ class _IntentSchema(TypedDict):
     direct_answer: str
     corrected_entity: str
     question: str
+    location_empresa: str
 
 
 INTENT_GENERATION_CONFIG = GenerationConfig(
@@ -165,7 +166,50 @@ def is_sql_query_allowed(sql_query: str) -> bool:
         if re.search(rf"\b{table}\b", normalized):
             return False
 
+    # Los catálogos del sistema exponen metadatos y otras tablas: no son
+    # parte de lo que el chatbot necesita leer.
+    if re.search(r"\b(information_schema|pg_catalog)\b", normalized) or re.search(r"\bpg_\w+", normalized):
+        return False
+
     return True
+
+
+# Lo que el chatbot puede leer de estas tablas es solo lo PÚBLICO: empresas
+# activas y aprobadas (no pendientes, rechazadas ni dadas de baja), sus
+# contactos comerciales (no los empresariales/internos) y sus datos
+# asociados. Se aplica a nivel datos, envolviendo la consulta generada con
+# CTEs que redefinen esas tablas, en vez de pedirle al modelo que filtre.
+_PUBLIC_SCOPE_CTES = """WITH
+empresa AS (
+    SELECT * FROM {s}.empresa WHERE estado = TRUE AND estado_solicitud = 'aprobada'
+),
+contacto AS (
+    SELECT c.* FROM {s}.contacto c
+    JOIN {s}.tipo_contacto tc ON tc.id_tipo_contacto = c.id_tipo_contacto
+    WHERE lower(tc.tipo) = 'comercial' AND c.cuil_empresa IN (SELECT cuil FROM empresa)
+),
+info_comercial AS (
+    SELECT * FROM {s}.info_comercial WHERE cuil IN (SELECT cuil FROM empresa)
+),
+servicio_polo AS (
+    SELECT * FROM {s}.servicio_polo WHERE cuil IN (SELECT cuil FROM empresa)
+),
+lotes AS (
+    SELECT * FROM {s}.lotes WHERE id_servicio_polo IN (SELECT id_servicio_polo FROM servicio_polo)
+)
+"""
+
+
+def scope_query_to_public_data(sql_query: str, schema: str = "public") -> str:
+    """Envuelve un SELECT ya validado para que solo vea datos públicos.
+    `schema` es donde viven las tablas reales ("public" en Postgres, "main" en SQLite)."""
+    body = sql_query.strip()
+    if body.endswith(";"):
+        body = body[:-1]
+    # "public.empresa" apuntaría a la tabla real y esquivaría las CTEs: sin el
+    # prefijo, la referencia cae sobre la versión filtrada.
+    body = re.sub(r'"?\bpublic"?\s*\.\s*', "", body, flags=re.IGNORECASE)
+    return _PUBLIC_SCOPE_CTES.replace("{s}", schema) + body
 
 
 def normalize_text(text_value: str) -> str:
@@ -193,9 +237,22 @@ def execute_sql_query(db: Session, query: str) -> List[Dict]:
         if not query.strip().lower().startswith("select"):
             print(f"Consulta no permitida: {query}")
             return [{"error": GENERIC_ERROR_MESSAGE}]
-        result = db.execute(text(query), execution_options={"no_cache": True})
-        columns = result.keys()
-        raw_results = [dict(zip(columns, row)) for row in result.fetchall()]
+        es_postgres = db.bind.dialect.name == "postgresql"
+        scoped = text(scope_query_to_public_data(query, "public" if es_postgres else "main"))
+        if es_postgres:
+            # Conexión aparte en una transacción de SOLO LECTURA: aunque una
+            # inyección por el prompt pasara las validaciones, la base rechaza
+            # cualquier escritura. (No se puede hacer en la sesión del request:
+            # SET TRANSACTION tiene que ser lo primero de la transacción.)
+            with db.bind.connect() as conn, conn.begin():
+                conn.execute(text("SET TRANSACTION READ ONLY"))
+                result = conn.execute(scoped, execution_options={"no_cache": True})
+                columns = result.keys()
+                raw_results = [dict(zip(columns, row)) for row in result.fetchall()]
+        else:
+            result = db.execute(scoped, execution_options={"no_cache": True})
+            columns = result.keys()
+            raw_results = [dict(zip(columns, row)) for row in result.fetchall()]
         print(f"Resultados crudos de la consulta: {raw_results}")
         return raw_results
     except Exception as e:
@@ -409,7 +466,51 @@ def parse_intent_json(response) -> Tuple[Optional[dict], Optional[str]]:
 # ═══════════════════════════════════════════════════════════════════
 
 
-def get_chat_response(db: Session, message: str, history: List[Dict[str, str]] = None):
+def resolve_company_locations(db: Session, name: str) -> List[Dict]:
+    """Busca coordenadas geolocalizadas (lotes) de una empresa por nombre.
+
+    Replica el join que usa directory.py::search_companies_lotes
+    (empresa -> servicios_polo -> lotes), pero devuelve TODOS los lotes
+    con latitud/longitud cargadas, no solo el primero.
+    """
+    if not name or not name.strip():
+        return []
+
+    from sqlalchemy.orm import selectinload
+
+    from app.models import Empresa, ServicioPolo
+
+    empresas = (
+        db.query(Empresa)
+        .options(selectinload(Empresa.servicios_polo).selectinload(ServicioPolo.lotes))
+        .filter(Empresa.nombre.ilike(f"%{name.strip()}%"))
+        # mismo alcance público que las consultas del chatbot: solo empresas activas y aprobadas
+        .filter(Empresa.estado == True, Empresa.estado_solicitud == "aprobada")  # noqa: E712
+        .all()
+    )
+
+    locations: List[Dict] = []
+    for empresa in empresas:
+        for servicio in empresa.servicios_polo:
+            for lote in servicio.lotes:
+                if lote.latitud is not None and lote.longitud is not None:
+                    locations.append({
+                        "empresa_nombre": empresa.nombre,
+                        "lote": lote.lote,
+                        "manzana": lote.manzana,
+                        "latitud": lote.latitud,
+                        "longitud": lote.longitud,
+                    })
+    return locations
+
+
+def get_chat_response(
+    db: Session,
+    message: str,
+    history: List[Dict[str, str]] = None,
+    *,
+    out: Optional[dict] = None,
+):
     """Generar respuesta del chatbot usando Gemini AI"""
     try:
         user_input = normalize_text(message)
@@ -451,6 +552,7 @@ Completa los campos:
 - direct_answer: texto natural, breve (una o dos frases), para responder saludos, agradecimientos o mensajes sociales similares cuando no se requiera consultar la base. Cadena vacía si no aplica.
 - corrected_entity: corrección si detectas errores de escritura en nombres propios. Cadena vacía si no aplica.
 - question: pregunta de aclaración, solo si needs_more_info es true. Cadena vacía si no aplica.
+- location_empresa: si el usuario pregunta por la ubicación física, cómo llegar, o dónde queda una empresa o servicio del parque, poné acá el nombre de esa empresa/servicio (usando la corrección de corrected_entity si aplica). Cadena vacía en cualquier otro caso.
 
 Tu IA debe entender saludos, expresiones de cortesía, consultas informales o con errores de escritura y contestar de manera natural sin asumir información restringida.
 """
@@ -469,6 +571,11 @@ Tu IA debe entender saludos, expresiones de cortesía, consultas informales o co
                 return fallback_text, [], None
             print(f"Intent parse falló. Respuesta cruda: {raw_intent_text}")
             return "Disculpa, tuve un problema procesando tu consulta. ¿Podrías reformularla?", [], None
+
+        location_name = (intent_data.get("location_empresa") or "").strip()
+        locations = resolve_company_locations(db, location_name) if location_name else []
+        if out is not None:
+            out["locations"] = locations
 
         if intent_data.get("needs_more_info", False):
             question = intent_data.get("question") or "¿Podrías darme más detalles sobre tu consulta?"
@@ -494,11 +601,19 @@ Tu IA debe entender saludos, expresiones de cortesía, consultas informales o co
         results_text = json.dumps(db_results, ensure_ascii=False, default=custom_json_serializer)
         input_text = f"Resultados de la consulta:\n{results_text}\nPregunta:\n{message}"
 
+        location_note = (
+            "\nNota: la interfaz ya le va a mostrar al usuario un mapa con el/los pines exactos "
+            "de esta ubicación junto con tu respuesta, así que no hace falta que recites "
+            "coordenadas numéricas (latitud/longitud); alcanza con confirmar la ubicación en palabras."
+            if locations else ""
+        )
+
         final_prompt = f"""
 Eres POLO, asistente conversacional del Parque Industrial Polo 52.
 
 Información disponible:
 {input_text}
+{location_note}
 
 Historial:
 {chat_history}
@@ -577,6 +692,7 @@ def get_chat_response_with_audio(
                     "db_results": [],
                     "transcript": None,
                     "corrected_entity": None,
+                    "locations": [],
                     "error": True,
                 }
 
@@ -589,7 +705,8 @@ def get_chat_response_with_audio(
             raise HTTPException(status_code=400, detail="Se requiere audio o texto")
 
         print(" Procesando con Gemini...")
-        response_text, db_results, corrected_entity = get_chat_response(db, message, history)
+        extra: dict = {}
+        response_text, db_results, corrected_entity = get_chat_response(db, message, history, out=extra)
         print(f" Respuesta generada: {response_text[:100]}...")
 
         print("🔊 Generando audio de respuesta...")
@@ -603,6 +720,7 @@ def get_chat_response_with_audio(
             "db_results": db_results,
             "transcript": transcript,
             "corrected_entity": corrected_entity,
+            "locations": extra.get("locations", []),
             "error": False,
         }
 
@@ -621,6 +739,7 @@ def get_chat_response_with_audio(
                 "db_results": [],
                 "transcript": transcript,
                 "corrected_entity": None,
+                "locations": [],
                 "error": True,
             }
         except Exception:

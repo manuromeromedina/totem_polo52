@@ -159,6 +159,71 @@ def test_toggle_company_state(admin_client):
     assert activate.status_code == 200
 
 
+def _add_empresa_user(SessionLocal, cuil, nombre):
+    session = SessionLocal()
+    session.add(models.Usuario(
+        nombre=nombre,
+        email=f"{nombre}@test.com",
+        contrasena=services.hash_password("Clave123!"),
+        estado=True,
+        fecha_registro=date.today(),
+        cuil=cuil,
+    ))
+    session.commit()
+    session.close()
+
+
+def _estados(SessionLocal, cuil, nombre_usuario):
+    session = SessionLocal()
+    emp = session.query(models.Empresa).filter(models.Empresa.cuil == cuil).first()
+    user = session.query(models.Usuario).filter(models.Usuario.nombre == nombre_usuario).first()
+    result = (emp.estado, user.estado)
+    session.close()
+    return result
+
+
+def test_update_company_estado_propagates_to_users(admin_client):
+    """Desactivar/activar desde el formulario de edición (PUT) tiene que
+    propagar el estado igual que /desactivar y /activar."""
+    client, SessionLocal, ctx = admin_client
+    _add_empresa_user(SessionLocal, ctx["empresa_cuil"], "empleado")
+
+    off = client.put(f"/empresas/{ctx['empresa_cuil']}", json={"estado": False})
+    assert off.status_code == 200
+    assert _estados(SessionLocal, ctx["empresa_cuil"], "empleado") == (False, False)
+
+    on = client.put(f"/empresas/{ctx['empresa_cuil']}", json={"estado": True})
+    assert on.status_code == 200
+    assert _estados(SessionLocal, ctx["empresa_cuil"], "empleado") == (True, True)
+
+
+@pytest.mark.parametrize("solicitud", ["pendiente", "rechazada"])
+def test_update_company_cannot_activate_unapproved_request(admin_client, solicitud):
+    client, SessionLocal, ctx = admin_client
+    session = SessionLocal()
+    emp = session.query(models.Empresa).filter(models.Empresa.cuil == ctx["empresa_disabled_cuil"]).first()
+    emp.estado_solicitud = solicitud
+    session.commit()
+    session.close()
+    _add_empresa_user(SessionLocal, ctx["empresa_disabled_cuil"], "solicitante")
+
+    for path in (f"/empresas/{ctx['empresa_disabled_cuil']}", f"/empresas/{ctx['empresa_disabled_cuil']}/activar"):
+        response = client.put(path, json={"estado": True}) if not path.endswith("activar") else client.put(path)
+        assert response.status_code == 400
+        assert "Aprobala desde Solicitudes" in response.json()["detail"]
+    assert _estados(SessionLocal, ctx["empresa_disabled_cuil"], "solicitante")[0] is False
+
+
+def test_update_company_without_estado_keeps_users_untouched(admin_client):
+    client, SessionLocal, ctx = admin_client
+    _add_empresa_user(SessionLocal, ctx["empresa_cuil"], "empleado2")
+
+    response = client.put(f"/empresas/{ctx['empresa_cuil']}", json={"rubro": "Otro rubro"})
+    assert response.status_code == 200
+    assert response.json()["rubro"] == "Otro rubro"
+    assert _estados(SessionLocal, ctx["empresa_cuil"], "empleado2") == (True, True)
+
+
 def test_list_companies(admin_client):
     client, SessionLocal, ctx = admin_client
     listado = client.get("/empresas")
@@ -218,18 +283,49 @@ def test_solicitudes_registro_approve_and_reject(admin_client, monkeypatch):
     session.close()
 
 
+def test_public_listings_hide_internal_contacts_and_unapproved_companies(admin_client):
+    """El directorio y las búsquedas los ve cualquier usuario logueado: solo
+    pueden mostrar contactos comerciales y empresas activas y aprobadas."""
+    client, SessionLocal, ctx = admin_client
+    session = SessionLocal()
+    session.add_all([models.TipoContacto(id_tipo_contacto=1, tipo="comercial"), models.TipoContacto(id_tipo_contacto=2, tipo="empresarial")])
+    session.add(models.Empresa(cuil=7777, nombre="Empresa Pendiente", rubro="X", cant_empleados=1, observaciones="",
+                               fecha_ingreso=date.today(), horario_trabajo="x", estado=True, estado_solicitud="pendiente"))
+    session.commit()
+    session.add_all([
+        models.Contacto(cuil_empresa=ctx["empresa_cuil"], id_tipo_contacto=1, nombre="Ventas", telefono="111", datos={}, direccion="A"),
+        models.Contacto(cuil_empresa=ctx["empresa_cuil"], id_tipo_contacto=2, nombre="Gerencia interna", telefono="999", datos={}, direccion="B"),
+        models.Contacto(cuil_empresa=7777, id_tipo_contacto=1, nombre="Ventas pendiente", telefono="777", datos={}, direccion="C"),
+    ])
+    session.commit()
+    session.close()
+
+    directorio = client.get("/empresas/directorio").json()
+    empresa = next(e for e in directorio if e["cuil"] == ctx["empresa_cuil"])
+    assert [c["nombre"] for c in empresa["contactos"]] == ["Ventas"]
+    assert all(e["cuil"] != 7777 for e in directorio)
+
+    contactos = client.get("/search/contactos").json()
+    nombres = {c["nombre"] for c in contactos}
+    assert "Ventas" in nombres
+    assert "Gerencia interna" not in nombres
+    assert "Ventas pendiente" not in nombres
+
+    busqueda = client.get("/search", params={"name": "Pendiente"})
+    assert busqueda.status_code == 404
+
+
 def test_search_public_endpoints(admin_client):
     client, SessionLocal, ctx = admin_client
     session = SessionLocal()
-    contacto = models.Contacto(
-        cuil_empresa=ctx["empresa_cuil"],
-        id_tipo_contacto=1,
-        nombre="Contacto",
-        telefono="123",
-        datos={"email": "c@t.com"},
-        direccion="Calle 1",
-    )
-    session.add(contacto)
+    session.add_all([models.TipoContacto(id_tipo_contacto=1, tipo="comercial"), models.TipoContacto(id_tipo_contacto=2, tipo="empresarial")])
+    session.commit()
+    session.add_all([
+        models.Contacto(cuil_empresa=ctx["empresa_cuil"], id_tipo_contacto=1, nombre="Contacto",
+                        telefono="123", datos={"email": "c@t.com"}, direccion="Calle 1"),
+        models.Contacto(cuil_empresa=ctx["empresa_cuil"], id_tipo_contacto=2, nombre="Gerencia interna",
+                        telefono="999", datos={}, direccion="Interna"),
+    ])
     session.commit()
     session.close()
 
@@ -244,6 +340,47 @@ def test_search_public_endpoints(admin_client):
     lotes = client.get("/search/lotes", params={"empresa": "Empresa"})
     assert lotes.status_code == 200
     assert len(lotes.json()) >= 0
+
+
+def test_create_servicio_polo_rejects_unknown_cuil_and_tipo(admin_client):
+    client, SessionLocal, ctx = admin_client
+    base = {"nombre": "X", "datos": {"m2": 10}, "id_tipo_servicio_polo": ctx["tipo_servicio_polo"], "cuil": 999999}
+
+    sin_empresa = client.post("/serviciopolo", json=base)
+    assert sin_empresa.status_code == 400
+    assert "No existe una empresa registrada con CUIL 999999" in sin_empresa.json()["detail"]
+
+    tipo_invalido = client.post("/serviciopolo", json={**base, "cuil": ctx["empresa_cuil"], "id_tipo_servicio_polo": 999})
+    assert tipo_invalido.status_code == 400
+
+
+@pytest.mark.parametrize("id_servicio_polo", [None, 999999])
+def test_create_lote_rejects_missing_or_unknown_servicio(admin_client, id_servicio_polo):
+    client, SessionLocal, ctx = admin_client
+    body = {"dueno": "Empresa", "lote": 1, "manzana": 1}
+    if id_servicio_polo is not None:
+        body["id_servicio_polo"] = id_servicio_polo
+    response = client.post("/lotes", json=body)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "El servicio del polo indicado no existe"
+
+
+def test_unhandled_error_returns_json_500_with_cors_headers(admin_client):
+    """Un error inesperado tiene que llegar al front como 500 (con CORS), no
+    como una respuesta bloqueada por el navegador ("Error de conexión")."""
+    client, SessionLocal, ctx = admin_client
+
+    def broken_db():
+        raise RuntimeError("la base explotó")
+        yield  # pragma: no cover
+
+    app.dependency_overrides[admin_routes.get_db] = broken_db
+    response = client.get("/empresas", headers={"Origin": "http://localhost:4200"})
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Error interno del servidor. Intentá de nuevo en unos minutos."}
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:4200"
+    assert response.headers.get("x-content-type-options") == "nosniff"
 
 
 def test_create_servicio_polo_and_lote(admin_client):

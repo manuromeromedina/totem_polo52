@@ -78,10 +78,12 @@ def auth_client():
     # resto de la suite; acá lo sacamos para ejercitar la validación real del
     # JWT (login/logout/etc contra la sqlite de este fixture).
     app.dependency_overrides.pop(auth_routes.get_current_user, None)
+    auth_routes.reset_login_locks()
     client = TestClient(app)
 
     yield client, TestingSessionLocal
 
+    auth_routes.reset_login_locks()
     app.dependency_overrides.pop(auth_routes.get_db, None)
     Base.metadata.drop_all(bind=engine)
     engine.dispose()
@@ -167,3 +169,71 @@ def test_logout_requires_valid_token(auth_client):
     client, SessionLocal = auth_client
     response = client.post("/logout", headers={"Authorization": "Bearer not-a-real-token"})
     assert response.status_code == 401
+
+
+def _usuario_con_rol(SessionLocal, nombre, *, empresa_estado=True, usuario_estado=True, cuil=1001):
+    db = SessionLocal()
+    empresa = _add_company(db, cuil=cuil, estado=empresa_estado)
+    user = _add_user(db, nombre=nombre, email=f"{nombre}@example.com", password="ClaveSegura1", estado=usuario_estado, empresa=empresa)
+    role = _add_role(db)
+    db.add(models.RolUsuario(id_usuario=user.id_usuario, id_rol=role.id_rol))
+    db.commit()
+    db.close()
+
+
+def test_account_is_locked_after_5_failed_logins_even_with_the_right_password(auth_client):
+    """Bloqueo por CUENTA en el servidor: no depende de la IP ni del navegador."""
+    client, SessionLocal = auth_client
+    _usuario_con_rol(SessionLocal, "lucia")
+    for _ in range(5):
+        assert client.post("/login", data={"username": "lucia", "password": "Incorrecta1"}).status_code == 401
+
+    bloqueado = client.post("/login", data={"username": "lucia", "password": "ClaveSegura1"})
+    assert bloqueado.status_code == 429
+    assert "Retry-After" in bloqueado.headers
+
+    auth_routes.reset_login_locks()  # pasado el bloqueo, la contraseña correcta vuelve a andar
+    assert client.post("/login", data={"username": "lucia", "password": "ClaveSegura1"}).status_code == 200
+
+
+def test_successful_login_resets_the_failure_count(auth_client):
+    client, SessionLocal = auth_client
+    _usuario_con_rol(SessionLocal, "martin")
+    for _ in range(4):
+        client.post("/login", data={"username": "martin", "password": "Incorrecta1"})
+    assert client.post("/login", data={"username": "martin", "password": "ClaveSegura1"}).status_code == 200
+    for _ in range(4):
+        client.post("/login", data={"username": "martin", "password": "Incorrecta1"})
+    assert client.post("/login", data={"username": "martin", "password": "ClaveSegura1"}).status_code == 200
+
+
+def test_logout_revokes_the_token(auth_client):
+    client, SessionLocal = auth_client
+    _usuario_con_rol(SessionLocal, "sofia")
+    token = client.post("/login", data={"username": "sofia", "password": "ClaveSegura1"}).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    assert client.post("/logout", headers=headers).status_code == 200
+    despues = client.post("/logout", headers=headers)
+    assert despues.status_code == 401
+    assert despues.json()["detail"] == "Sesión cerrada"
+
+    # un login nuevo da un token distinto, que sí sirve
+    nuevo = client.post("/login", data={"username": "sofia", "password": "ClaveSegura1"}).json()["access_token"]
+    assert nuevo != token
+    assert client.post("/logout", headers={"Authorization": f"Bearer {nuevo}"}).status_code == 200
+
+
+def test_disabled_company_message_wins_over_disabled_user(auth_client):
+    """Desactivar una empresa deshabilita a sus usuarios en cascada: el motivo que
+    ve el usuario tiene que ser el de la empresa, no el de su cuenta."""
+    client, SessionLocal = auth_client
+    _usuario_con_rol(SessionLocal, "pedro", empresa_estado=False, usuario_estado=False)
+    response = client.post("/login", data={"username": "pedro", "password": "ClaveSegura1"})
+    assert response.status_code == 403
+    assert "empresa asociada" in response.json()["detail"].lower()
+
+
+def test_chat_endpoint_requires_a_session(auth_client):
+    client, SessionLocal = auth_client
+    assert client.post("/chat/", json={"message": "hola"}).status_code == 401

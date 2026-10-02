@@ -271,7 +271,8 @@ async def voice_chat_endpoint(
                 "audio_base64": result["audio_base64"],
                 "transcript": result.get("transcript"),
                 "db_results": result.get("db_results", []),
-                "corrected_entity": result.get("corrected_entity")
+                "corrected_entity": result.get("corrected_entity"),
+                "locations": result.get("locations", [])
             },
             "error": result.get("error", False),
             "message": "Respuesta generada exitosamente"
@@ -296,6 +297,7 @@ async def voice_chat_endpoint(
                     "transcript": None,
                     "db_results": [],
                     "corrected_entity": None,
+                    "locations": [],
                 },
                 "error": True,
                 "message": "El servidor no pudo responder la consulta"

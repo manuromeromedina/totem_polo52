@@ -29,12 +29,21 @@ def reset_schema_cache():
 
 @pytest.fixture
 def empresa_db():
+    # Esquema real (los modelos): las consultas del chatbot se envuelven con
+    # el alcance público, que usa columnas como estado/estado_solicitud y las
+    # tablas de contactos, servicios del polo, lotes e info comercial.
+    from app.config import Base
+    import app.models  # noqa: F401  (registra las tablas en Base.metadata)
+
     engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
     with engine.begin() as conn:
-        conn.execute(sa_text("CREATE TABLE empresa (cuil INTEGER PRIMARY KEY, nombre TEXT, rubro TEXT)"))
         conn.execute(
-            sa_text("INSERT INTO empresa (cuil, nombre, rubro) VALUES (1, 'Logistica Express S.A.', 'Logistica')")
+            sa_text(
+                "INSERT INTO empresa (cuil, nombre, rubro, cant_empleados, fecha_ingreso, horario_trabajo, estado, estado_solicitud) "
+                "VALUES (1, 'Logistica Express S.A.', 'Logistica', 10, '2024-01-01', '9-18', 1, 'aprobada')"
+            )
         )
     db = SessionLocal()
     yield db

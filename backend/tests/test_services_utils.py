@@ -40,11 +40,19 @@ def test_normalize_text_removes_accents():
 
 
 def test_execute_sql_query_allows_select_only():
+    # esquema real: execute_sql_query envuelve la consulta con el alcance
+    # público del chatbot (empresas activas y aprobadas)
+    from app.config import Base
+    import app.models  # noqa: F401  (registra las tablas en Base.metadata)
+
     engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
     with engine.begin() as connection:
-        connection.execute(text("CREATE TABLE empresa (id INTEGER PRIMARY KEY, nombre TEXT)"))
-        connection.execute(text("INSERT INTO empresa (nombre) VALUES ('Polo 52')"))
+        connection.execute(text(
+            "INSERT INTO empresa (cuil, nombre, rubro, cant_empleados, fecha_ingreso, horario_trabajo, estado, estado_solicitud) "
+            "VALUES (1, 'Polo 52', 'Parque', 1, '2024-01-01', '8-16', 1, 'aprobada')"
+        ))
 
     db: Session = SessionLocal()
     try:

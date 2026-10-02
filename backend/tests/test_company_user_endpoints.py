@@ -65,7 +65,7 @@ def _seed_base(db):
     db.add(tipo_servicio)
     db.commit()
 
-    tipo_contacto = models.TipoContacto(id_tipo_contacto=1, tipo="Administrativo")
+    tipo_contacto = models.TipoContacto(id_tipo_contacto=1, tipo="comercial")
     db.add(tipo_contacto)
     db.commit()
 
@@ -145,6 +145,33 @@ def test_create_and_update_vehicle(company_client):
     assert update_resp.json()["horarios"] == "07-19"
 
 
+@pytest.mark.parametrize(
+    "datos, esperado",
+    [
+        # mismos ids que la tabla real: 2 = terceros, 3 = personales
+        ({"id": 3, "datos": {"cantidad": 5, "patente": "ABC123"}}, 200),
+        ({"id": 3, "datos": {"cantidad": 5, "carga": "baja"}}, 400),
+        ({"id": 2, "datos": {"cantidad": 3, "carga": "mediana"}}, 200),
+        ({"id": 2, "datos": {"cantidad": 3, "patente": "ABC123"}}, 400),
+    ],
+)
+def test_vehicle_rules_follow_the_type_name_not_its_id(company_client, datos, esperado):
+    client, SessionLocal = company_client
+    session = SessionLocal()
+    session.add_all([
+        models.TipoVehiculo(id_tipo_vehiculo=2, tipo="terceros"),
+        models.TipoVehiculo(id_tipo_vehiculo=3, tipo="personales"),
+    ])
+    session.commit()
+    session.close()
+
+    response = client.post(
+        "/vehiculos",
+        json={"id_tipo_vehiculo": datos["id"], "horarios": "08-18", "frecuencia": "Diaria", "datos": datos["datos"]},
+    )
+    assert response.status_code == esperado, response.text
+
+
 def test_create_servicio_and_delete(company_client):
     client, SessionLocal = company_client
     service_payload = {"datos": {"detalle": "Mesa de ayuda"}, "id_tipo_servicio": 1}
@@ -200,3 +227,43 @@ def test_admin_empresa_can_read_directorio(company_client):
     assert empresa["nombre"] == "Empresa Uno"
     assert empresa["contactos"][0]["nombre"] == "Referente Comercial"
     assert empresa["contactos"][0]["telefono"] == "351-555-1234"
+
+
+@pytest.mark.parametrize("patente, esperado", [
+    ("ab-123-cd", "AB123CD"),          # Mercosur, normalizada
+    ("abc 123", "ABC123"),             # formato viejo
+    ("AB123CD, ac456de", "AB123CD, AC456DE"),  # flota
+])
+def test_vehicle_plate_is_normalized(company_client, patente, esperado):
+    client, SessionLocal = company_client
+    r = client.post("/vehiculos", json={
+        "id_tipo_vehiculo": 1, "horarios": "08-18", "frecuencia": "Diaria",
+        "datos": {"cantidad": 1, "patente": patente, "carga": "baja"},
+    })
+    assert r.status_code == 200, r.text
+    assert r.json()["datos"]["patente"] == esperado
+
+
+@pytest.mark.parametrize("patente", ["!!no es patente!!", "A1", "ABCD1234", "AB123CD, mal"])
+def test_vehicle_rejects_invalid_plates(company_client, patente):
+    client, SessionLocal = company_client
+    r = client.post("/vehiculos", json={
+        "id_tipo_vehiculo": 1, "horarios": "08-18", "frecuencia": "Diaria",
+        "datos": {"cantidad": 1, "patente": patente, "carga": "baja"},
+    })
+    assert r.status_code == 400
+    assert "Patente inválida" in r.json()["detail"]
+
+
+def test_vehicle_update_applies_the_same_rules(company_client):
+    client, SessionLocal = company_client
+    creado = client.post("/vehiculos", json={
+        "id_tipo_vehiculo": 1, "horarios": "08-18", "frecuencia": "Diaria",
+        "datos": {"cantidad": 1, "patente": "AB123CD", "carga": "baja"},
+    }).json()
+    editado = client.put(f"/vehiculos/{creado['id_vehiculo']}", json={
+        "id_tipo_vehiculo": 1, "horarios": "08-18", "frecuencia": "Diaria",
+        "datos": {"cantidad": 1, "patente": "cualquier cosa", "carga": "baja"},
+    })
+    assert editado.status_code == 400
+

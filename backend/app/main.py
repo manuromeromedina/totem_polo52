@@ -27,6 +27,7 @@ from app.routes.voice import router as voice_router
 from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 from app.security_headers import SecurityHeadersMiddleware
+from app.error_handling import CatchUnhandledErrorsMiddleware
 import os
 
 # Cargar variables de entorno
@@ -54,6 +55,10 @@ app = FastAPI(
 # ═══════════════════════════════════════════════════════════════════
 # MIDDLEWARES (ORDEN IMPORTANTE)
 # ═══════════════════════════════════════════════════════════════════
+
+# El más interno: atrapa excepciones no manejadas y responde un 500 JSON que
+# todavía pasa por CORS (ver app/error_handling.py).
+app.add_middleware(CatchUnhandledErrorsMiddleware)
 
 # SessionMiddleware PRIMERO
 app.add_middleware(

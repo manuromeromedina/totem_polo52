@@ -299,3 +299,72 @@ def test_generate_raises_when_every_candidate_fails(monkeypatch, isolated_model_
 
     with pytest.raises(RuntimeError):
         chatbot_service._generate("prompt", chatbot_service.FINAL_GENERATION_CONFIG)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Alcance público de las consultas del chatbot (privacidad a nivel datos)
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.fixture
+def db_publico():
+    """Base en memoria con empresas en distintos estados y contactos comerciales e internos."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+    from app import models
+    from app.config import Base
+
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+    db = sessionmaker(bind=engine)()
+
+    def empresa(cuil, nombre, estado, solicitud):
+        return models.Empresa(cuil=cuil, nombre=nombre, rubro="Logística", cant_empleados=1, observaciones="",
+                              fecha_ingreso=date(2024, 1, 1), horario_trabajo="9-18", estado=estado, estado_solicitud=solicitud)
+
+    db.add_all([models.TipoContacto(id_tipo_contacto=1, tipo="comercial"), models.TipoContacto(id_tipo_contacto=2, tipo="empresarial")])
+    db.add_all([
+        empresa(1, "Aprobada SA", True, "aprobada"),
+        empresa(2, "Pendiente SA", False, "pendiente"),
+        empresa(3, "Rechazada SA", False, "rechazada"),
+        empresa(4, "De Baja SA", False, "aprobada"),
+    ])
+    db.commit()
+    db.add_all([
+        models.Contacto(cuil_empresa=1, id_tipo_contacto=1, nombre="Ventas", telefono="111", datos={}, direccion="A"),
+        models.Contacto(cuil_empresa=1, id_tipo_contacto=2, nombre="Gerencia interna", telefono="999", datos={}, direccion="B"),
+        models.Contacto(cuil_empresa=2, id_tipo_contacto=1, nombre="Ventas pendiente", telefono="222", datos={}, direccion="C"),
+    ])
+    db.commit()
+    yield db
+    db.close()
+    engine.dispose()
+
+
+def test_chatbot_only_sees_active_approved_companies(db_publico):
+    nombres = {r["nombre"] for r in chatbot_service.execute_sql_query(db_publico, "SELECT nombre FROM empresa")}
+    assert nombres == {"Aprobada SA"}
+
+
+def test_chatbot_only_sees_commercial_contacts_of_visible_companies(db_publico):
+    filas = chatbot_service.execute_sql_query(
+        db_publico,
+        "SELECT e.nombre AS empresa, c.nombre, c.telefono FROM contacto c JOIN empresa e ON e.cuil = c.cuil_empresa;",
+    )
+    assert [(f["nombre"], f["telefono"]) for f in filas] == [("Ventas", "111")]
+
+
+def test_schema_prefix_does_not_bypass_the_public_scope(db_publico):
+    # sin el prefijo "public." la referencia cae sobre la versión filtrada
+    sql = chatbot_service.scope_query_to_public_data('SELECT nombre FROM "public"."contacto"', "main")
+    assert '"public"' not in sql.split("lotes AS")[1]
+    assert {r["nombre"] for r in chatbot_service.execute_sql_query(db_publico, "SELECT nombre FROM public.contacto")} == {"Ventas"}
+
+
+@pytest.mark.parametrize("query", [
+    "SELECT * FROM information_schema.tables",
+    "SELECT * FROM pg_catalog.pg_user",
+    "SELECT pg_read_file('/etc/passwd')",
+])
+def test_is_sql_query_allowed_blocks_system_catalogs(query):
+    assert chatbot_service.is_sql_query_allowed(query) is False

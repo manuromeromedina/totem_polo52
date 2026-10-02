@@ -28,14 +28,28 @@ def _reset():
     reset_rate_limits()
 
 
-def test_client_key_prefers_x_forwarded_for():
-    req = _fake_request(ip="10.0.0.1", headers={"x-forwarded-for": "203.0.113.5, 10.0.0.1"})
+def test_client_key_ignores_spoofable_x_forwarded_for_by_default():
+    # la primera IP de X-Forwarded-For la elige el cliente: no tiene que servir
+    # para esquivar el límite rotándola
+    req = _fake_request(ip="10.0.0.1", headers={"x-forwarded-for": "203.0.113.5"})
+    assert _client_key(req) == "10.0.0.1"
+
+
+def test_client_key_uses_cf_connecting_ip_by_default():
+    req = _fake_request(ip="10.0.0.1", headers={"cf-connecting-ip": "198.51.100.9", "x-forwarded-for": "203.0.113.5"})
+    assert _client_key(req) == "198.51.100.9"
+
+
+def test_client_key_x_forwarded_for_mode_uses_the_proxy_appended_ip(monkeypatch):
+    monkeypatch.setattr("app.rate_limit.CLIENT_IP_HEADER", "x-forwarded-for")
+    req = _fake_request(ip="10.0.0.1", headers={"x-forwarded-for": "1.1.1.1, 203.0.113.5"})
     assert _client_key(req) == "203.0.113.5"
 
 
-def test_client_key_falls_back_to_cf_connecting_ip():
+def test_client_key_none_mode_ignores_every_header(monkeypatch):
+    monkeypatch.setattr("app.rate_limit.CLIENT_IP_HEADER", "none")
     req = _fake_request(ip="10.0.0.1", headers={"cf-connecting-ip": "198.51.100.9"})
-    assert _client_key(req) == "198.51.100.9"
+    assert _client_key(req) == "10.0.0.1"
 
 
 def test_client_key_falls_back_to_request_client_host():
