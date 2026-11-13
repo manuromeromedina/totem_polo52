@@ -577,20 +577,22 @@ def read_my_comercial_info(
 @router.put(
     "/companies/me/comercial",
     response_model=schemas.InfoComercialOut,
-    summary="Editar mi información comercial ya cargada")
+    summary="Crear o editar mi información comercial")
 def update_my_comercial_info(
     dto: schemas.InfoComercialUpdate,
     current_user: models.Usuario = Depends(require_empresa_role),
     db: Session = Depends(get_db),
 ):
-    """Editar campos puntuales de la ficha comercial una vez completada por el wizard"""
+    """Crear o editar la ficha comercial desde el formulario del perfil (todos los campos son opcionales)"""
     row = db.query(models.InfoComercial).filter_by(cuil=current_user.cuil).first()
     if not row:
-        raise HTTPException(status_code=404, detail="Todavía no cargaste información comercial")
+        row = models.InfoComercial(cuil=current_user.cuil)
+        db.add(row)
 
     data = dto.model_dump(exclude_unset=True)
     for field, value in data.items():
         setattr(row, field, value)
+    row.completado = True
     row.fecha_actualizacion = date.today()
 
     db.commit()
