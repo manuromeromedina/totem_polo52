@@ -1,7 +1,7 @@
 """
 Tests de integracion reales (contra Supabase, con rollback) para las rutas
 de admin_empresa: perfil de empresa, vehiculos, servicios, contactos e
-informacion comercial (wizard + edicion directa).
+informacion comercial (carga y edicion por formulario).
 """
 import pytest
 
@@ -210,60 +210,22 @@ def test_company_scoped_tipos_catalogs(real_client):
 # ───────────────────────── informacion comercial ─────────────────────────
 
 @requires_real_db
-def test_comercial_info_404_before_wizard(real_client):
+def test_comercial_info_404_before_loading(real_client):
     client, session, token, _empresa = _admin_empresa_client(real_client)
     response = client.get("/companies/me/comercial", headers=auth_headers(token))
     assert response.status_code == 404
 
 
 @requires_real_db
-def test_comercial_wizard_completes_all_questions(real_client):
+def test_comercial_create_and_edit_with_form(real_client):
     client, session, token, _empresa = _admin_empresa_client(real_client)
-    answers = [
-        "Vendemos repuestos industriales",
-        "B2B",
-        "si",
-        "9 a 18",
-        "Medio",
-        "Ambas",
-        "no aplica",
-        "no tenemos",
-        "Todo en orden",
-    ]
-
-    # Primer POST sin message: debe devolver la primera pregunta sin avanzar.
-    first = client.post("/companies/me/comercial/chat", json={"message": None}, headers=auth_headers(token))
-    assert first.status_code == 200
-    assert first.json()["done"] is False
-    assert first.json()["progreso_actual"] == 0
-
-    last_response = None
-    for answer in answers:
-        last_response = client.post(
-            "/companies/me/comercial/chat", json={"message": answer}, headers=auth_headers(token)
-        )
-        assert last_response.status_code == 200, last_response.text
-
-    assert last_response.json()["done"] is True
-
-    info_response = client.get("/companies/me/comercial", headers=auth_headers(token))
-    assert info_response.status_code == 200
-    body = info_response.json()
-    assert body["completado"] is True
-    assert body["publico_objetivo"] == "B2B"
-    assert body["atiende_publico"] is True
-    assert body["rango_precios"] == "Medio"
-
-
-@requires_real_db
-def test_comercial_edit_after_wizard_completed(real_client):
-    client, session, token, _empresa = _admin_empresa_client(real_client)
-    answers = [
-        "Vendemos repuestos industriales", "B2B", "si", "9 a 18",
-        "Medio", "Ambas", "no aplica", "no tenemos", "Todo en orden",
-    ]
-    for answer in answers:
-        client.post("/companies/me/comercial/chat", json={"message": answer}, headers=auth_headers(token))
+    create_resp = client.put(
+        "/companies/me/comercial",
+        json={"productos_servicios": "Vendemos repuestos industriales", "publico_objetivo": "B2B", "rango_precios": "Medio"},
+        headers=auth_headers(token),
+    )
+    assert create_resp.status_code == 200
+    assert create_resp.json()["completado"] is True
 
     edit_resp = client.put(
         "/companies/me/comercial",

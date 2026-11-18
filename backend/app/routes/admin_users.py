@@ -176,7 +176,7 @@ def read_polo_comercial_info(db: Session = Depends(get_db)):
 )
 def update_polo_comercial_info(dto: schemas.InfoComercialUpdate, db: Session = Depends(get_db)):
     """
-    Crea o actualiza la ficha comercial del Polo directamente (sin wizard):
+    Crea o actualiza la ficha comercial del Polo directamente:
     la carga un admin_polo con datos ya conocidos, no se completa de a un
     campo por vez como en el flujo de las empresas.
     """

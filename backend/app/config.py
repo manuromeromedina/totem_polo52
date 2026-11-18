@@ -28,7 +28,9 @@ if not DATABASE_URL:
 # pool_pre_ping: el pooler de Supabase corta conexiones inactivas; sin el ping,
 # la primera query sobre una conexión ya cerrada revienta con 500 intermitentes.
 # pool_recycle las renueva antes de que el servidor las corte.
-engine = create_engine(DATABASE_URL, echo=True, pool_pre_ping=True, pool_recycle=300)
+# SQL_ECHO=1 imprime cada consulta SQL (solo para depurar: ralentiza y deja datos en el log).
+SQL_ECHO = os.getenv("SQL_ECHO", "0") == "1"
+engine = create_engine(DATABASE_URL, echo=SQL_ECHO, pool_pre_ping=True, pool_recycle=300, pool_size=3, max_overflow=2)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

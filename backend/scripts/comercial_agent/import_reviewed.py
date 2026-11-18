@@ -21,7 +21,7 @@ a mano en la app):
 - InfoComercial: se crea/actualiza solo los campos que vienen no vacíos en
   el CSV; completado=True solo si hay como minimo productos_servicios
   cargado (si no, la empresa puede terminar de completarlo ella misma vía
-  el wizard cuando inicie sesión).
+  el formulario de su perfil cuando inicie sesión).
 """
 import argparse
 import csv

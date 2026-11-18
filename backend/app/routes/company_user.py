@@ -598,32 +598,3 @@ def update_my_comercial_info(
     db.commit()
     db.refresh(row)
     return row
-
-
-@router.post(
-    "/companies/me/comercial/chat",
-    response_model=schemas.ComercialChatResponse,
-    summary="Wizard de carga de información comercial",
-    dependencies=[Depends(rate_limit("comercial_chat", max_requests=30, window_seconds=60))],
-)
-def comercial_chat(
-    dto: schemas.ComercialChatRequest,
-    current_user: models.Usuario = Depends(require_empresa_role),
-    db: Session = Depends(get_db),
-):
-    """
-    Avanza un paso en el cuestionario guiado que completa la ficha comercial
-    de la empresa logueada. Enviar `message` vacío devuelve la pregunta
-    pendiente sin avanzar; con `message` completo, valida y guarda la
-    respuesta para el campo actual y devuelve la siguiente.
-    """
-    reply, done, campo_actual, progreso_actual, progreso_total = services.get_comercial_chat_response(
-        db, current_user.cuil, dto.message
-    )
-    return schemas.ComercialChatResponse(
-        reply=reply,
-        done=done,
-        campo_actual=campo_actual,
-        progreso_actual=progreso_actual,
-        progreso_total=progreso_total,
-    )

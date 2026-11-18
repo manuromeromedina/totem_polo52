@@ -83,8 +83,3 @@ from app.services.chatbot_service import (
     test_voice_pipeline,
 )
 
-from app.services import comercial_chatbot_service
-from app.services.comercial_chatbot_service import (
-    QUESTIONS as COMERCIAL_CHAT_QUESTIONS,
-    get_comercial_chat_response,
-)

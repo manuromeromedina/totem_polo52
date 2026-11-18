@@ -671,7 +671,7 @@ _RANGO_PRECIOS_OPCIONES = {"Económico", "Medio", "Premium"}
 _MODALIDAD_VENTA_OPCIONES = {"Presencial", "Online", "Ambas"}
 
 class InfoComercialUpdate(BaseModel):
-    """Edición manual de la ficha comercial ya completada (fuera del wizard)."""
+    """Edición manual de la ficha comercial ya completada."""
     productos_servicios: Optional[str] = Field(None, max_length=2000)
     publico_objetivo: Optional[str] = None
     atiende_publico: Optional[bool] = None
@@ -699,25 +699,6 @@ class InfoComercialUpdate(BaseModel):
         if v is not None and v not in _MODALIDAD_VENTA_OPCIONES:
             raise ValueError(f"Debe ser una de: {', '.join(_MODALIDAD_VENTA_OPCIONES)}")
         return v
-
-    class Config:
-        from_attributes = True
-
-class ComercialChatRequest(BaseModel):
-    message: Optional[str] = Field(
-        None, max_length=1000,
-        description="Respuesta en texto libre a la pregunta actual; vacío/omitido para obtener la pregunta pendiente"
-    )
-
-    class Config:
-        from_attributes = True
-
-class ComercialChatResponse(BaseModel):
-    reply: str
-    done: bool
-    campo_actual: Optional[str] = None
-    progreso_actual: int
-    progreso_total: int
 
     class Config:
         from_attributes = True

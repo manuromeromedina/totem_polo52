@@ -14,7 +14,7 @@ Qué puede hacer cada rol del sistema, explicado en detalle. Al final hay un ane
 
 ### Su propio perfil (el Polo como entidad)
 - Ver y editar los datos del Polo (`GET`/`PUT /polo/me`): cantidad de empleados, horario de trabajo y observaciones. El nombre, rubro y CUIL no son editables desde acá.
-- Ver y cargar la **ficha comercial del Polo** (`GET`/`PUT /polo/comercial`): productos/servicios que ofrece el parque, público objetivo, rango de precios, modalidad de venta, etc. A diferencia de las empresas, el Polo no completa esto con un wizard de preguntas — el admin_polo carga todo directo en un formulario, y queda marcado como completado automáticamente al guardar.
+- Ver y cargar la **ficha comercial del Polo** (`GET`/`PUT /polo/comercial`): productos/servicios que ofrece el parque, público objetivo, rango de precios, modalidad de venta, etc. A diferencia de las empresas, la ficha se carga siempre desde un formulario: el admin_polo carga todo directo en un formulario, y queda marcado como completado automáticamente al guardar.
 - Solicitar el cambio de su propia contraseña (`POST /polo/change-password-request`).
 
 ### Gestión de empresas
@@ -74,8 +74,7 @@ Consulta de los catálogos que alimentan los formularios de arriba: tipos de veh
 
 ### Información comercial (para que el chatbot público pueda responder consultas comerciales)
 - Ver la ficha comercial ya cargada, o su estado parcial (`GET /companies/me/comercial`).
-- **Wizard guiado** (`POST /companies/me/comercial/chat`): un cuestionario de 9 preguntas que se completan de a una por mensaje (productos/servicios, público objetivo, si atiende al público, horario comercial, rango de precios, modalidad de venta, marcas representadas, certificaciones, observaciones). No usa IA — es un flujo determinístico que valida y guarda cada respuesta antes de pasar a la siguiente pregunta.
-- Editar campos puntuales de la ficha una vez completada, sin tener que repetir el wizard (`PUT /companies/me/comercial`).
+- Cargar o editar la ficha desde el formulario del perfil (`PUT /companies/me/comercial`): todos los campos son opcionales y queda marcada como completada al guardar.
 
 ---
 
@@ -132,7 +131,7 @@ Pensado para los usuarios del tótem/kiosco físico del parque (o cualquier visi
 | GET | `/polo/me` | Datos completos del Polo (empresa, servicios, usuarios, lotes) |
 | PUT | `/polo/me` | Actualizar datos editables del Polo |
 | GET | `/polo/comercial` | Ver ficha comercial cargada del Polo |
-| PUT | `/polo/comercial` | Cargar/editar la ficha comercial del Polo (upsert directo, sin wizard) |
+| PUT | `/polo/comercial` | Cargar/editar la ficha comercial del Polo (upsert directo) |
 | POST | `/polo/change-password-request` | Solicitar cambio de contraseña propio |
 | GET | `/empresas` | Listar todas las empresas |
 | GET | `/usuarios` | Listar todos los usuarios |
@@ -168,7 +167,6 @@ Pensado para los usuarios del tótem/kiosco físico del parque (o cualquier visi
 | GET | `/tipos/vehiculo` \| `/tipos/servicio` \| `/tipos/contacto` | Catálogos para los formularios anteriores |
 | GET | `/companies/me/comercial` | Ver ficha comercial cargada (o parcial) |
 | PUT | `/companies/me/comercial` | Editar ficha comercial ya cargada |
-| POST | `/companies/me/comercial/chat` | Wizard guiado que completa la ficha comercial |
 
 ### Directorio (`app/routes/directory.py`) — cualquier usuario logueado
 
@@ -227,7 +225,6 @@ Pensado para los usuarios del tótem/kiosco físico del parque (o cualquier visi
 ### Servicios internos (no HTTP, usados por las rutas de arriba)
 
 - `app/services/chatbot_service.py`: pipeline texto → SQL de solo lectura vía Gemini, con whitelist/blacklist de tablas.
-- `app/services/comercial_chatbot_service.py`: wizard determinístico (sin IA) que completa la ficha comercial de una empresa, un campo por mensaje.
 - `app/services/voice_service.py`: wrappers de Google Cloud Speech-to-Text y Text-to-Speech.
 - `app/services/email_service.py`: envío de emails transaccionales por SMTP (reset de contraseña, bienvenida, aprobación/rechazo de registro, etc.).
 - `app/services/auth_service.py`: emisión/validación de JWT, hashing de contraseñas, generación de tokens de reset y control de historial de contraseñas.
