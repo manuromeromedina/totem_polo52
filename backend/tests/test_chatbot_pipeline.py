@@ -190,9 +190,12 @@ def test_no_results_still_lets_gemini_phrase_the_final_answer(empresa_db, monkey
     igual llama a Gemini (que ya tiene instrucciones para ese caso) y confía
     en su respuesta, para que suene natural en vez de una frase enlatada.
     """
+    consulta = "SELECT nombre FROM empresa WHERE rubro = 'inexistente'"
     responses = iter(
         [
-            _FakeResponse(_intent_json(sql_query="SELECT nombre FROM empresa WHERE rubro = 'inexistente'")),
+            _FakeResponse(_intent_json(sql_query=consulta)),
+            # 0 filas: el modelo revisa su consulta y confirma que es correcta
+            _FakeResponse(_intent_json(sql_query=consulta)),
             _FakeResponse("No tengo empresas de ese rubro registradas, pero puedo contarte sobre logística si te sirve."),
         ]
     )
@@ -201,6 +204,47 @@ def test_no_results_still_lets_gemini_phrase_the_final_answer(empresa_db, monkey
     text_reply, data, corrected = chatbot_service.get_chat_response(empresa_db, "empresas de rubro inexistente")
 
     assert text_reply == "No tengo empresas de ese rubro registradas, pero puedo contarte sobre logística si te sirve."
+    assert data == []
+
+
+def test_failed_sql_is_corrected_by_the_model_using_the_db_error(empresa_db, monkeypatch):
+    """
+    Si la consulta del modelo falla (columna inexistente), el modelo recibe su
+    consulta y el error de la base, la corrige y la respuesta final usa los datos.
+    """
+    prompts = []
+    responses = iter(
+        [
+            _FakeResponse(_intent_json(sql_query="SELECT nombre_empresa FROM empresa")),
+            _FakeResponse(_intent_json(sql_query="SELECT nombre FROM empresa")),
+            _FakeResponse("Tenemos a Logistica Express S.A."),
+        ]
+    )
+
+    def fake_generate(prompt, generation_config):
+        prompts.append(prompt)
+        return next(responses)
+
+    monkeypatch.setattr(chatbot_service, "_generate", fake_generate)
+
+    text_reply, data, corrected = chatbot_service.get_chat_response(empresa_db, "que empresas hay")
+
+    assert text_reply == "Tenemos a Logistica Express S.A."
+    assert "nombre_empresa" in prompts[1]  # el modelo vio su consulta fallida y el error
+    assert len(prompts) == 3
+
+
+def test_failed_sql_that_never_gets_fixed_returns_generic_error(empresa_db, monkeypatch):
+    """Si tras los reintentos la consulta sigue fallando, no se filtra el error técnico."""
+    monkeypatch.setattr(
+        chatbot_service,
+        "_generate",
+        lambda prompt, generation_config: _FakeResponse(_intent_json(sql_query="SELECT columna_falsa FROM empresa")),
+    )
+
+    text_reply, data, corrected = chatbot_service.get_chat_response(empresa_db, "que empresas hay")
+
+    assert text_reply == chatbot_service.GENERIC_ERROR_MESSAGE
     assert data == []
 
 

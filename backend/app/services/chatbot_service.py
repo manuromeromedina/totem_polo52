@@ -257,7 +257,90 @@ def execute_sql_query(db: Session, query: str) -> List[Dict]:
         return raw_results
     except Exception as e:
         print(f"Error al ejecutar la consulta SQL: {str(e)}")
-        return [{"error": GENERIC_ERROR_MESSAGE}]
+        # "detail" es solo para que el modelo pueda corregir su consulta: nunca
+        # se le muestra al usuario (si todo falla se devuelve el mensaje genérico).
+        return [{"error": GENERIC_ERROR_MESSAGE, "detail": str(e)}]
+
+
+MAX_SQL_RETRIES = 2
+
+
+def retry_failed_sql(
+    db: Session,
+    db_schema: str,
+    message: str,
+    chat_history: str,
+    failed_sql: str,
+    error_detail: str,
+) -> Tuple[str, List[Dict]]:
+    """Si la consulta del modelo falla (o devuelve 0 filas, lo que suele indicar
+    una unión mal armada), le muestra su consulta y lo ocurrido para que la
+    corrija (hasta MAX_SQL_RETRIES intentos). Devuelve la última consulta probada
+    y sus resultados: los mejores que consiguió, o el último error si ninguna
+    funcionó. `error_detail` vacío significa "devolvió 0 filas"."""
+    sql_query = failed_sql
+    sin_filas = not error_detail
+    detalle = error_detail or (
+        "La consulta se ejecutó sin errores pero devolvió 0 filas. Revisá que las uniones "
+        "entre tablas sigan las relaciones (claves foráneas) del esquema y que los filtros "
+        "no sean demasiado estrictos. Si la consulta ya es correcta, devolvé la misma."
+    )
+    results: List[Dict] = [] if sin_filas else [{"error": GENERIC_ERROR_MESSAGE, "detail": error_detail}]
+
+    for attempt in range(1, MAX_SQL_RETRIES + 1):
+        retry_prompt = f"""
+Eres POLO, asistente del Parque Industrial Polo 52.
+
+Base de datos disponible:
+{db_schema}
+
+Historial:
+{chat_history}
+
+Consulta del usuario: "{message}"
+
+La consulta SQL que generaste antes no dio un resultado útil.
+Consulta anterior:
+{sql_query}
+
+Qué pasó:
+{detalle}
+
+Corregila usando el esquema y sus relaciones (claves foráneas) para unir tablas. Para comparar texto usá ILIKE.
+Devolvé el JSON con la consulta corregida en sql_query, y el resto de los campos con cadena vacía y needs_more_info en false.
+"""
+        try:
+            retry_data, _ = parse_intent_json(_generate(retry_prompt, INTENT_GENERATION_CONFIG))
+        except Exception as e:
+            print(f"Error pidiendo corrección de la consulta (intento {attempt}): {str(e)}")
+            break
+
+        new_sql = ((retry_data or {}).get("sql_query") or "").strip()
+        if (
+            not new_sql
+            or not is_sql_query_allowed(new_sql)
+            or " ".join(new_sql.split()).rstrip(";") == " ".join(sql_query.split()).rstrip(";")
+        ):
+            break  # sin consulta válida, o el modelo confirma que la anterior era correcta
+
+        print(f"Reintento {attempt} con consulta corregida: {' '.join(new_sql.split())}")
+        nuevos = execute_sql_query(db, new_sql)
+        con_error = bool(nuevos) and isinstance(nuevos[0], dict) and bool(nuevos[0].get("error"))
+        if con_error:
+            sql_query, results = new_sql, nuevos
+            detalle = nuevos[0].get("detail", "")
+            sin_filas = False
+            continue
+        if nuevos:
+            return new_sql, nuevos
+        # corrió bien pero sigue sin filas: lo dejamos como resultado válido (vacío)
+        sql_query, results = new_sql, nuevos
+        sin_filas = True
+        detalle = (
+            "La consulta corregida sigue devolviendo 0 filas. Si es correcta, devolvé la misma."
+        )
+
+    return sql_query, results
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -504,6 +587,56 @@ def resolve_company_locations(db: Session, name: str) -> List[Dict]:
     return locations
 
 
+_LOCATION_INTENT_RE = re.compile(
+    r"ubica|queda|llego|llegar|mapa|manzana|lote|direccion|como ir|"
+    r"donde (esta|estan|se encuentra|se encuentran)"
+)
+
+
+def _plain(text: str) -> str:
+    """Minúsculas y sin acentos, para comparar nombres y palabras clave."""
+    text = unicodedata.normalize("NFD", text or "")
+    return "".join(c for c in text if unicodedata.category(c) != "Mn").lower()
+
+
+def detect_location_company(
+    db: Session, message: str, history: Optional[List[Dict[str, str]]] = None
+) -> str:
+    """Respaldo determinístico para las consultas de ubicación.
+
+    Si el mensaje pregunta por ubicación (dónde queda, cómo llegar, mapa, lote...)
+    devuelve el nombre de la empresa mencionada en el mensaje; si no nombra
+    ninguna (p. ej. "¿tenés el mapa?"), usa la última empresa mencionada en el
+    historial reciente. Cadena vacía si no hay ninguna.
+    """
+    if not _LOCATION_INTENT_RE.search(_plain(message)):
+        return ""
+
+    from app.models import Empresa
+
+    nombres = [
+        n for (n,) in db.query(Empresa.nombre)
+        .filter(Empresa.estado == True, Empresa.estado_solicitud == "aprobada")  # noqa: E712
+        .all()
+        if n and len(n.strip()) >= 3
+    ]
+
+    def buscar(texto: str) -> str:
+        plano = _plain(texto)
+        encontrados = [n for n in nombres if _plain(n.strip()) in plano]
+        return max(encontrados, key=len) if encontrados else ""
+
+    nombre = buscar(message)
+    if nombre:
+        return nombre
+    for entry in reversed((history or [])[-4:]):
+        for key in ("user", "assistant"):
+            nombre = buscar(entry.get(key) or "")
+            if nombre:
+                return nombre
+    return ""
+
+
 def get_chat_response(
     db: Session,
     message: str,
@@ -574,6 +707,12 @@ Tu IA debe entender saludos, expresiones de cortesía, consultas informales o co
 
         location_name = (intent_data.get("location_empresa") or "").strip()
         locations = resolve_company_locations(db, location_name) if location_name else []
+        if not locations:
+            # El modelo no siempre marca location_empresa (es irregular): si la
+            # pregunta es de ubicación, buscamos la empresa nosotros.
+            fallback_name = detect_location_company(db, message, history)
+            if fallback_name:
+                locations = resolve_company_locations(db, fallback_name)
         if out is not None:
             out["locations"] = locations
 
@@ -591,6 +730,14 @@ Tu IA debe entender saludos, expresiones de cortesía, consultas informales o co
             return FORBIDDEN_RESPONSE_TEXT, [], intent_data.get("corrected_entity")
 
         db_results = execute_sql_query(db, sql_query)
+        falló = bool(db_results) and isinstance(db_results[0], dict) and bool(db_results[0].get("error"))
+        if falló or not db_results:
+            # La consulta falló o no devolvió filas: el modelo la revisa viendo
+            # el error de la base (o la pista de que dio 0 filas) y la corrige.
+            sql_query, db_results = retry_failed_sql(
+                db, db_schema, message, chat_history, sql_query,
+                db_results[0].get("detail", "") if falló else "",
+            )
         if db_results and isinstance(db_results[0], dict) and db_results[0].get("error"):
             return GENERIC_ERROR_MESSAGE, [], intent_data.get("corrected_entity")
 
