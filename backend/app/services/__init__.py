@@ -35,6 +35,7 @@ from app.services.auth_service import (
     mark_token_as_used,
     pwd_context,
     revoke_access_token,
+    session_lifetime_for_role,
     save_password_to_history,
     secure_password_reset_confirm,
     verify_password,

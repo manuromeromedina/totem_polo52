@@ -34,6 +34,29 @@ def test_create_access_token_contains_subject():
     assert "exp" in decoded
 
 
+def test_public_user_session_does_not_expire_in_practice_but_other_roles_do():
+    """La sesión del tótem (rol publico) dura años; las demás siguen en 30 minutos."""
+    ahora = datetime.utcnow().timestamp()
+
+    publico = jwt.decode(
+        services.create_access_token(
+            {"sub": "totem"}, expires_delta=services.session_lifetime_for_role("publico")
+        ),
+        SECRET_KEY,
+        algorithms=[ALGORITHM],
+    )
+    assert publico["exp"] - ahora > 5 * 365 * 24 * 3600
+
+    for rol in ("admin_polo", "admin_empresa", None):
+        assert services.session_lifetime_for_role(rol) is None
+    normal = jwt.decode(
+        services.create_access_token({"sub": "otro"}, expires_delta=services.session_lifetime_for_role("admin_polo")),
+        SECRET_KEY,
+        algorithms=[ALGORITHM],
+    )
+    assert normal["exp"] - ahora < 31 * 60
+
+
 def test_normalize_text_removes_accents():
     text_input = "ÁRBOL Ñandú"
     assert services.normalize_text(text_input) == "arbol nandu"

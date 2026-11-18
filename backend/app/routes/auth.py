@@ -289,8 +289,11 @@ def login(
     )
     rol = roles[0][0] if roles else "usuario"
 
-    # Access token
-    access_token = services.create_access_token(data={"sub": user.nombre})
+    # Access token (el del usuario público, que queda abierto en el tótem, no vence)
+    access_token = services.create_access_token(
+        data={"sub": user.nombre},
+        expires_delta=services.session_lifetime_for_role(rol),
+    )
 
     return {
         # Campos originales

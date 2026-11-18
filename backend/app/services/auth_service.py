@@ -17,6 +17,19 @@ from app.models import PasswordHistory
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# La sesión del usuario "publico" es la que queda abierta en el tótem: tiene que
+# estar siempre activa, sin que se cierre sola. Su token dura 10 años (en la
+# práctica no vence). Solo tiene acceso al asistente; igual se puede cerrar a
+# mano con /logout (el token queda revocado) o deshabilitando al usuario.
+PUBLIC_SESSION_EXPIRE_DAYS = 3650
+
+
+def session_lifetime_for_role(rol: Optional[str]) -> Optional[timedelta]:
+    """Duración del token de sesión según el rol (None = la duración normal)."""
+    if rol == "publico":
+        return timedelta(days=PUBLIC_SESSION_EXPIRE_DAYS)
+    return None
+
 # Cache en memoria para tokens usados (en producción usar Redis)
 USED_RESET_TOKENS: Set[str] = set()
 
