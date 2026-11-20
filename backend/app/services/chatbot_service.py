@@ -200,6 +200,26 @@ lotes AS (
 """
 
 
+_ACCENTS_FROM = "áéíóúüÁÉÍÓÚÜñÑ"
+_ACCENTS_TO = "aeiouuAEIOUUnN"
+_ILIKE_RE = re.compile(
+    r"""((?:\w+\s*\([^()]*\))|(?:"?\w+"?(?:\s*\.\s*"?\w+"?)*))\s+(NOT\s+)?ILIKE\s+('(?:[^']|'')*')""",
+    re.IGNORECASE,
+)
+
+
+def _make_ilike_accent_insensitive(sql: str) -> str:
+    """Hace que `col ILIKE 'texto'` ignore las tildes en ambos lados
+    ("Logistica" encuentra "Logística"). Usa translate(), que es nativo de
+    Postgres, así que no requiere instalar la extensión unaccent."""
+    def strip(expr: str) -> str:
+        return f"translate({expr}, '{_ACCENTS_FROM}', '{_ACCENTS_TO}')"
+
+    return _ILIKE_RE.sub(
+        lambda m: f"{strip(m.group(1))} {m.group(2) or ''}ILIKE {strip(m.group(3))}", sql
+    )
+
+
 def scope_query_to_public_data(sql_query: str, schema: str = "public") -> str:
     """Envuelve un SELECT ya validado para que solo vea datos públicos.
     `schema` es donde viven las tablas reales ("public" en Postgres, "main" en SQLite)."""
@@ -209,6 +229,7 @@ def scope_query_to_public_data(sql_query: str, schema: str = "public") -> str:
     # "public.empresa" apuntaría a la tabla real y esquivaría las CTEs: sin el
     # prefijo, la referencia cae sobre la versión filtrada.
     body = re.sub(r'"?\bpublic"?\s*\.\s*', "", body, flags=re.IGNORECASE)
+    body = _make_ilike_accent_insensitive(body)
     return _PUBLIC_SCOPE_CTES.replace("{s}", schema) + body
 
 
@@ -375,7 +396,11 @@ def get_database_schema(db: Session, force_refresh: bool = False) -> str:
 
         schema += f"- Tabla '{table_name}':\n"
         for column in inspector.get_columns(table_name):
-            schema += f"  - {column['name']} ({column['type'].__class__.__name__}"
+            # 'lotes.dueno' es texto libre (nombre del dueño), no una relación:
+            # mostrarlo lleva al modelo a unir empresa con lotes por ahí.
+            if table_name.lower() == "lotes" and column["name"].lower() == "dueno":
+                continue
+            schema +=f"  - {column['name']} ({column['type'].__class__.__name__}"
             if column.get("primary_key"):
                 schema += ", clave primaria"
             if column.get("nullable"):
@@ -747,6 +772,17 @@ Tu IA debe entender saludos, expresiones de cortesía, consultas informales o co
         # con criterio propio en vez de una frase enlatada siempre igual.
         results_text = json.dumps(db_results, ensure_ascii=False, default=custom_json_serializer)
         input_text = f"Resultados de la consulta:\n{results_text}\nPregunta:\n{message}"
+        if locations:
+            # Datos ya verificados por el backend (los mismos que dibujan el mapa):
+            # se le pasan al modelo como información, no como instrucción.
+            ubic_text = json.dumps(
+                [
+                    {"empresa": loc["empresa_nombre"], "manzana": loc["manzana"], "lote": loc["lote"]}
+                    for loc in locations
+                ],
+                ensure_ascii=False,
+            )
+            input_text += f"\nUbicaciones registradas en el parque (con pin en el mapa):\n{ubic_text}"
 
         location_note = (
             "\nNota: la interfaz ya le va a mostrar al usuario un mapa con el/los pines exactos "
